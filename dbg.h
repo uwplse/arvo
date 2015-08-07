@@ -3,19 +3,13 @@
 #ifndef __dbg_h__
 #define __dbg_h__
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
 #include <time.h>
 
-static char time_buf[BUFSIZ];
-// e.g. 2015-05-15 23:32:58
-char* get_time() {
-  time_t t = time(NULL);
-  struct tm* localtm = localtime(&t);
-  strftime(time_buf, BUFSIZ, "%d %b %Y-%m-%d %H:%M:%S", localtm);
-  return time_buf;
-}
+char* get_time();
 
 #define clean_errno() (errno == 0 ? "None" : strerror(errno))
 

@@ -1,0 +1,4 @@
+def id : ((_ : Type) -> Type) := (\ x : Type . x).
+print id.
+check id.
+simpl id.

@@ -10,6 +10,10 @@
  *     | (x : e) -> e
  *     | e e 
  *     | Type
+ *     | nat
+ *     | nat-ind
+ *     | O
+ *     | S
  */
 
 typedef enum {
@@ -17,56 +21,73 @@ typedef enum {
   LAM,
   PI, 
   APP,
-  TYPE
+  TYPE,
+  NAT,
+  NAT_IND,
+  O,
+  S,
+  INTRO,
+  ELIM,
+  DATATYPE
 } term_tag;
 
-const char* term_tag_names[TYPE+1] = {"VAR", "LAM", "PI", "APP", "TYPE"};
 
-const char* term_tag_to_string(term_tag tag) {
-  check(0 <= tag && tag <= TYPE, "Bad tag %d", tag);
-  return term_tag_names[tag];
- error:
-  return NULL;
-}
+
+const char* term_tag_to_string(term_tag tag);
 
 typedef struct {
   char* name;
 } variable;
+
+extern variable ignore;
 
 typedef struct term {
   term_tag tag;
   variable* var;       // Valid for VAR, LAM, PI, otherwise NULL
   struct term* left;   // Valid for LAM, PI, APP, otherwise NULL
   struct term* right;  // Valid for LAM, PI, APP, otherwise NULL
+
+  int num_args;        // Valid for NAT_IND only
+  struct term** args;  // Valid for NAT_IND only
 } term;
 
-int term_locally_well_formed(term* t) {
-  if (t == NULL) return 1;
+int term_locally_well_formed(term* t);
+int variable_equal(variable* x, variable* y);
 
-  switch (t->tag) {
-  case VAR:
-    return (t->var != NULL);
-  case LAM:
-  case PI:
-    return (t->var != NULL) && (t->left != NULL) && (t->right != NULL);
-  case APP:
-    return (t->left != NULL) && (t->right != NULL);
-  case TYPE:
-    return 1;
-  default:
-    return 0;
-  }
-}
+int print_term(FILE* stream, term* t);
 
-char* term_to_string(term* t);
+int print_term_and_free(FILE* stream, term* t);
+
+int print_variable(FILE* stream, variable* v);
+
+/* caller gives up ownership of c */
+variable* make_variable(char *c);
+
+variable *gensym(variable *var);
 
 term* make_pi(variable* x, term* A, term* B);
+term* make_lambda(variable* x, term* A, term* B);
+term* make_app(term* a, term* b);
+term* make_var(variable* var);
 
 term* make_type();
+term* make_nat();
+term* make_nat_ind(term* motive, term* Z, term* S, term* n);
+term* make_o();
+term* make_s();
 
-term* normalize(term* t);
+term* make_intro(variable* name);
+term* make_elim(variable* name, int num_args);
+term* make_datatype_term(variable* name);
 
-int definitionally_equal(term* a, term* b);
+void free_variable(variable* v);
+
+void free_term(term* t);
+
+int syntactically_identical(term* a, term* b);
+
+term* term_dup(term* t);
+variable* variable_dup(variable* v);
 
 term* substitute(variable* from, term* to, term* haystack);
 

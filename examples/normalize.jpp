@@ -1,0 +1,5 @@
+def zero : nat := O.
+check zero.
+simpl zero.
+simpl (\x : nat. zero).
+

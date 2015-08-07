@@ -1,0 +1,1 @@
+check nat-ind(\ _ : nat . nat; (S O); \x : nat. \y : nat. (S y); (S (S O))).

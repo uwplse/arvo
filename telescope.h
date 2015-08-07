@@ -16,6 +16,8 @@ telescope* telescope_add(variable* var, term* ty, telescope* rest);
 
 term* telescope_lookup(variable* var, telescope* Gamma);
 
-char* telescope_to_string(telescope* Gamma);
+int print_telescope(FILE* stream, telescope* Gamma);
+
+telescope* telescope_pop(telescope* Gamma);
 
 #endif  // TELESCOPE_H

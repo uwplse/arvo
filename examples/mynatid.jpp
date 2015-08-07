@@ -1,0 +1,6 @@
+def mynatid : (_ : nat) -> nat :=
+    \ n : nat . nat-ind(\ _ : nat . nat; O; \ _ : nat . \ y : nat . (S y); n).
+
+print mynatid.
+check mynatid.
+simpl mynatid.
