@@ -251,8 +251,9 @@ int is_free(variable *var, term *haystack) {
  */
 term* substitute(variable* from, term* to, term* haystack) {
   check(from != NULL && to != NULL && haystack != NULL, "substitute requires non-NULL arguments");
-  check(term_locally_well_formed(to) && term_locally_well_formed(haystack),
-        "substitute requires locally well-formed arguments");
+  check(term_locally_well_formed(to), "substitute requires %W to be locally well-formed", to, print_term);
+  check(term_locally_well_formed(haystack),"substitute requires %W to be locally well-formed", haystack, print_term);
+
 
   switch(haystack->tag) {
   case VAR:
