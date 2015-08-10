@@ -1,5 +1,6 @@
 #include "term.h"
 #include "normalize.h"
+#include "printing.h"
 
 
 term* normalize(context *Sigma, typing_context* Delta, term* t) {
