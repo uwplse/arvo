@@ -97,11 +97,9 @@ void vernac_run(command *c) {
       term *tM = make_var(M);
       variable *a = gensym("a");
       term *ta = make_var(a);
-      term *elim = make_pi(variable_dup(a), term_dup(A), make_app(term_dup(tM), term_dup(ta)));
-      
+      term *elim_type = make_pi(variable_dup(a), term_dup(A), make_app(term_dup(tM), term_dup(ta)));
       free_term(ta);
       ta = NULL;
-
       int total_args = 0;
       
       for (i = c->num_args-1; i >= 0; i--) {
@@ -130,16 +128,16 @@ void vernac_run(command *c) {
           prev = new_wrapper;
           constructor_type = constructor_type->right;
         }
-        elim = make_pi(variable_dup(&ignore),
+        elim_type = make_pi(variable_dup(&ignore),
                        wrapped,
-                       elim);
+                       elim_type);
       }
-      elim = make_pi(variable_dup(M), tyMotive, elim);
+      elim_type = make_pi(variable_dup(M), tyMotive, elim_type);
       free_term(tM);
       tM = NULL;
       char *elim_name;
       asprintf(&elim_name, "%W_elim", A, print_term);
-      Gamma = telescope_add(make_variable(strdup(elim_name)), elim, Gamma);
+      Gamma = telescope_add(make_variable(strdup(elim_name)), elim_type, Gamma);
       
       /* Modify Sigma. For a datatype A with constructors a1,...,an and
          eliminator E, we need terms with tags:
@@ -173,7 +171,7 @@ void vernac_run(command *c) {
             lambda_wrapped_intro = new_lambda;
           }
           else {
-            prev->right = lambda_wrapped_intro;
+            prev->right = new_lambda;
           }
           term *arg = make_var(variable_dup(x));
           if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
@@ -181,7 +179,8 @@ void vernac_run(command *c) {
           }
           total_arg_index++;
           intro->args[j] = arg;
-          prev = lambda_wrapped_intro;
+          prev = new_lambda;
+          constructor_type = constructor_type->right;
         }
         Sigma = context_add(variable_dup(c->args[i]->var), lambda_wrapped_intro, Sigma);
       }
@@ -193,18 +192,19 @@ void vernac_run(command *c) {
       for (i = 0; i < c->num_args; i++) {
         vars[i+1] = gensym("c");
       }
+      term *elim;
       term *eliminator;
       eliminator = make_elim(make_variable(strdup(elim_name)), c->num_args + 2);
       for (i = 0; i < c->num_args+2; i++) {
-        eliminator->args[i] = make_var(vars[i]);
+        eliminator->args[i] = make_var(variable_dup(vars[i]));
       }
       elim = eliminator;
-      elim = make_lambda(vars[c->num_args+1], term_dup(A), elim);
+      elim = make_lambda(variable_dup(vars[c->num_args+1]), term_dup(A), elim);
       free_term(A);
       A = NULL;
       for (i = c->num_args-1; i >= 0; i--) {
         term *constructor_type = c->args[i]->left;
-        term *app = make_app(make_var(vars[0]), make_var(variable_dup(c->args[i]->var)));
+        term *app = make_app(make_var(variable_dup(vars[0])), make_var(variable_dup(c->args[i]->var)));
         term *prev = NULL;
         term *wrapped = app;
         while (constructor_type->tag == PI) {
@@ -227,7 +227,7 @@ void vernac_run(command *c) {
           prev = new_wrapper;
           constructor_type = constructor_type->right;
         }
-        elim = make_lambda(vars[i+1],
+        elim = make_lambda(variable_dup(vars[i+1]),
                            wrapped,
                            elim);
       }
@@ -236,7 +236,6 @@ void vernac_run(command *c) {
       free(vars);
       vars = NULL;
       Sigma = context_add(make_variable(elim_name), elim, Sigma);
-
       // Modify Delta
 
       datatype *d = make_datatype(variable_dup(c->var), c->num_args,
