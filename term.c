@@ -427,15 +427,6 @@ void free_term(term* t) {
   free(t);
 }
 
-static const char* term_tag_names[S+1] = {"VAR", "LAM", "PI", "APP", "TYPE", "NAT", "NAT_IND" "O", "S"};
-
-const char* term_tag_to_string(term_tag tag) {
-  check(0 <= tag && tag <= TYPE, "Bad tag %d", tag);
-  return term_tag_names[tag];
- error:
-  return NULL;
-}
-
 variable* variable_dup(variable* v) {
   if (v == NULL) return NULL;
 
