@@ -126,7 +126,15 @@ command *ast_to_command(mpc_ast_t *ast) {
     j = 0;
     for (i = 0; i < ast->children_num; i++) {
       if (prefix("constructor", ast->children[i]->tag)) {
-        data->args[j++] = make_intro(make_variable(strdup(ast->children[i]->contents)));
+        if (ast->children[i]->children_num == 0) {
+          data->args[j++] = make_var(make_variable(strdup(ast->children[i]->contents)));
+        }
+        else {
+          check(ast->children[i]->children_num == 3, "malformed constructor");
+          term *c = make_var(make_variable(strdup(ast->children[i]->children[0]->contents)));
+          c->left = ast_to_term(ast->children[i]->children[2]);
+          data->args[j++] = c;
+        }
       }
     }
     return data;
@@ -141,10 +149,6 @@ static mpc_parser_t* pLambda;
 static mpc_parser_t* pPi;
 static mpc_parser_t* pApp;
 static mpc_parser_t* pType;
-static mpc_parser_t* pNat;
-static mpc_parser_t* pNatInd;
-static mpc_parser_t* pO;
-static mpc_parser_t* pS;
 static mpc_parser_t* pParens;
 static mpc_parser_t* pTerm;
 static mpc_parser_t* pCommand;
@@ -163,10 +167,6 @@ int parse(char* filename) {
   pPi = mpc_new("pi");
   pApp = mpc_new("app");
   pType = mpc_new("type");
-  pNat = mpc_new("nat");
-  pNatInd = mpc_new("natind");
-  pO = mpc_new("o");
-  pS = mpc_new("s");
   pParens = mpc_new("parens");
   pTerm = mpc_new("term");
   pCommand = mpc_new("command");
@@ -186,10 +186,6 @@ int parse(char* filename) {
               " pi      : '(' <bound> ':' <term> ')' \"->\" <term> ;\n"
               " app     : '(' <term> <term> ')' ;\n"
               " type    : \"Type\" ;\n"
-              " nat     : \"nat\" ;\n"
-              " natind : \"nat-ind\" '(' <term> ';' <term> ';' <term> ';' <term> ')' ;\n"
-              " o       : \"O\" ;\n"
-              " s       : \"S\" ;\n"
               " parens  : '(' <term> ')' ;\n"
               " term    : <type> | <o> | <s> | <natind> | <nat> \n"
               "         | <var> | <lambda> | <pi> | <app> | <parens> ;\n"
@@ -197,12 +193,12 @@ int parse(char* filename) {
               " print   : \"print\" <var> '.' ;\n"
               " check   : \"check\" <term> '.' ;\n"
               " simpl   : \"simpl\" <term> '.' ;\n"
-              " constructor : <var> ;\n"
+              " constructor : <var> (':' <term>)? ;\n"
               " data    : \"data\" <var> \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"
               " command : <def> | <print> | <check> | <simpl> | <data> ;\n"
               " program  : /^/ <command> * /$/ ;\n",
-              pVar, pBound, pLambda, pPi, pApp, pType, pNat, pNatInd,
-              pO, pS, pParens, pTerm,
+              pVar, pBound, pLambda, pPi, pApp, pType,
+              pParens, pTerm,
               pCommand, pDef, pPrint, pCheck, pSimpl, pConstructor, pData, pProgram, NULL);
   
   if (err != NULL) {
@@ -217,7 +213,7 @@ int parse(char* filename) {
     mpc_err_delete(r.error);
     goto error;
   }
-
+  //mpc_ast_print(r.output);
   command_index = 1;
   return 1;
  error:
@@ -233,8 +229,8 @@ command *next_command() {
 }
 
 void free_ast() {
-  mpc_cleanup(20, pVar, pBound, pLambda, pPi, pApp, pType, pNat, pNatInd,
-              pO, pS, pParens, pTerm, pCommand, pDef, pPrint, pCheck, pSimpl,
+  mpc_cleanup(16, pVar, pBound, pLambda, pPi, pApp, pType, 
+              pParens, pTerm, pCommand, pDef, pPrint, pCheck, pSimpl,
               pConstructor, pData, pProgram);
   mpc_ast_delete(r.output);
 }

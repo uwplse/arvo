@@ -399,6 +399,7 @@ int term_locally_well_formed(term* t) {
   }
 }
 
+
 void free_variable(variable* v) {
   if (v == NULL) return;
 
@@ -466,10 +467,12 @@ term* term_dup(term* t) {
   return ans;
 }
 
-term* make_intro(variable* name) {
+term* make_intro(variable* name, int num_args) {
   term* ans = make_term();
   ans->tag = INTRO;
   ans->var = name;
+  ans->num_args = num_args;
+  ans->args = malloc(num_args * sizeof(term*));
   return ans;
 }
 

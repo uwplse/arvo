@@ -54,18 +54,44 @@ void vernac_run(command *c) {
     }
   case DATA:
     {
+      // check that this is a reasonable type definition
+      telescope *Gamma_prime = telescope_add(variable_dup(c->var), make_type(), Gamma);
+      term *tA = make_datatype_term(variable_dup(c->var));
+      context *Sigma_prime = context_add(variable_dup(c->var), tA, Sigma);
+      
+      term *A = make_var(variable_dup(c->var));
+      int num_constructors = c->num_args;
+      int i;
+      for (i = 0; i < num_constructors; i++) {
+        term *constructor = c->args[i];
+        if (constructor->left == NULL) {
+          constructor->left = term_dup(A);
+        }
+        term *type = make_type();
+        check(has_type(Gamma_prime, Sigma_prime, Delta, constructor->left, type),
+              "constructor %W has type %W instead of Type", constructor->var,
+              print_variable,
+              typecheck(Gamma_prime, Sigma_prime, Delta, constructor->left),
+              print_term);
+        check(is_pi_returning(Sigma_prime, Delta,
+                              constructor->left, A), "constructor %W does not return %W",
+              constructor->var, print_variable, A, print_term);
+        // todo: positivity
+        // todo: allow constructor types to normalize to pi-types
+      }
+      
+      
       /* Modify Gamma. For a datatype A with constructors a1,...,an and
          eliminator E, we need terms with types: 
          - A : Type
          - a1,...,an : A
          - E : (M : A -> Type) -> M a1 -> ... -> M an -> (a : A) -> M a
       */
-      int i;
-      Gamma = telescope_add(variable_dup(c->var), make_type(), Gamma);
-      term *A = make_var(variable_dup(c->var));
+      Gamma = Gamma_prime;
       for (i = 0; i < c->num_args; i++) {
-        Gamma = telescope_add(variable_dup(c->args[i]->var), term_dup(A), Gamma);
+        Gamma = telescope_add(variable_dup(c->args[i]->var), term_dup(c->args[i]->left), Gamma);
       }
+      
       term *tyMotive = make_pi(variable_dup(&ignore), term_dup(A), make_type());
       variable *M = gensym("M");
       term *tM = make_var(M);
@@ -75,8 +101,22 @@ void vernac_run(command *c) {
       free_term(ta);
       ta = NULL;
       for (i = c->num_args-1; i >= 0; i--) {
+        term *constructor_type = c->args[i]->left;
+        term *argument_to_motive = make_var(variable_dup(c->args[i]->var));
+        term *type_of_evidence = make_app(term_dup(tM), argument_to_motive);
+        term *app = type_of_evidence;
+        while (constructor_type->tag == PI) {
+          variable *x = gensym(make_variable("x"));
+          // check to see if this is an inductive case
+          if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
+            type_of_evidence = make_pi(variable_dup(&ignore), make_app(term_dup(tM), make_var(x)), type_of_evidence);
+          }
+          type_of_evidence = make_pi(x, term_dup(constructor_type->left), type_of_evidence);
+          app->right = make_app(app->right, make_var(x));
+          constructor_type = constructor_type->right;
+        }
         elim = make_pi(variable_dup(&ignore),
-                       make_app(term_dup(tM), make_var(variable_dup(c->args[i]->var))),
+                       type_of_evidence,
                        elim);
       }
       elim = make_pi(variable_dup(M), tyMotive, elim);
@@ -85,15 +125,21 @@ void vernac_run(command *c) {
       char *elim_name;
       asprintf(&elim_name, "%W_elim", A, print_term);
       Gamma = telescope_add(make_variable(strdup(elim_name)), elim, Gamma);
+      
       /* Modify Sigma. For a datatype A with constructors a1,...,an and
          eliminator E, we need terms with tags:
          - A : DATATYPE
          - a1,...,an : INTRO
          - elim : \M : (A -> Type) . \x1 : M a1 . ... \xn : M an . \a : A . ELIM(M; x1; ...; xn; a)
       */
-      term *tA = make_datatype_term(variable_dup(c->var));
-      Sigma = context_add(variable_dup(c->var), tA, Sigma);
+
+      Sigma = Sigma_prime;
       for (i = 0; i < c->num_args; i++) {
+        /*
+        constructor_type = c->args[i]->left;
+        while (constructor_type->tag == PI) {
+          
+        }*/
         Sigma = context_add(variable_dup(c->args[i]->var), term_dup(c->args[i]), Sigma);
       }
       variable **vars = malloc((c->num_args+2) * sizeof(variable*));
@@ -121,6 +167,8 @@ void vernac_run(command *c) {
       free(vars);
       vars = NULL;
       Sigma = context_add(make_variable(elim_name), elim, Sigma);
+
+      // Modify Delta
 
       datatype *d = make_datatype(variable_dup(c->var), c->num_args, term_dup(eliminator));
       for (i = 0; i < c->num_args; i++) {
