@@ -98,25 +98,40 @@ void vernac_run(command *c) {
       variable *a = gensym("a");
       term *ta = make_var(a);
       term *elim = make_pi(variable_dup(a), term_dup(A), make_app(term_dup(tM), term_dup(ta)));
+      
       free_term(ta);
       ta = NULL;
+
+      int total_args = 0;
+      
       for (i = c->num_args-1; i >= 0; i--) {
         term *constructor_type = c->args[i]->left;
-        term *argument_to_motive = make_var(variable_dup(c->args[i]->var));
-        term *type_of_evidence = make_app(term_dup(tM), argument_to_motive);
-        term *app = type_of_evidence;
+        term *app = make_app(term_dup(tM), make_var(variable_dup(c->args[i]->var)));
+        term *prev = NULL;
+        term *wrapped = app;
         while (constructor_type->tag == PI) {
+          total_args++;
+          term *new_wrapper;
           variable *x = gensym(make_variable("x"));
+          new_wrapper = make_pi(x, term_dup(constructor_type->left), app);
+          if (prev == NULL) {
+            wrapped = new_wrapper;
+          }
+          else
+          {
+            prev->right = new_wrapper;
+          }
           // check to see if this is an inductive case
           if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
-            type_of_evidence = make_pi(variable_dup(&ignore), make_app(term_dup(tM), make_var(x)), type_of_evidence);
-          }
-          type_of_evidence = make_pi(x, term_dup(constructor_type->left), type_of_evidence);
+            new_wrapper->right = make_pi(variable_dup(&ignore), make_app(term_dup(tM), make_var(x)), app);
+            new_wrapper = new_wrapper->right;
+          }          
           app->right = make_app(app->right, make_var(x));
+          prev = new_wrapper;
           constructor_type = constructor_type->right;
         }
         elim = make_pi(variable_dup(&ignore),
-                       type_of_evidence,
+                       wrapped,
                        elim);
       }
       elim = make_pi(variable_dup(M), tyMotive, elim);
@@ -133,15 +148,45 @@ void vernac_run(command *c) {
          - elim : \M : (A -> Type) . \x1 : M a1 . ... \xn : M an . \a : A . ELIM(M; x1; ...; xn; a)
       */
 
+      int *inductive_args = malloc(total_args * sizeof(int));
+      int total_arg_index = 0;
+      term **intros = malloc(num_constructors * sizeof(term*));
+
       Sigma = Sigma_prime;
       for (i = 0; i < c->num_args; i++) {
-        /*
-        constructor_type = c->args[i]->left;
+        term *constructor_type = c->args[i]->left;
+        int num_args = 0;
         while (constructor_type->tag == PI) {
-          
-        }*/
-        Sigma = context_add(variable_dup(c->args[i]->var), term_dup(c->args[i]), Sigma);
+          num_args++;
+          constructor_type = constructor_type->right;
+        }
+        term *intro = make_intro(variable_dup(c->args[i]->var), num_args);
+        intros[i] = intro;
+        term *lambda_wrapped_intro = intro;
+        term *prev = NULL;
+        int j;
+        constructor_type = c->args[i]->left;
+        for (j = 0; j < num_args; j++) {
+          variable *x = gensym(make_variable("x"));
+          term *new_lambda = make_lambda(x, term_dup(constructor_type->left), intro);
+          if (prev == NULL) {
+            lambda_wrapped_intro = new_lambda;
+          }
+          else {
+            prev->right = lambda_wrapped_intro;
+          }
+          term *arg = make_var(variable_dup(x));
+          if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
+            inductive_args[total_arg_index] = 1;
+          }
+          total_arg_index++;
+          intro->args[j] = arg;
+          prev = lambda_wrapped_intro;
+        }
+        Sigma = context_add(variable_dup(c->args[i]->var), lambda_wrapped_intro, Sigma);
       }
+
+      
       variable **vars = malloc((c->num_args+2) * sizeof(variable*));
       vars[0] = gensym("M");
       vars[c->num_args+1] = gensym("a");
@@ -158,9 +203,33 @@ void vernac_run(command *c) {
       free_term(A);
       A = NULL;
       for (i = c->num_args-1; i >= 0; i--) {
+        term *constructor_type = c->args[i]->left;
+        term *app = make_app(make_var(vars[0]), make_var(variable_dup(c->args[i]->var)));
+        term *prev = NULL;
+        term *wrapped = app;
+        while (constructor_type->tag == PI) {
+          term *new_wrapper;
+          variable *x = gensym(make_variable("x"));
+          new_wrapper = make_pi(x, term_dup(constructor_type->left), app);
+          if (prev == NULL) {
+            wrapped = new_wrapper;
+          }
+          else
+          {
+            prev->right = new_wrapper;
+          }
+          // check to see if this is an inductive case
+          if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
+            new_wrapper->right = make_pi(variable_dup(&ignore), make_app(make_var(variable_dup(vars[0])), make_var(x)), app);
+            new_wrapper = new_wrapper->right;
+          }          
+          app->right = make_app(app->right, make_var(x));
+          prev = new_wrapper;
+          constructor_type = constructor_type->right;
+        }
         elim = make_lambda(vars[i+1],
-                       make_app(make_var(vars[0]), make_var(variable_dup(c->args[i]->var))),
-                       elim);
+                           wrapped,
+                           elim);
       }
       elim = make_lambda(variable_dup(vars[0]), make_pi(variable_dup(&ignore), term_dup(A), make_type()),
                          elim);
@@ -170,9 +239,10 @@ void vernac_run(command *c) {
 
       // Modify Delta
 
-      datatype *d = make_datatype(variable_dup(c->var), c->num_args, term_dup(eliminator));
+      datatype *d = make_datatype(variable_dup(c->var), c->num_args,
+                                  term_dup(eliminator), inductive_args);
       for (i = 0; i < c->num_args; i++) {
-        d->intros[i] = term_dup(c->args[i]);
+        d->intros[i] = term_dup(intros[i]);
       }
       Delta = typing_context_add(d, Delta);
       printf("added datatype %W\n", A, print_term);
