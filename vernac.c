@@ -90,7 +90,7 @@ void vernac_run(command *c) {
       term *tA = make_datatype_term(variable_dup(c->var));
       Sigma = context_add(variable_dup(c->var), tA, Sigma);
       for (i = 0; i < c->num_args; i++) {
-        Sigma = context_add(variable_dup(c->args[i]->var), term_dup(c->args[i]), Gamma);
+        Sigma = context_add(variable_dup(c->args[i]->var), term_dup(c->args[i]), Sigma);
       }
       variable **vars = malloc((c->num_args+2) * sizeof(variable*));
       vars[0] = gensym(make_variable("M"));
