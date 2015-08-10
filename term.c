@@ -190,7 +190,18 @@ int syntactically_identical(term* a, term* b) {
   case DATATYPE:
     return variable_equal(a->var, b->var);
   case INTRO:
-    return variable_equal(a->var, b->var);
+    {
+      int i;
+      if (!variable_equal(a->var, b->var)) {
+        return 0;
+      }
+      for (i = 0; i < a->num_args; i++) {
+        if (!syntactically_identical(a->args[i], b->args[i])) {
+          return 0;
+        }
+      }
+      return 1;
+    }
   case ELIM:
     {
       int i;
@@ -236,7 +247,19 @@ int is_free(variable *var, term *haystack) {
   case APP:
     return is_free(var, haystack->left) || is_free(var, haystack->right);
   case DATATYPE:
+    return variable_equal(var, haystack->var);
   case INTRO:
+    {
+      int i;
+      if (variable_equal(var, haystack->var)) {
+        return 1;
+      }
+      for (i = 0; i < haystack->num_args; i++) {
+        if (is_free(var, haystack->args[i])) {
+          return 0;
+        }
+      }
+    }
     return variable_equal(var, haystack->var);
   case ELIM:
     {
