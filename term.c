@@ -202,6 +202,23 @@ int syntactically_identical(term* a, term* b) {
     return 
       syntactically_identical(a->left, b->left) &&
       syntactically_identical(a->right, b->right);
+  case DATATYPE:
+    return variable_equal(a->var, b->var);
+  case INTRO:
+    return variable_equal(a->var, b->var);
+  case ELIM:
+    {
+      int i;
+      if (!variable_equal(a->var, b->var)) {
+        return 0;
+      }
+      for (i = 0; i < a->num_args; i++) {
+        if (!syntactically_identical(a->args[i], b->args[i])) {
+          return 0;
+        }
+      }
+      return 1;
+    }
   case TYPE:
   case NAT:
   case NAT_IND:
