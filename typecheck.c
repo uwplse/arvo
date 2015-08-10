@@ -7,7 +7,7 @@
 static term* typecheck_app(telescope* Gamma, context* Sigma, typing_context* Delta, term* fun, term* arg) {
   term* tyArg = NULL;
 
-  term* tyFun = typecheck(Gamma, Sigma, Delta, fun);
+  term* tyFun = normalize_and_free(Sigma, Delta, typecheck(Gamma, Sigma, Delta, fun));
   check(tyFun != NULL, "Bad function %W", fun, print_term);
   check(tyFun->tag == PI, "Function %W has type %W but expected to have pi-type",
         fun, print_term, tyFun, print_term);
