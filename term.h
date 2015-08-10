@@ -33,8 +33,6 @@ typedef enum {
 
 
 
-const char* term_tag_to_string(term_tag tag);
-
 typedef struct {
   char* name;
 } variable;
