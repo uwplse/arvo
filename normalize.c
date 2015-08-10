@@ -2,6 +2,12 @@
 #include "normalize.h"
 #include "printing.h"
 
+term* normalize_and_free(context *Sigma, typing_context* Delta, term* t) {
+  term* ans = normalize(Sigma, Delta, t);
+  free_term(t);
+  return ans;
+}
+
 
 term* normalize(context *Sigma, typing_context* Delta, term* t) {
   check(t, "t must be non-NULL");
