@@ -1,8 +1,40 @@
-data N := Zero | Succ : (_ : N) -> N.
+data nat := Zero | Succ : nat -> nat.
 
-data TList := Nil | Cons : (_ : Type) -> (_ : TList) -> TList.
+data natlist := Nil | Cons : nat -> natlist -> natlist.
 
-data bool := true | false.
+data bool := True | False.
 
-check (((TList_elim (\ _ : TList . N)) Zero) (\ dat : Type . \ x : TList . \ x : N . (Succ x))).
+def not : bool -> bool :=
+  \ b : bool. bool_elim (\ _ : bool . bool) False True b.
 
+def even : nat -> bool :=
+  \x : nat. nat_elim (\ _ : nat . bool) True (\ _ : nat. \y : bool. not y) x.
+
+def is_empty : natlist -> bool :=
+  \ l : natlist. natlist_elim (\ _ : natlist . bool) True
+                              (\ _ : nat. \ _ : natlist. \ _ : bool. False) l.
+
+def length : natlist -> nat :=
+  \ l : natlist. natlist_elim (\ _ : natlist . nat) Zero
+                              (\ _ : nat. \ _ : natlist. \ x : nat. Succ x) l.
+
+def plus : nat -> nat -> nat :=
+  \n : nat. \m : nat.
+    nat_elim (\ _ : nat . nat) m (\_ : nat. \x : nat. Succ x) n.
+
+def sum : natlist -> nat :=
+  \l : natlist. natlist_elim (\_ : natlist . nat) Zero
+                             (\ x : nat . \ _ : natlist . \ y : nat. plus x y) l.
+
+simpl even (Succ Zero).
+
+simpl is_empty Nil.
+simpl is_empty (Cons Zero Nil).
+simpl length Nil.
+simpl length (Cons Zero Nil).
+
+simpl plus Zero Zero.
+
+simpl plus (Succ (Succ Zero)) (Succ Zero).
+
+simpl sum (Cons (Succ (Succ Zero)) (Cons (Succ Zero) Nil)).
