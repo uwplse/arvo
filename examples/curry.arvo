@@ -1,22 +1,22 @@
-data bad := in : (_ : (_ : bad) -> bad) -> bad.
+data bad := in : (bad -> bad) -> bad.
 
 check in.
 
 check bad_elim.
 
-def out : (_ : bad) -> (_ : bad) -> bad :=
+def out : bad -> (bad -> bad) :=
   \b : bad.
-    (((bad_elim (\ _ : bad. (_ : bad) -> bad)) (\ x : (_ : bad) -> bad. x)) b).
+    bad_elim (\_ : bad. bad -> bad) (\x : bad -> bad. x) b.
 
 check out.
 
 def False : Type := (A : Type) -> A.
 
-def worse : bad := (in (\x : bad. ((out x) x))).
+def worse : bad := (in (\x : bad. out x x)).
 
-check ((out worse) worse).
+check (out worse worse).
 
-simpl ((out worse) worse).
+simpl (out worse worse).
 
 check ((\ x : bad. ((out x) x))
        (in (\ x : bad. ((out x) x)))).
