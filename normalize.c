@@ -83,7 +83,7 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
         int index = datatype_intro_index(last->var, T);
         return normalize(Sigma, Delta, t->args[index + 1]);
       } else {
-        term* ans = make_elim(t->var, t->num_args);
+        term* ans = make_elim(variable_dup(t->var), t->num_args);
         int i;
         for (i = 0; i < t->num_args - 1; i++) {
           ans->args[i] = normalize(Sigma, Delta, t->args[i]);
