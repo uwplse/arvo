@@ -19,6 +19,20 @@ void vernac_init() {
   Delta = typing_context_empty();
 }
 
+int print_command(FILE* stream, command* c) {
+  if (c == NULL) return fprintf(stream, "NULL");
+
+  switch (c->tag) {
+  case DEF:
+    return fprintf(stream, "def %W : %W := %W.",
+                   c->var, print_variable,
+                   c->left, print_term,
+                   c->right, print_term);
+  default:
+    return fprintf(stream, "<command>");
+  }
+}
+
 void vernac_run(command *c) {
   switch (c->tag) {
   case DEF:

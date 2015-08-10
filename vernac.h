@@ -30,6 +30,7 @@ command *make_check(term *t);
 command *make_simpl(term *t);
 command *make_data(variable* name, int num_constructors);
 
+int print_command(FILE* stream, command* c);
 void free_command(command* c);
 
 #endif  // VERNAC_H
