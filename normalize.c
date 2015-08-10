@@ -2,6 +2,12 @@
 #include "normalize.h"
 #include "printing.h"
 
+term* normalize_and_free(context *Sigma, typing_context* Delta, term* t) {
+  term* ans = normalize(Sigma, Delta, t);
+  free_term(t);
+  return ans;
+}
+
 
 term* normalize(context *Sigma, typing_context* Delta, term* t) {
   check(t, "t must be non-NULL");
@@ -30,35 +36,6 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
       }
       return make_app(f, x);
     }
-  case NAT_IND:
-    {
-      term* P = normalize(Sigma, Delta, t->args[0]);
-      term* z = normalize(Sigma, Delta, t->args[1]);
-      term* xyS = normalize(Sigma, Delta, t->args[2]);
-      term* n = normalize(Sigma, Delta, t->args[3]);
-
-      if (n->tag == O) {
-        free_term(P);
-        free_term(xyS);
-        free_term(n);
-        return z;
-      } else if (n->tag == APP && n->left->tag == S) {
-        term* pred = n->right;
-        term* pred_app = make_nat_ind(P, z, term_dup(xyS), term_dup(pred));
-        term* pred_ans = normalize(Sigma, Delta, pred_app);
-        free_term(pred_app);
-
-        term* next = make_app(make_app(xyS, term_dup(pred)), pred_ans);
-        free_term(pred_ans);
-
-        term* ans = normalize(Sigma, Delta, next);
-        free_term(next);
-
-        return ans;
-      } else {
-        return make_nat_ind(P, z, xyS, n);
-      }
-    }
   case LAM:
     {
       term* A = normalize(Sigma, Delta, t->left);
@@ -81,9 +58,19 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
       if (last->tag == INTRO) {
         datatype* T = elim_to_datatype(t->var, Delta);
         int index = datatype_intro_index(last->var, T);
+        term *app = t->args[index + 1];
+        int i;
+        for (i = 0; i < last->num_args; i++) {
+          app = make_app(app, term_dup(last->args[i]));
+          if (constructor_arg_is_inductive(T, last->var, i)) {
+            term *inductive = term_dup(t);
+            inductive->args[inductive->num_args - 1] = last->args[i];
+            app = make_app(app, inductive);
+          }
+        }
         free_term(last);
         last = NULL;
-        return normalize(Sigma, Delta, t->args[index + 1]);
+        return normalize(Sigma, Delta, app);
       } else {
         term* ans = make_elim(variable_dup(t->var), t->num_args);
         int i;
@@ -93,6 +80,15 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
         ans->args[t->num_args-1] = last;
         return ans;
       }
+    }
+  case INTRO:
+    {
+      term* ans = make_intro(variable_dup(t->var), t->num_args);
+      int i;
+      for (i = 0; i < t->num_args; i++) {
+        ans->args[i] = normalize(Sigma, Delta, t->args[i]);
+      }
+      return ans;
     }
   default:
     return term_dup(t);
@@ -109,3 +105,14 @@ int definitionally_equal(context *Sigma, typing_context* Delta, term* a, term* b
   free_term(nb);
   return ans;
 }
+
+int is_pi_returning(context *Sigma, typing_context *Delta, term *t, term *val) {
+  if (definitionally_equal(Sigma, Delta, t, val)) {
+    return 1;
+  }
+  if (t->tag == PI) {
+    return is_pi_returning(Sigma, Delta, t->right, val);
+  }
+  return 0;
+}
+

@@ -6,5 +6,7 @@
 #include "typing_context.h"
 
 term* normalize(context *Sigma, typing_context* Delta, term* t);
+term* normalize_and_free(context *Sigma, typing_context* Delta, term* t);
 int definitionally_equal(context *Sigma, typing_context* Delta, term* a, term* b);
+int is_pi_returning(context *Sigma, typing_context* Delta, term* t, term* val);
 #endif  // NORMALIZE_H

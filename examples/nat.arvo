@@ -1,0 +1,12 @@
+data N := Zero | Succ : (_ : N) -> N.
+data bool := true | false.
+
+def not : (_ : bool) -> bool := (\x : bool. ((((bool_elim (\ _ : bool . bool)) false) true) x)).
+
+def even : (_ : N) -> bool :=
+  \ x : N . ((((N_elim (\ _ : N . bool)) true) \x : N. \y : bool. (not y)) x).
+
+simpl (even Zero).
+simpl (even (Succ (Succ (Succ Zero)))).
+
+simpl (\x : N . (even (Succ (Succ x)))).

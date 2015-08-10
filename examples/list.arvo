@@ -1,0 +1,8 @@
+data N := Zero | Succ : (_ : N) -> N.
+
+data TList := Nil | Cons : (_ : Type) -> (_ : TList) -> TList.
+
+data bool := true | false.
+
+check (((TList_elim (\ _ : TList . N)) Zero) (\ dat : Type . \ x : TList . \ x : N . (Succ x))).
+

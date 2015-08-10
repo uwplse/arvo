@@ -26,20 +26,41 @@ int print_term(FILE* stream, term* t) {
     return fprintf(stream, "(%W %W)", t->left, print_term, t->right, print_term);
   case TYPE:
     return fprintf(stream, "Type");
-  case NAT:
-    return fprintf(stream, "nat");
-  case NAT_IND:
-    return fprintf(stream, "nat-ind(%W; %W; %W; %W)", t->args[0], print_term, t->args[1], print_term, t->args[2], print_term, t->args[3], print_term);
-  case O:
-    return fprintf(stream, "O");
-  case S:
-    return fprintf(stream, "S");
   case INTRO:
-    return fprintf(stream, "<constructor>");
+    {
+      int total = 0;
+      total += fprintf(stream, "%W", t->var, print_variable);
+      if (t->num_args) {
+        total += fprintf(stream, "(");
+        int i;
+        for (i = 0; i < t->num_args; i++) {
+          if (i) {
+            total += fprintf(stream, "; ");
+          }
+          total += fprintf(stream, "%W", t->args[i], print_term);
+        }
+        total += fprintf(stream, ")");
+      }
+      return total;
+    }
+    return fprintf(stream, "%W", t->var, print_variable);
   case ELIM:
-    return fprintf(stream, "<eliminator>");
+    {
+      int total = 0;
+      total += fprintf(stream, "%W", t->var, print_variable);
+      total += fprintf(stream, "(");
+      int i;
+      for (i = 0; i < t->num_args; i++) {
+        if (i) {
+          total += fprintf(stream, "; ");
+        }
+        total += fprintf(stream, "%W", t->args[i], print_term);
+      }
+      total += fprintf(stream, ")");
+      return total;
+    }
   case DATATYPE:
-    return fprintf(stream, "<datatype>");
+    return fprintf(stream, "%W", t->var, print_variable);
   default:
     sentinel("Bad tag %d", t->tag);
   }
@@ -78,40 +99,6 @@ term* make_pi(variable* x, term* A, term* B) {
 term* make_type() {
   term* ans = make_term();
   ans->tag = TYPE;
-
-  return ans;
-}
-
-term* make_nat() {
-  term* ans = make_term();
-  ans->tag = NAT;
-
-  return ans;
-}
-
-term* make_nat_ind(term* motive, term* Z, term* S, term* n) {
-  term* ans = make_term();
-  ans->tag = NAT_IND;
-  ans->num_args = 4;
-  ans->args = malloc(4 * sizeof(term*));
-  ans->args[0] = motive;
-  ans->args[1] = Z;
-  ans->args[2] = S;
-  ans->args[3] = n;
-
-  return ans;
-}
-
-term* make_o() {
-  term* ans = make_term();
-  ans->tag = O;
-
-  return ans;
-}
-
-term* make_s() {
-  term* ans = make_term();
-  ans->tag = S;
 
   return ans;
 }
@@ -205,7 +192,18 @@ int syntactically_identical(term* a, term* b) {
   case DATATYPE:
     return variable_equal(a->var, b->var);
   case INTRO:
-    return variable_equal(a->var, b->var);
+    {
+      int i;
+      if (!variable_equal(a->var, b->var)) {
+        return 0;
+      }
+      for (i = 0; i < a->num_args; i++) {
+        if (!syntactically_identical(a->args[i], b->args[i])) {
+          return 0;
+        }
+      }
+      return 1;
+    }
   case ELIM:
     {
       int i;
@@ -220,10 +218,6 @@ int syntactically_identical(term* a, term* b) {
       return 1;
     }
   case TYPE:
-  case NAT:
-  case NAT_IND:
-  case O:
-  case S:
     return 1;
   default:
     sentinel("malformed term");
@@ -255,7 +249,19 @@ int is_free(variable *var, term *haystack) {
   case APP:
     return is_free(var, haystack->left) || is_free(var, haystack->right);
   case DATATYPE:
+    return variable_equal(var, haystack->var);
   case INTRO:
+    {
+      int i;
+      if (variable_equal(var, haystack->var)) {
+        return 1;
+      }
+      for (i = 0; i < haystack->num_args; i++) {
+        if (is_free(var, haystack->args[i])) {
+          return 0;
+        }
+      }
+    }
     return variable_equal(var, haystack->var);
   case ELIM:
     {
@@ -270,10 +276,6 @@ int is_free(variable *var, term *haystack) {
       }
     }
   case TYPE:
-  case NAT:
-  case NAT_IND:
-  case O:
-  case S:
     return 0;
 
   default:
@@ -343,18 +345,18 @@ term* substitute(variable* from, term* to, term* haystack) {
   case APP:
     return make_app(substitute(from, to, haystack->left),
                     substitute(from, to, haystack->right));
-  case NAT_IND:
-    return make_nat_ind(substitute(from, to, haystack->args[0]),
-                        substitute(from, to, haystack->args[1]),
-                        substitute(from, to, haystack->args[2]),
-                        substitute(from, to, haystack->args[3]));
   case TYPE:
-  case NAT:
-  case O:
-  case S:
-  case INTRO:
   case DATATYPE:
     return term_dup(haystack);
+  case INTRO:
+    {
+      term* ans = make_intro(variable_dup(haystack->var), haystack->num_args);
+      int i;
+      for (i = 0; i < haystack->num_args; i++) {
+        ans->args[i] = substitute(from, to, haystack->args[i]);
+      }
+      return ans;
+    }
   case ELIM:
     {
       term* ans = make_elim(variable_dup(haystack->var), haystack->num_args);
@@ -384,10 +386,6 @@ int term_locally_well_formed(term* t) {
   case APP:
     return (t->left != NULL) && (t->right != NULL);
   case TYPE:
-  case NAT:
-  case NAT_IND:
-  case O:
-  case S:
   case INTRO:
   case ELIM:
   case DATATYPE:
@@ -398,6 +396,7 @@ int term_locally_well_formed(term* t) {
 
   }
 }
+
 
 void free_variable(variable* v) {
   if (v == NULL) return;
@@ -430,15 +429,6 @@ void free_term(term* t) {
   free(t);
 }
 
-static const char* term_tag_names[S+1] = {"VAR", "LAM", "PI", "APP", "TYPE", "NAT", "NAT_IND" "O", "S"};
-
-const char* term_tag_to_string(term_tag tag) {
-  check(0 <= tag && tag <= TYPE, "Bad tag %d", tag);
-  return term_tag_names[tag];
- error:
-  return NULL;
-}
-
 variable* variable_dup(variable* v) {
   if (v == NULL) return NULL;
 
@@ -466,10 +456,12 @@ term* term_dup(term* t) {
   return ans;
 }
 
-term* make_intro(variable* name) {
+term* make_intro(variable* name, int num_args) {
   term* ans = make_term();
   ans->tag = INTRO;
   ans->var = name;
+  ans->num_args = num_args;
+  ans->args = malloc(num_args * sizeof(term*));
   return ans;
 }
 

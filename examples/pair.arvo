@@ -1,0 +1,41 @@
+def pair : (_ : Type) -> (_ : Type) -> Type :=
+    \ A : Type. \ B : Type.
+      (C : Type) ->
+        (_ : (_ : A) -> (_ : B) -> C) ->
+        C.
+
+def mkpair : (A : Type) -> (B : Type) -> (_ : A) -> (_ : B) -> ((pair A) B) :=
+    \ A : Type. \ B : Type.
+      \ a : A.  \ b : B.
+      \ C : Type. \ f : (_ : A) -> (_ : B) -> C.
+        ((f a) b).
+
+def fst : (A : Type) -> (B : Type) -> (_ : ((pair A) B)) -> A :=
+    \ A : Type. \ B : Type.
+    \ p : ((pair A) B).
+      ((p A) (\ x : A. \ y : B. x)).
+
+def snd : (A : Type) -> (B : Type) -> (_ : ((pair A) B)) -> B :=
+    \ A : Type. \ B : Type.
+    \ p : ((pair A) B).
+      ((p B) (\ x : A. \ y : B. y)).
+
+data bool := true | false.
+
+def bp : Type := ((pair bool) bool).
+
+def mkbp : (_ : bool) -> (_ : bool) -> bp :=
+  \x : bool. \y : bool. ((((mkpair bool) bool) x) y).
+
+def fstbp : (_ : bp) -> bool := ((fst bool) bool).
+def sndbp : (_ : bp) -> bool := ((snd bool) bool).
+
+def tt : bp := ((mkbp true) true).
+
+def ff : bp := ((mkbp false) false).
+
+simpl (fstbp tt).
+simpl (sndbp tt).
+
+simpl (fstbp ff).
+simpl (sndbp ff).

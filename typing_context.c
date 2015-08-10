@@ -2,12 +2,13 @@
 
 #include <stdlib.h>
 
-datatype* make_datatype(variable* name, int num_intros, term* elim) {
+datatype* make_datatype(variable* name, int num_intros, term* elim, int *inductive_args) {
   datatype* ans = malloc(sizeof(datatype));
   ans->name = name;
   ans->num_intros = num_intros;
   ans->intros = malloc(num_intros * sizeof(term*));
   ans->elim = elim;
+  ans->inductive_args = inductive_args;
   return ans;
 }
 
@@ -50,15 +51,16 @@ int print_typing_context(FILE* stream, typing_context* Delta) {
     return fprintf(stream, ".");
   }
 
-  int len =print_typing_context(stream, Delta->rest);
-  len += fprintf(stream, "data %s :=");
-  int i;
+  int len = print_typing_context(stream, Delta->rest);
   datatype* t = Delta->here;
+
+  len += fprintf(stream, ", data %s :=", t->name->name);
+  int i;
   if (t->num_intros > 0) {
-    len += fprintf(stream, "%s", t->intros[0]->var->name);
+    len += fprintf(stream, " %s", t->intros[0]->var->name);
   }
   for (i = 1; i < Delta->here->num_intros; i++) {
-    len += fprintf(stream, "| %s", t->intros[i]->var->name);
+    len += fprintf(stream, " | %s", t->intros[i]->var->name);
   }
   len += fprintf(stream, ".");
   return len;
@@ -72,4 +74,16 @@ datatype* elim_to_datatype(variable* needle, typing_context* Delta) {
     Delta = Delta->rest;
   }
   return NULL;
+}
+
+int constructor_arg_is_inductive(datatype *T, variable *c, int arg) {
+  int index = 0;
+  int i;
+  for (i = 0; i < T->num_intros; i++) {
+    if (variable_equal(T->intros[i]->var, c)) {
+      return T->inductive_args[index + arg];
+    }
+    index += T->intros[i]->num_args;
+  }
+  return 0;
 }
