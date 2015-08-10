@@ -72,12 +72,16 @@ void vernac_run(command *c) {
       variable *a = gensym("a");
       term *ta = make_var(a);
       term *elim = make_pi(variable_dup(a), term_dup(A), make_app(term_dup(tM), term_dup(ta)));
+      free_term(ta);
+      ta = NULL;
       for (i = c->num_args-1; i >= 0; i--) {
         elim = make_pi(variable_dup(&ignore),
                        make_app(term_dup(tM), make_var(variable_dup(c->args[i]->var))),
                        elim);
       }
       elim = make_pi(variable_dup(M), tyMotive, elim);
+      free_term(tM);
+      tM = NULL;
       char *elim_name;
       asprintf(&elim_name, "%W_elim", A, print_term);
       Gamma = telescope_add(make_variable(strdup(elim_name)), elim, Gamma);
@@ -105,6 +109,8 @@ void vernac_run(command *c) {
       }
       elim = eliminator;
       elim = make_lambda(vars[c->num_args+1], term_dup(A), elim);
+      free_term(A);
+      A = NULL;
       for (i = c->num_args-1; i >= 0; i--) {
         elim = make_lambda(vars[i+1],
                        make_app(make_var(vars[0]), make_var(variable_dup(c->args[i]->var))),
@@ -112,6 +118,8 @@ void vernac_run(command *c) {
       }
       elim = make_lambda(variable_dup(vars[0]), make_pi(variable_dup(&ignore), term_dup(A), make_type()),
                          elim);
+      free(vars);
+      vars = NULL;
       Sigma = context_add(make_variable(elim_name), elim, Sigma);
 
       datatype *d = make_datatype(variable_dup(c->var), c->num_args, term_dup(eliminator));

@@ -81,6 +81,8 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
       if (last->tag == INTRO) {
         datatype* T = elim_to_datatype(t->var, Delta);
         int index = datatype_intro_index(last->var, T);
+        free_term(last);
+        last = NULL;
         return normalize(Sigma, Delta, t->args[index + 1]);
       } else {
         term* ans = make_elim(variable_dup(t->var), t->num_args);
