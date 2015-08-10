@@ -274,10 +274,6 @@ int is_free(variable *var, term *haystack) {
       }
     }
   case TYPE:
-  case NAT:
-  case NAT_IND:
-  case O:
-  case S:
     return 0;
 
   default:
@@ -347,16 +343,7 @@ term* substitute(variable* from, term* to, term* haystack) {
   case APP:
     return make_app(substitute(from, to, haystack->left),
                     substitute(from, to, haystack->right));
-  case NAT_IND:
-    return make_nat_ind(substitute(from, to, haystack->args[0]),
-                        substitute(from, to, haystack->args[1]),
-                        substitute(from, to, haystack->args[2]),
-                        substitute(from, to, haystack->args[3]));
   case TYPE:
-  case NAT:
-  case O:
-  case S:
-  case INTRO:
   case DATATYPE:
     return term_dup(haystack);
   case ELIM:
