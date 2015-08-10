@@ -63,7 +63,7 @@ int print_variable(FILE* stream, variable* v);
 /* caller gives up ownership of c */
 variable* make_variable(char *c);
 
-variable *gensym(variable *var);
+variable *gensym(char *name);
 
 term* make_pi(variable* x, term* A, term* B);
 term* make_lambda(variable* x, term* A, term* B);

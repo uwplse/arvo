@@ -234,9 +234,9 @@ int syntactically_identical(term* a, term* b) {
 }
 
 static int counter = 0;
-variable *gensym(variable *var) {
+variable *gensym(char *name) {
   char *new;
-  asprintf(&new, "_%s%d", var->name, counter++);
+  asprintf(&new, "_%s%d", name, counter++);
   return make_variable(new);
 }
 
@@ -307,7 +307,7 @@ term* substitute(variable* from, term* to, term* haystack) {
                          term_dup(haystack->right));
     } else {
       if (is_free(haystack->var, to)) {
-        variable *g = gensym(haystack->var);
+        variable *g = gensym(haystack->var->name);
         term *tg = make_var(g);
         term* new_haystack = make_lambda(variable_dup(g), term_dup(haystack->left),
                                          substitute(haystack->var, tg, haystack->right));
@@ -327,7 +327,7 @@ term* substitute(variable* from, term* to, term* haystack) {
                      term_dup(haystack->right));
     } else {
       if (is_free(haystack->var, to)) {
-        variable *g = gensym(haystack->var);
+        variable *g = gensym(haystack->var->name);
         term *tg = make_var(g);
         term* new_haystack = make_pi(variable_dup(g), term_dup(haystack->left),
                                      substitute(haystack->var, tg, haystack->right));
