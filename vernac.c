@@ -99,7 +99,7 @@ void vernac_run(command *c) {
         vars[i+1] = gensym(make_variable("c"));
       }
       term *eliminator;
-      eliminator = make_elim(make_variable(elim_name), c->num_args + 2);
+      eliminator = make_elim(make_variable(strdup(elim_name)), c->num_args + 2);
       for (i = 0; i < c->num_args+2; i++) {
         eliminator->args[i] = make_var(vars[i]);
       }
