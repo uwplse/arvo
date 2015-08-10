@@ -3,8 +3,8 @@ check bool.
 check true.
 check false.
 check bool_elim.
-check ((bool_elim (\ _ : bool . bool)) false).
-
-
-
-
+def not : (_ : bool) -> bool := (\x : bool. ((((bool_elim (\ _ : bool . bool)) false) true) x)).
+check not.
+print not.
+simpl (not true).
+simpl (not false).
