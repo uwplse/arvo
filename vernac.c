@@ -57,7 +57,7 @@ void vernac_run(command *c) {
       // check that this is a reasonable type definition
       telescope *Gamma_prime = telescope_add(variable_dup(c->var), make_type(), Gamma);
       term *tA = make_datatype_term(variable_dup(c->var));
-      context *Sigma_prime = context_add(variable_dup(c->var), tA, Sigma);
+      context *Sigma_prime = context_add(variable_dup(c->var), term_dup(tA), Sigma);
       
       term *A = make_var(variable_dup(c->var));
       int num_constructors = c->num_args;
@@ -111,7 +111,7 @@ void vernac_run(command *c) {
           total_args++;
           term *new_wrapper;
           variable *x = gensym("x");
-          new_wrapper = make_pi(x, term_dup(constructor_type->left), app);
+          new_wrapper = make_pi(variable_dup(x), term_dup(constructor_type->left), app);
           if (prev == NULL) {
             wrapped = new_wrapper;
           }
@@ -121,12 +121,13 @@ void vernac_run(command *c) {
           }
           // check to see if this is an inductive case
           if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
-            new_wrapper->right = make_pi(variable_dup(&ignore), make_app(term_dup(tM), make_var(x)), app);
+            new_wrapper->right = make_pi(variable_dup(&ignore), make_app(term_dup(tM), make_var(variable_dup(x))), app);
             new_wrapper = new_wrapper->right;
           }          
-          app->right = make_app(app->right, make_var(x));
+          app->right = make_app(app->right, make_var(variable_dup(x)));
           prev = new_wrapper;
           constructor_type = constructor_type->right;
+          free_variable(x);
         }
         elim_type = make_pi(variable_dup(&ignore),
                        wrapped,
@@ -200,8 +201,6 @@ void vernac_run(command *c) {
       }
       elim = eliminator;
       elim = make_lambda(variable_dup(vars[c->num_args+1]), term_dup(A), elim);
-      free_term(A);
-      A = NULL;
       for (i = c->num_args-1; i >= 0; i--) {
         term *constructor_type = c->args[i]->left;
         term *app = make_app(make_var(variable_dup(vars[0])), make_var(variable_dup(c->args[i]->var)));
@@ -210,7 +209,7 @@ void vernac_run(command *c) {
         while (constructor_type->tag == PI) {
           term *new_wrapper;
           variable *x = gensym("x");
-          new_wrapper = make_pi(x, term_dup(constructor_type->left), app);
+          new_wrapper = make_pi(variable_dup(x), term_dup(constructor_type->left), app);
           if (prev == NULL) {
             wrapped = new_wrapper;
           }
@@ -220,12 +219,14 @@ void vernac_run(command *c) {
           }
           // check to see if this is an inductive case
           if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
-            new_wrapper->right = make_pi(variable_dup(&ignore), make_app(make_var(variable_dup(vars[0])), make_var(x)), app);
+            new_wrapper->right = make_pi(variable_dup(&ignore), make_app(make_var(variable_dup(vars[0])), make_var(variable_dup(x))), app);
             new_wrapper = new_wrapper->right;
           }          
-          app->right = make_app(app->right, make_var(x));
+          app->right = make_app(app->right, make_var(variable_dup(x)));
           prev = new_wrapper;
           constructor_type = constructor_type->right;
+          free_variable(x);
+          x = NULL;
         }
         elim = make_lambda(variable_dup(vars[i+1]),
                            wrapped,
@@ -235,9 +236,8 @@ void vernac_run(command *c) {
                          elim);
       free(vars);
       vars = NULL;
-      Sigma = context_add(make_variable(elim_name), elim, Sigma);
+      Sigma = context_add(make_variable(strdup(elim_name)), elim, Sigma);
       // Modify Delta
-
       datatype *d = make_datatype(variable_dup(c->var), c->num_args,
                                   term_dup(eliminator), inductive_args);
       for (i = 0; i < c->num_args; i++) {
@@ -245,6 +245,9 @@ void vernac_run(command *c) {
       }
       Delta = typing_context_add(d, Delta);
       printf("added datatype %W\n", A, print_term);
+      free_term(A);
+      A = NULL;
+      printf("context is %W\n", Sigma, print_context);
     }
   }
 

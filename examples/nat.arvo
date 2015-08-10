@@ -6,7 +6,10 @@ def not : (_ : bool) -> bool := (\x : bool. ((((bool_elim (\ _ : bool . bool)) f
 def even : (_ : N) -> bool :=
   \ x : N . ((((N_elim (\ _ : N . bool)) true) \x : N. \y : bool. (not y)) x).
 
+simpl (Succ (Succ Zero)).
+simpl N_elim.
+
 simpl (even Zero).
+simpl (\x : N . (even (Succ (Succ x)))).
 simpl (even (Succ (Succ (Succ Zero)))).
 
-simpl (\x : N . (even (Succ (Succ x)))).
