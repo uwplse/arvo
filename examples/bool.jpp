@@ -1,0 +1,10 @@
+data bool := true | false.
+check bool.
+check true.
+check false.
+check bool_elim.
+check ((bool_elim (\ _ : bool . bool)) false).
+
+
+
+
