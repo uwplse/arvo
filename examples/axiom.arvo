@@ -1,0 +1,9 @@
+axiom admit : (A : Type) -> A.
+check admit.
+print admit.
+simpl admit.
+
+def False : Type := (A : Type) -> A.
+
+def x : False := admit.
+
