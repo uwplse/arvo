@@ -320,7 +320,18 @@ term* substitute(variable* from, term* to, term* haystack) {
   case NAT:
   case O:
   case S:
+  case INTRO:
+  case DATATYPE:
     return term_dup(haystack);
+  case ELIM:
+    {
+      term* ans = make_elim(variable_dup(haystack->var), haystack->num_args);
+      int i;
+      for (i = 0; i < haystack->num_args; i++) {
+        ans->args[i] = substitute(from, to, haystack->args[i]);
+      }
+      return ans;
+    }
   default:
     sentinel("malformed term with tag %d", haystack->tag);
   }
