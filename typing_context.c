@@ -51,15 +51,16 @@ int print_typing_context(FILE* stream, typing_context* Delta) {
     return fprintf(stream, ".");
   }
 
-  int len =print_typing_context(stream, Delta->rest);
-  len += fprintf(stream, "data %s :=");
-  int i;
+  int len = print_typing_context(stream, Delta->rest);
   datatype* t = Delta->here;
+
+  len += fprintf(stream, ", data %s :=", t->name->name);
+  int i;
   if (t->num_intros > 0) {
-    len += fprintf(stream, "%s", t->intros[0]->var->name);
+    len += fprintf(stream, " %s", t->intros[0]->var->name);
   }
   for (i = 1; i < Delta->here->num_intros; i++) {
-    len += fprintf(stream, "| %s", t->intros[i]->var->name);
+    len += fprintf(stream, " | %s", t->intros[i]->var->name);
   }
   len += fprintf(stream, ".");
   return len;
