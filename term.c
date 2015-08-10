@@ -346,6 +346,15 @@ term* substitute(variable* from, term* to, term* haystack) {
   case TYPE:
   case DATATYPE:
     return term_dup(haystack);
+  case INTRO:
+    {
+      term* ans = make_intro(variable_dup(haystack->var), haystack->num_args);
+      int i;
+      for (i = 0; i < haystack->num_args; i++) {
+        ans->args[i] = substitute(from, to, haystack->args[i]);
+      }
+      return ans;
+    }
   case ELIM:
     {
       term* ans = make_elim(variable_dup(haystack->var), haystack->num_args);
