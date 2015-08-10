@@ -22,10 +22,6 @@ typedef enum {
   PI, 
   APP,
   TYPE,
-  NAT,
-  NAT_IND,
-  O,
-  S,
   INTRO,
   ELIM,
   DATATYPE
@@ -69,10 +65,6 @@ term* make_app(term* a, term* b);
 term* make_var(variable* var);
 
 term* make_type();
-term* make_nat();
-term* make_nat_ind(term* motive, term* Z, term* S, term* n);
-term* make_o();
-term* make_s();
 
 term* make_intro(variable* name, int num_args);
 term* make_elim(variable* name, int num_args);
