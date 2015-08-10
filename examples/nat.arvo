@@ -1,0 +1,5 @@
+data N := Zero | Succ : (_ : N) -> N.
+check (Succ Zero).
+check N_elim.
+check Succ.
+simpl Succ.
