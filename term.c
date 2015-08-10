@@ -34,6 +34,12 @@ int print_term(FILE* stream, term* t) {
     return fprintf(stream, "O");
   case S:
     return fprintf(stream, "S");
+  case INTRO:
+    return fprintf(stream, "<constructor>");
+  case ELIM:
+    return fprintf(stream, "<eliminator>");
+  case DATATYPE:
+    return fprintf(stream, "<datatype>");
   default:
     sentinel("Bad tag %d", t->tag);
   }
