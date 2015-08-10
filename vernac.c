@@ -80,7 +80,7 @@ void vernac_run(command *c) {
       elim = make_pi(variable_dup(M), tyMotive, elim);
       char *elim_name;
       asprintf(&elim_name, "%W_elim", A, print_term);
-      Gamma = telescope_add(make_variable(elim_name), elim, Gamma);
+      Gamma = telescope_add(make_variable(strdup(elim_name)), elim, Gamma);
       /* Modify Sigma. For a datatype A with constructors a1,...,an and
          eliminator E, we need terms with tags:
          - A : DATATYPE
