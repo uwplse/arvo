@@ -71,7 +71,7 @@ void vernac_run(command *c) {
       // check that this is a reasonable type definition
       telescope *Gamma_prime = telescope_add(variable_dup(c->var), make_type(), Gamma);
       term *tA = make_datatype_term(variable_dup(c->var));
-      context *Sigma_prime = context_add(variable_dup(c->var), term_dup(tA), Sigma);
+      context *Sigma_prime = context_add(variable_dup(c->var), tA, Sigma);
       
       term *A = make_var(variable_dup(c->var));
       int num_constructors = c->num_args;
@@ -87,6 +87,8 @@ void vernac_run(command *c) {
               print_variable,
               typecheck(Gamma_prime, Sigma_prime, Delta, constructor->left),
               print_term);
+        free(type);
+        type = NULL;
         check(is_pi_returning(Sigma_prime, Delta,
                               constructor->left, A), "constructor %W does not return %W",
               constructor->var, print_variable, A, print_term);
@@ -248,15 +250,23 @@ void vernac_run(command *c) {
       }
       elim = make_lambda(variable_dup(vars[0]), make_pi(variable_dup(&ignore), term_dup(A), make_type()),
                          elim);
+      for (i = 0; i < c->num_args+2; i++) {
+        free_variable(vars[i]);
+        vars[i] = NULL;
+      }
       free(vars);
       vars = NULL;
       Sigma = context_add(make_variable(strdup(elim_name)), elim, Sigma);
+      free(elim_name);
+      elim_name = NULL;
       // Modify Delta
       datatype *d = make_datatype(variable_dup(c->var), c->num_args,
                                   term_dup(eliminator), inductive_args);
       for (i = 0; i < c->num_args; i++) {
         d->intros[i] = term_dup(intros[i]);
       }
+      free(intros);
+      intros = NULL;
       Delta = typing_context_add(d, Delta);
       printf("added datatype %W\n", A, print_term);
       free_term(A);
