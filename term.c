@@ -254,6 +254,21 @@ int is_free(variable *var, term *haystack) {
     }
   case APP:
     return is_free(var, haystack->left) || is_free(var, haystack->right);
+  case DATATYPE:
+  case INTRO:
+    return variable_equal(var, haystack->var);
+  case ELIM:
+    {
+      int i;
+      if (variable_equal(var, haystack->var)) {
+        return 1;
+      }
+      for (i = 0; i < haystack->num_args; i++) {
+        if (is_free(var, haystack->args[i])) {
+          return 0;
+        }
+      }
+    }
   case TYPE:
   case NAT:
   case NAT_IND:
