@@ -205,10 +205,6 @@ int syntactically_identical(term* a, term* b) {
       return 1;
     }
   case TYPE:
-  case NAT:
-  case NAT_IND:
-  case O:
-  case S:
     return 1;
   default:
     sentinel("malformed term");
