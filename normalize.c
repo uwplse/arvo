@@ -30,35 +30,6 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
       }
       return make_app(f, x);
     }
-  case NAT_IND:
-    {
-      term* P = normalize(Sigma, Delta, t->args[0]);
-      term* z = normalize(Sigma, Delta, t->args[1]);
-      term* xyS = normalize(Sigma, Delta, t->args[2]);
-      term* n = normalize(Sigma, Delta, t->args[3]);
-
-      if (n->tag == O) {
-        free_term(P);
-        free_term(xyS);
-        free_term(n);
-        return z;
-      } else if (n->tag == APP && n->left->tag == S) {
-        term* pred = n->right;
-        term* pred_app = make_nat_ind(P, z, term_dup(xyS), term_dup(pred));
-        term* pred_ans = normalize(Sigma, Delta, pred_app);
-        free_term(pred_app);
-
-        term* next = make_app(make_app(xyS, term_dup(pred)), pred_ans);
-        free_term(pred_ans);
-
-        term* ans = normalize(Sigma, Delta, next);
-        free_term(next);
-
-        return ans;
-      } else {
-        return make_nat_ind(P, z, xyS, n);
-      }
-    }
   case LAM:
     {
       term* A = normalize(Sigma, Delta, t->left);
