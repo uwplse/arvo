@@ -1,0 +1,3 @@
+check (Type -> ( x : Type) -> Type (Type Type)).
+check (\ x : Type -> Type. x x).
+check x.

@@ -4,7 +4,5 @@ data TList := Nil | Cons : (_ : Type) -> (_ : TList) -> TList.
 
 data bool := true | false.
 
-
 check (((TList_elim (\ _ : TList . N)) Zero) (\ dat : Type . \ x : TList . \ x : N . (Succ x))).
-simpl ((((TList_elim (\ _ : TList . N)) Zero) (\ dat : Type . \ x : TList . \ x : N . (Succ x))) ((Cons Type) Nil)).
 

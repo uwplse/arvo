@@ -1,0 +1,130 @@
+def True : Type := (A : Type) -> A -> A.
+check True.
+print True.
+
+def I : True := \A : Type. \x : A. x.
+check I.
+print I.
+
+def False : Type := (A : Type) -> A.
+check False.
+print False.
+
+def exfalso : False -> (A : Type) -> A := \x : False. x.
+check exfalso.
+print exfalso.
+
+def and : Type -> Type -> Type :=
+    \A : Type. \B : Type.
+      (C : Type) -> (A -> B -> C) -> C.
+check and.
+print and.
+
+def and_intro : (A : Type) -> (B : Type) -> A -> B -> and A B :=
+    \A : Type. \B : Type.
+    \a : A. \b : B.
+    \C : Type.
+      \f : (x : A) -> (y : B) -> C. ((f a) b).
+check and_intro.
+print and_intro.
+
+def and_elim : (A : Type) -> (B : Type) -> and A B -> (C : Type) -> (A -> B -> C) -> C :=
+    \A : Type. \B : Type.
+    \p : and A B.
+    \C : Type.
+    \f : A -> B -> C.
+    p C f.
+check and_elim.
+print and_elim.
+
+def or : Type -> Type -> Type :=
+    \A : Type. \B : Type.
+    (C : Type) ->
+    (A -> C) -> (B -> C) -> C.
+check or.
+print or.
+
+def or_intro_l : (A : Type) -> (B : Type) -> A -> or A B :=
+    \A : Type. \B : Type.
+    \x : A.
+    \C : Type.
+    \f : A -> C. \_ : B -> C.
+    f x.
+check or_intro_l.
+print or_intro_l.
+
+def or_intro_r : (A : Type) -> (B : Type) -> B -> or A B :=
+    \A : Type. \B : Type.
+    \y : B.
+    \C : Type.
+    \_ : A -> C. \g : B -> C.
+    g y.
+check or_intro_r.
+print or_intro_r.
+
+def or_elim : (A : Type) -> (B : Type) -> or A B -> (C : Type) -> (A -> C) -> (B -> C) -> C :=
+    \A : Type. \B : Type. \o : or A B. \C : Type. \f : A -> C. \g : B -> C. o C f g.
+check or_elim.
+print or_elim.
+
+def not : Type -> Type :=
+    \A : Type. A -> False.
+check not.
+print not.
+
+def and_comm : (A : Type) -> (B : Type) -> and A B -> and B A :=
+    \A : Type. \B : Type.
+    \p : and A B.
+    and_elim A B p (and B A) (\a : A. \b : B. and_intro B A b a).
+check and_comm.
+print and_comm.
+
+def modus_ponens : (A : Type) -> (B : Type) -> A -> (A -> B) -> B :=
+    \A : Type. \B : Type.
+    \a : A. \f : A -> B.
+    f a.
+check modus_ponens.
+print modus_ponens.
+
+def modus_tolens : (A : Type) -> (B : Type) -> (A -> B) -> not B -> not A :=
+    \A : Type. \B : Type.
+    \f : A -> B. \nb : not B.
+    \a : A. nb (f a).
+check modus_tolens.
+print modus_tolens.
+
+def iff : Type -> Type -> Type :=
+    \A : Type. \B : Type.
+    and (A -> B) (B -> A).
+check iff.
+print iff.
+
+def iff_intro : (A : Type) -> (B : Type) -> (A -> B) -> (B -> A) -> iff A B :=
+    \A : Type. \B : Type. \f : A -> B. \g : B -> A. and_intro (A -> B) (B -> A) f g.
+check iff_intro.
+print iff_intro.
+
+def demorgan_or_and : (A : Type) -> (B : Type) -> (C : Type) ->
+                      iff (or A (and B C)) (and (or A B) (or A C)) :=
+    \A : Type. \B : Type. \C : Type.
+    iff_intro (or A (and B C)) (and (or A B) (or A C))
+    (\p : or A (and B C). or_elim A (and B C) p (and (or A B) (or A C))
+                                  (\a : A. and_intro (or A B) (or A C)
+                                           (or_intro_l A B a)
+                                           (or_intro_l A C a))
+                                  (\q : and B C.
+                                      and_elim B C q (and (or A B) (or A C))
+                                      (\b : B. \c : C.
+                                          (and_intro (or A B) (or A C)
+                                              (or_intro_r A B b)
+                                              (or_intro_r A C c)))))
+    (\p : and (or A B) (or A C).
+      and_elim (or A B) (or A C) p (or A (and B C))
+      (\ab : or A B. \ac : or A C.
+        or_elim A B ab (or A (and B C))
+          (\a : A. or_intro_l A (and B C) a)
+          (\b : B. or_elim A C ac (or A (and B C))
+                     (\a : A. or_intro_l A (and B C) a)
+                     (\c : C. or_intro_r A (and B C) (and_intro B C b c))))).
+check demorgan_or_and.
+print demorgan_or_and.
