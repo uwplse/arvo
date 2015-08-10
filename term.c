@@ -26,14 +26,6 @@ int print_term(FILE* stream, term* t) {
     return fprintf(stream, "(%W %W)", t->left, print_term, t->right, print_term);
   case TYPE:
     return fprintf(stream, "Type");
-  case NAT:
-    return fprintf(stream, "nat");
-  case NAT_IND:
-    return fprintf(stream, "nat-ind(%W; %W; %W; %W)", t->args[0], print_term, t->args[1], print_term, t->args[2], print_term, t->args[3], print_term);
-  case O:
-    return fprintf(stream, "O");
-  case S:
-    return fprintf(stream, "S");
   case INTRO:
     return fprintf(stream, "%W", t->var, print_variable);
   case ELIM:
@@ -78,40 +70,6 @@ term* make_pi(variable* x, term* A, term* B) {
 term* make_type() {
   term* ans = make_term();
   ans->tag = TYPE;
-
-  return ans;
-}
-
-term* make_nat() {
-  term* ans = make_term();
-  ans->tag = NAT;
-
-  return ans;
-}
-
-term* make_nat_ind(term* motive, term* Z, term* S, term* n) {
-  term* ans = make_term();
-  ans->tag = NAT_IND;
-  ans->num_args = 4;
-  ans->args = malloc(4 * sizeof(term*));
-  ans->args[0] = motive;
-  ans->args[1] = Z;
-  ans->args[2] = S;
-  ans->args[3] = n;
-
-  return ans;
-}
-
-term* make_o() {
-  term* ans = make_term();
-  ans->tag = O;
-
-  return ans;
-}
-
-term* make_s() {
-  term* ans = make_term();
-  ans->tag = S;
 
   return ans;
 }
