@@ -94,6 +94,15 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
         return ans;
       }
     }
+  case INTRO:
+    {
+      term* ans = make_intro(variable_dup(t->var), t->num_args);
+      int i;
+      for (i = 0; i < t->num_args; i++) {
+        ans->args[i] = normalize(Sigma, Delta, t->args[i]);
+      }
+      return ans;
+    }
   default:
     return term_dup(t);
   }
