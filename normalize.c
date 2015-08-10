@@ -4,6 +4,7 @@
 
 term* normalize(context *Sigma, typing_context* Delta, term* t) {
   check(t, "t must be non-NULL");
+  check(term_locally_well_formed(t), "t must be locally well formed");
 
   switch (t->tag) {
   case VAR:
