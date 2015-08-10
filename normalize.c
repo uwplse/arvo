@@ -64,7 +64,7 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
           app = make_app(app, term_dup(last->args[i]));
           if (constructor_arg_is_inductive(T, last->var, i)) {
             term *inductive = term_dup(t);
-            inductive->args[inductive->num_args - 1] = last->args[i];
+            inductive->args[inductive->num_args - 1] = term_dup(last->args[i]);
             app = make_app(app, inductive);
           }
         }
