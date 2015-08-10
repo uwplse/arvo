@@ -110,7 +110,7 @@ void vernac_run(command *c) {
         while (constructor_type->tag == PI) {
           total_args++;
           term *new_wrapper;
-          variable *x = gensym(make_variable("x"));
+          variable *x = gensym("x");
           new_wrapper = make_pi(x, term_dup(constructor_type->left), app);
           if (prev == NULL) {
             wrapped = new_wrapper;
@@ -165,7 +165,7 @@ void vernac_run(command *c) {
         int j;
         constructor_type = c->args[i]->left;
         for (j = 0; j < num_args; j++) {
-          variable *x = gensym(make_variable("x"));
+          variable *x = gensym("x");
           term *new_lambda = make_lambda(x, term_dup(constructor_type->left), intro);
           if (prev == NULL) {
             lambda_wrapped_intro = new_lambda;
@@ -209,7 +209,7 @@ void vernac_run(command *c) {
         term *wrapped = app;
         while (constructor_type->tag == PI) {
           term *new_wrapper;
-          variable *x = gensym(make_variable("x"));
+          variable *x = gensym("x");
           new_wrapper = make_pi(x, term_dup(constructor_type->left), app);
           if (prev == NULL) {
             wrapped = new_wrapper;
