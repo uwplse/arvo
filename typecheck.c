@@ -60,8 +60,9 @@ static term* typecheck_pi(telescope* Gamma, context* Sigma, typing_context* Delt
   free_term(tyA);
   tyA = NULL;
 
-  if (!variable_equal(v, &ignore)) Gamma = telescope_add(v, A, Gamma);
+  if (!variable_equal(v, &ignore)) Gamma = telescope_add(variable_dup(v), term_dup(A), Gamma);
   tyB = typecheck(Gamma, Sigma, Delta, B);
+  if (!variable_equal(v, &ignore)) telescope_pop(Gamma);
   check(tyB != NULL, "Bad codomain %W", B, print_term);
   check(tyB->tag == TYPE, "Codomain %W has type %W, but expected to have type Type",
         B, print_term, tyB, print_term);
