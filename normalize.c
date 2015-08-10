@@ -109,3 +109,14 @@ int definitionally_equal(context *Sigma, typing_context* Delta, term* a, term* b
   free_term(nb);
   return ans;
 }
+
+int is_pi_returning(context *Sigma, typing_context *Delta, term *t, term *val) {
+  if (definitionally_equal(Sigma, Delta, t, val)) {
+    return 1;
+  }
+  if (t->tag == PI) {
+    return is_pi_returning(Sigma, Delta, t->right, val);
+  }
+  return 0;
+}
+
