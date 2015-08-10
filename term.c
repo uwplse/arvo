@@ -32,7 +32,8 @@ int print_term(FILE* stream, term* t) {
       total += fprintf(stream, "%W", t->var, print_variable);
       if (t->num_args) {
         total += fprintf(stream, "(");
-        for (int i = 0; i < t->num_args; i++) {
+        int i;
+        for (i = 0; i < t->num_args; i++) {
           if (i) {
             total += fprintf(stream, "; ");
           }
@@ -48,7 +49,8 @@ int print_term(FILE* stream, term* t) {
       int total = 0;
       total += fprintf(stream, "%W", t->var, print_variable);
       total += fprintf(stream, "(");
-      for (int i = 0; i < t->num_args; i++) {
+      int i;
+      for (i = 0; i < t->num_args; i++) {
         if (i) {
           total += fprintf(stream, "; ");
         }
