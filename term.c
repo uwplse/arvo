@@ -345,7 +345,11 @@ int term_locally_well_formed(term* t) {
   case NAT_IND:
   case O:
   case S:
+  case INTRO:
+  case ELIM:
+  case DATATYPE:
     return 1;
+
   default:
     return 0;
 
