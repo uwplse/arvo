@@ -2,12 +2,13 @@
 
 #include <stdlib.h>
 
-datatype* make_datatype(variable* name, int num_intros, term* elim) {
+datatype* make_datatype(variable* name, int num_intros, term* elim, int *inductive_args) {
   datatype* ans = malloc(sizeof(datatype));
   ans->name = name;
   ans->num_intros = num_intros;
   ans->intros = malloc(num_intros * sizeof(term*));
   ans->elim = elim;
+  ans->inductive_args = inductive_args;
   return ans;
 }
 
@@ -72,4 +73,16 @@ datatype* elim_to_datatype(variable* needle, typing_context* Delta) {
     Delta = Delta->rest;
   }
   return NULL;
+}
+
+int constructor_arg_is_inductive(datatype *T, variable *c, int arg) {
+  int index = 0;
+  int i;
+  for (i = 0; i < T->num_intros; i++) {
+    if (variable_equal(T->intros[i]->var, c)) {
+      return T->inductive_args[index + arg];
+    }
+    index += T->intros[i]->num_args;
+  }
+  return 0;
 }

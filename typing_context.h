@@ -9,9 +9,10 @@ typedef struct {
   int num_intros;
   term** intros;
   term* elim;
+  int *inductive_args;
 } datatype;
 
-datatype* make_datatype(variable* name, int num_intros, term* elim);
+datatype* make_datatype(variable* name, int num_intros, term* elim, int *inductive_args);
 
 int datatype_intro_index(variable* needle, datatype* T);
 
@@ -29,5 +30,7 @@ datatype* typing_context_lookup(variable* var, typing_context* Delta);
 datatype* elim_to_datatype(variable* needle, typing_context* Delta);
 
 int print_typing_context(FILE* stream, typing_context* Delta);
+
+int constructor_arg_is_inductive(datatype *T, variable *c, int arg);
 
 #endif  // TYPING_CONTEXT_H
