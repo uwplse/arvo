@@ -93,6 +93,12 @@ command *ast_to_command(mpc_ast_t *ast) {
                     ast_to_term(ast->children[3]),
                     ast_to_term(ast->children[5]));
   }
+  else if (prefix("axiom", ast->tag)) {
+    check(ast->children_num == 5, "malformed def");
+
+    return make_axiom(make_variable(strdup(ast->children[1]->contents)),
+                      ast_to_term(ast->children[3]));
+  }
   else if (prefix("print", ast->tag)) {
     check(ast->children_num == 3, "malformed print");
 
@@ -147,6 +153,7 @@ static mpc_parser_t* pType;
 static mpc_parser_t* pTerm;
 static mpc_parser_t* pCommand;
 static mpc_parser_t* pDef;
+static mpc_parser_t* pAxiom;
 static mpc_parser_t* pPrint;
 static mpc_parser_t* pCheck;
 static mpc_parser_t* pSimpl;
@@ -165,6 +172,7 @@ int parse(char* filename) {
   pTerm = mpc_new("term");
   pCommand = mpc_new("command");
   pDef = mpc_new("def");
+  pAxiom = mpc_new("axiom");
   pPrint = mpc_new("print");
   pCheck = mpc_new("check");
   pSimpl = mpc_new("simpl");
@@ -184,16 +192,17 @@ int parse(char* filename) {
               " type    : \"Type\" ;\n"
               " term    : <lambda> | <pi> | <app>;\n"
               " def     : \"def\" <var> ':' <term> \":=\" <term> '.' ;\n"
+              " axiom     : \"axiom\" <var> ':' <term> '.' ;\n"
               " print   : \"print\" <var> '.' ;\n"
               " check   : \"check\" <term> '.' ;\n"
               " simpl   : \"simpl\" <term> '.' ;\n"
               " constructor : <var> (':' <term>)? ;\n"
               " data    : \"data\" <var> \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"
-              " command : <def> | <print> | <check> | <simpl> | <data> ;\n"
+              " command : <def> | <print> | <check> | <simpl> | <data> | <axiom> ;\n"
               " program  : /^/ <command> * /$/ ;\n",
               pVar, pBound, pLambda, pPi, pBase, pApp, pType,
               pTerm,
-              pDef, pPrint, pCheck, pSimpl, pConstructor, pData, pCommand, pProgram, NULL);
+              pDef, pAxiom, pPrint, pCheck, pSimpl, pConstructor, pData, pCommand, pProgram, NULL);
 
   if (err != NULL) {
     mpc_err_print(err);
@@ -223,8 +232,8 @@ command *next_command() {
 }
 
 void free_ast() {
-  mpc_cleanup(15, pVar, pBound, pLambda, pPi, pApp, pBase, pType,
-              pTerm, pCommand, pDef, pPrint, pCheck, pSimpl,
+  mpc_cleanup(16, pVar, pBound, pLambda, pPi, pApp, pBase, pType,
+              pTerm, pCommand, pDef, pAxiom, pPrint, pCheck, pSimpl,
               pConstructor, pData, pProgram);
   mpc_ast_delete(r.output);
 }

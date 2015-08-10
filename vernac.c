@@ -272,6 +272,16 @@ void vernac_run(command *c) {
       free_term(A);
       A = NULL;
     }
+  case AXIOM:
+    {
+      term* ty = normalize_and_free(Sigma, Delta, typecheck(Gamma, Sigma, Delta, c->left));
+      check(ty->tag == TYPE, "Axiom's type %W has type %W instead of Type", c->left, print_term, ty, print_term);
+      Gamma = telescope_add(variable_dup(c->var), term_dup(c->left), Gamma);
+      Sigma = context_add(variable_dup(c->var), NULL, Sigma);
+      printf("%W added as axiom\n", c->var, print_variable);
+      free_term(ty);
+      break;
+    }
   }
 
  error:
@@ -341,5 +351,13 @@ command *make_data(variable* name, int num_constructors) {
   ans->var = name;
   ans->num_args = num_constructors;
   ans->args = malloc(num_constructors * sizeof(term*));
+  return ans;
+}
+
+command *make_axiom(variable *var, term *ty) {
+  command *ans = make_command();
+  ans->tag = AXIOM;
+  ans->var = var;
+  ans->left = ty;
   return ans;
 }

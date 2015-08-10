@@ -9,7 +9,8 @@ typedef enum command_tag {
   PRINT,
   CHECK,
   SIMPL,
-  DATA
+  DATA,
+  AXIOM
 } command_tag;
 
 typedef struct command {
@@ -29,6 +30,7 @@ command *make_print(variable *t);
 command *make_check(term *t);
 command *make_simpl(term *t);
 command *make_data(variable* name, int num_constructors);
+command *make_axiom(variable* name, term* ty);
 
 int print_command(FILE* stream, command* c);
 void free_command(command* c);
