@@ -18,9 +18,9 @@ int print_term(FILE* stream, term* t) {
     return fprintf(stream, "\\%W : %W. %W", t->var, print_variable, t->left, print_term, t->right, print_term);
   case PI:
     if (variable_equal(t->var, &ignore)) {
-      return fprintf(stream, "%W -> %W", t->left, print_term, t->right, print_term);
+      return fprintf(stream, "(%W -> %W)", t->left, print_term, t->right, print_term);
     } else {
-      return fprintf(stream, "(%W : %W) -> %W", t->var, print_variable, t->left, print_term, t->right, print_term);
+      return fprintf(stream, "((%W : %W) -> %W)", t->var, print_variable, t->left, print_term, t->right, print_term);
     }
   case APP:
     return fprintf(stream, "(%W %W)", t->left, print_term, t->right, print_term);
