@@ -32,25 +32,38 @@ static int command_index;
 term* ast_to_term(mpc_ast_t* ast) {
   check(ast, "cannot convert NULL to term");
 
-  if (prefix("var", ast->tag)) {
+  if (strstr(ast->tag, "var")) {
     return make_var(make_variable(strdup(ast->contents)));
+  } else if (strstr(ast->tag, "type")) {
+    return make_type();
   } else if (prefix("lambda", ast->tag)) {
     check(ast->children_num == 6, "malformed lambda node");
     return make_lambda(make_variable(strdup(ast->children[1]->contents)),
                        ast_to_term(ast->children[3]),
                        ast_to_term(ast->children[5]));
   } else if (prefix("pi", ast->tag)) {
-    check(ast->children_num == 7, "malformed pi node");
-    return make_pi(make_variable(strdup(ast->children[1]->contents)),
-                   ast_to_term(ast->children[3]),
-                   ast_to_term(ast->children[6]));
+    if (ast->children[0]->contents[0] == '(') {
+      check(ast->children_num == 7, "malformed pi node");
+      return make_pi(make_variable(strdup(ast->children[1]->contents)),
+                     ast_to_term(ast->children[3]),
+                     ast_to_term(ast->children[6]));
+    } else {
+      check(ast->children_num == 3, "malformed pi node");
+      return make_pi(variable_dup(&ignore),
+                     ast_to_term(ast->children[0]),
+                     ast_to_term(ast->children[2]));
+    }
   } else if (prefix("app", ast->tag)) {
-    check(ast->children_num == 4, "malformed app node");
-    return make_app(ast_to_term(ast->children[1]), ast_to_term(ast->children[2]));
-  } else if (prefix("type", ast->tag)) {
-    return make_type();
-  } else if (prefix("parens", ast->tag)) {
-    check(ast->children_num == 3, "malformed parens node");
+    check(ast->children_num > 0, "malformed app node");
+    term *ans = ast_to_term(ast->children[0]);
+    int i;
+    for (i = 1; i < ast->children_num; i++) {
+      ans = make_app(ans, ast_to_term(ast->children[i]));
+    }
+
+    return ans;
+  } else if (prefix("base", ast->tag)) {
+    check(ast->children_num == 3, "malformed base/parens node");
     return ast_to_term(ast->children[1]);
   } else if (prefix("term", ast->tag)) {
     check(ast->children_num == 0, "malformed term node");
@@ -129,8 +142,8 @@ static mpc_parser_t* pBound;
 static mpc_parser_t* pLambda;
 static mpc_parser_t* pPi;
 static mpc_parser_t* pApp;
+static mpc_parser_t* pBase;
 static mpc_parser_t* pType;
-static mpc_parser_t* pParens;
 static mpc_parser_t* pTerm;
 static mpc_parser_t* pCommand;
 static mpc_parser_t* pDef;
@@ -147,8 +160,8 @@ int parse(char* filename) {
   pLambda = mpc_new("lambda");
   pPi = mpc_new("pi");
   pApp = mpc_new("app");
+  pBase = mpc_new("base");
   pType = mpc_new("type");
-  pParens = mpc_new("parens");
   pTerm = mpc_new("term");
   pCommand = mpc_new("command");
   pDef = mpc_new("def");
@@ -164,11 +177,12 @@ int parse(char* filename) {
               " var     : /[a-zA-Z][a-zA-Z0-9_]*/ ;                \n"
               " bound   : \"_\" | <var> ;                          \n"
               " lambda  : \"\\\\\" <bound> ':' <term> '.' <term> ; \n"
-              " pi      : '(' <bound> ':' <term> ')' \"->\" <term> ;\n"
-              " app     : '(' <term> <term> ')' ;\n"
+              " pi      : '(' <bound> ':' <term> ')' \"->\" <term> \n"
+              "         |  <app> \"->\" <term> ; \n"
+              " base    : <type> | <var> | '(' <term> ')' ; \n"
+              " app     : <base> <base>* ;\n"
               " type    : \"Type\" ;\n"
-              " parens  : '(' <term> ')' ;\n"
-              " term    : <type> | <var> | <lambda> | <pi> | <app> | <parens> ;\n"
+              " term    : <lambda> | <pi> | <app>;\n"
               " def     : \"def\" <var> ':' <term> \":=\" <term> '.' ;\n"
               " print   : \"print\" <var> '.' ;\n"
               " check   : \"check\" <term> '.' ;\n"
@@ -177,10 +191,10 @@ int parse(char* filename) {
               " data    : \"data\" <var> \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"
               " command : <def> | <print> | <check> | <simpl> | <data> ;\n"
               " program  : /^/ <command> * /$/ ;\n",
-              pVar, pBound, pLambda, pPi, pApp, pType,
-              pParens, pTerm,
-              pCommand, pDef, pPrint, pCheck, pSimpl, pConstructor, pData, pProgram, NULL);
-  
+              pVar, pBound, pLambda, pPi, pBase, pApp, pType,
+              pTerm,
+              pDef, pPrint, pCheck, pSimpl, pConstructor, pData, pCommand, pProgram, NULL);
+
   if (err != NULL) {
     mpc_err_print(err);
     mpc_err_delete(err);
@@ -209,8 +223,8 @@ command *next_command() {
 }
 
 void free_ast() {
-  mpc_cleanup(16, pVar, pBound, pLambda, pPi, pApp, pType, 
-              pParens, pTerm, pCommand, pDef, pPrint, pCheck, pSimpl,
+  mpc_cleanup(15, pVar, pBound, pLambda, pPi, pApp, pBase, pType,
+              pTerm, pCommand, pDef, pPrint, pCheck, pSimpl,
               pConstructor, pData, pProgram);
   mpc_ast_delete(r.output);
 }
