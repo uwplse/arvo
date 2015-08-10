@@ -2,10 +2,13 @@
 #define CONTEXT_H
 
 #include "term.h"
-#include "telescope.h"
 
 // Note: these are represented in reverse, so that rest is always well formed by itself.
-typedef telescope context;
+typedef struct context {
+  variable* var;
+  term* t;
+  struct context* rest;
+} context;
 
 context* context_empty();
 
