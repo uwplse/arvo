@@ -1,5 +1,6 @@
 #include "term.h"
 #include "telescope.h"
+#include "printing.h"
 #include <stdlib.h>
 
 telescope* telescope_empty() {
