@@ -27,9 +27,36 @@ int print_term(FILE* stream, term* t) {
   case TYPE:
     return fprintf(stream, "Type");
   case INTRO:
+    {
+      int total = 0;
+      total += fprintf(stream, "%W", t->var, print_variable);
+      if (t->num_args) {
+        total += fprintf(stream, "(");
+        for (int i = 0; i < t->num_args; i++) {
+          if (i) {
+            total += fprintf(stream, "; ");
+          }
+          total += fprintf(stream, "%W", t->args[i], print_term);
+        }
+        total += fprintf(stream, ")");
+      }
+      return total;
+    }
     return fprintf(stream, "%W", t->var, print_variable);
   case ELIM:
-    return fprintf(stream, "%W", t->var, print_variable);
+    {
+      int total = 0;
+      total += fprintf(stream, "%W", t->var, print_variable);
+      total += fprintf(stream, "(");
+      for (int i = 0; i < t->num_args; i++) {
+        if (i) {
+          total += fprintf(stream, "; ");
+        }
+        total += fprintf(stream, "%W", t->args[i], print_term);
+      }
+      total += fprintf(stream, ")");
+      return total;
+    }
   case DATATYPE:
     return fprintf(stream, "%W", t->var, print_variable);
   default:
