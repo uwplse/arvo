@@ -58,30 +58,11 @@ term* ast_to_term(mpc_ast_t* ast) {
       return make_var(make_variable(strdup(ast->contents)));
     } else if (strstr(ast->tag, "type")) {
       return make_type();
-    } else if (strstr(ast->tag, "s|string")) {
-      return make_s();
-    } else if (strstr(ast->tag, "o|string")) {
-      return make_o();
-    } else if (strstr(ast->tag, "nat|string")) {
-      return make_nat();
     }
     sentinel("malformed parse tree with tag %s", ast->tag);
   } else if (prefix(">", ast->tag)) {
     check(ast->children_num == 3, "malformed root node");
     return ast_to_term(ast->children[1]);
-  } else if (prefix("s|string", ast->tag)) {
-    return make_s();
-  } else if (prefix("o|string", ast->tag)) {
-    return make_o();
-  } else if (prefix("natind", ast->tag)) {
-    check(ast->children_num == 10, "malformed natind node");
-    return make_nat_ind(ast_to_term(ast->children[2]),
-                        ast_to_term(ast->children[4]),
-                        ast_to_term(ast->children[6]),
-                        ast_to_term(ast->children[8]));
-  } else if (prefix("nat", ast->tag)) {
-    check(ast->children_num == 0, "malformed nat node");
-    return make_nat();
   } else {
     log_err("Unknown tag %s", ast->tag);
   }
