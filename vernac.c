@@ -37,29 +37,21 @@ int print_command(FILE* stream, command* c) {
 }
 
 static void vernac_run_def(command* c) {
-  term* ty = NULL;
-  term* kind = typecheck(Gamma, Sigma, Delta, c->left);
   term* Type = make_type();
-  check(definitionally_equal(Sigma, Delta, kind, Type), "%W is not well typed.", c->left, print_term);
+  check(typecheck_check(Gamma, Sigma, Delta, c->left, Type), "%W is not well typed.", c->left, print_term);
   free_term(Type);
   Type = NULL;
-  free_term(kind);
-  kind = NULL;
 
-  ty = typecheck(Gamma, Sigma, Delta, c->right);
-  check(definitionally_equal(Sigma, Delta, ty, c->left), "Term %W\n has type %W\n instead of %W",
+  check(typecheck_check(Gamma, Sigma, Delta, c->right, c->left), "Term %W\n failed to have type %W\n",
         c->right, print_term,
-        ty, print_term,
         c->left, print_term);
-  free_term(ty);
+
 
   Gamma = telescope_add(variable_dup(c->var), term_dup(c->left), Gamma);
   Sigma = context_add(variable_dup(c->var), term_dup(c->right), Sigma);
   printf("%W defined\n", c->var, print_variable);
   return;
  error:
-  free_term(ty);
-  free_term(kind);
   free_term(Type);
 }
 
