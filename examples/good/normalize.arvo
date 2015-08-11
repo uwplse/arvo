@@ -1,3 +1,4 @@
+data nat := O | S : nat -> nat.
 def zero : nat := O.
 check zero.
 simpl zero.

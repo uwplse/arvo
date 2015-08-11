@@ -1,1 +1,2 @@
+data nat := O | S : nat -> nat.
 check (S O).
