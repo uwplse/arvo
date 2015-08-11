@@ -2,14 +2,21 @@
 #include "normalize.h"
 #include "printing.h"
 
-term* normalize_and_free(context *Sigma, typing_context* Delta, term* t) {
-  term* ans = normalize(Sigma, Delta, t);
+#define FUEL 1000
+
+static term * normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel);
+
+static term* normalize_and_free_fuel(context *Sigma, typing_context* Delta, term* t, int fuel) {
+  term* ans = normalize_fuel(Sigma, Delta, t, fuel);
   free_term(t);
   return ans;
 }
 
+term *normalize_and_free(context *Sigma, typing_context* Delta, term* t) {
+  return normalize_and_free_fuel(Sigma, Delta, t, FUEL);
+}
 
-term* normalize(context *Sigma, typing_context* Delta, term* t) {
+term* normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel) {
   check(t, "t must be non-NULL");
   check(term_locally_well_formed(t), "t must be locally well formed");
 
@@ -20,17 +27,17 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
       if (defn == NULL) {
         return term_dup(t);
       }
-      return normalize(Sigma, Delta, defn);
+      return normalize_fuel(Sigma, Delta, defn, fuel-1);
     }
   case APP:
     {
-      term *f = normalize(Sigma, Delta, t->left);
-      term *x = normalize(Sigma, Delta, t->right);
+      term *f = normalize_fuel(Sigma, Delta, t->left, fuel-1);
+      term *x = normalize_fuel(Sigma, Delta, t->right, fuel-1);
       if (f->tag == LAM) {
         term* subs = substitute(f->var, x, f->right);
         free_term(f);
         free_term(x);
-        term* ans = normalize(Sigma, Delta, subs);
+        term* ans = normalize_fuel(Sigma, Delta, subs, fuel-1);
         free_term(subs);
         return ans;
       }
@@ -38,23 +45,23 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
     }
   case LAM:
     {
-      term* A = normalize(Sigma, Delta, t->left);
+      term* A = normalize_fuel(Sigma, Delta, t->left, fuel-1);
       context* extend = context_add(variable_dup(t->var), NULL, Sigma);
-      term* b = normalize(extend, Delta, t->right);
+      term* b = normalize_fuel(extend, Delta, t->right, fuel-1);
       context_pop(extend);
       return make_lambda(variable_dup(t->var), A, b);
     }
   case PI:
     {
-      term* A = normalize(Sigma, Delta, t->left);
+      term* A = normalize_fuel(Sigma, Delta, t->left, fuel-1);
       context* extend = context_add(variable_dup(t->var), NULL, Sigma);
-      term* B = normalize(extend, Delta, t->right);
+      term* B = normalize_fuel(extend, Delta, t->right, fuel-1);
       context_pop(extend);
       return make_pi(variable_dup(t->var), A, B);
     }
   case ELIM:
     {
-      term* last = normalize(Sigma, Delta, t->args[t->num_args - 1]);
+      term* last = normalize_fuel(Sigma, Delta, t->args[t->num_args - 1], fuel-1);
       if (last->tag == INTRO) {
         datatype* T = elim_to_datatype(t->var, Delta);
         int index = datatype_intro_index(last->var, T);
@@ -71,12 +78,12 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
         }
         free_term(last);
         last = NULL;
-        return normalize_and_free(Sigma, Delta, app);
+        return normalize_and_free_fuel(Sigma, Delta, app, fuel-1);
       } else {
         term* ans = make_elim(variable_dup(t->var), t->num_args);
         int i;
         for (i = 0; i < t->num_args - 1; i++) {
-          ans->args[i] = normalize(Sigma, Delta, t->args[i]);
+          ans->args[i] = normalize_fuel(Sigma, Delta, t->args[i], fuel-1);
         }
         ans->args[t->num_args-1] = last;
         return ans;
@@ -87,7 +94,7 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
       term* ans = make_intro(variable_dup(t->var), t->num_args);
       int i;
       for (i = 0; i < t->num_args; i++) {
-        ans->args[i] = normalize(Sigma, Delta, t->args[i]);
+        ans->args[i] = normalize_fuel(Sigma, Delta, t->args[i], fuel-1);
       }
       return ans;
     }
@@ -96,6 +103,10 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
   }
  error:
   return NULL;
+}
+
+term* normalize(context *Sigma, typing_context* Delta, term* t) {
+  return normalize_fuel(Sigma, Delta, t, FUEL);
 }
 
 int definitionally_equal(context *Sigma, typing_context* Delta, term* a, term* b) {
