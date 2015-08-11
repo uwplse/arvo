@@ -1,1 +1,2 @@
-check nat-ind(\ _ : nat . nat; (S O); \x : nat. \y : nat. (S y); (S (S O))).
+data nat := O | S : nat -> nat.
+check (nat_elim (\ _ : nat . nat) (S O) (\x : nat. \y : nat. (S y))(S (S O))).

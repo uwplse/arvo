@@ -1,1 +1,3 @@
-check (((\n : nat. \m : nat. nat-ind(\_ : nat. nat; m; \_ : nat. \y : nat. (S y); n)) (S (S O))) (S (S O))).
+check (((\n : nat. \m : nat. (nat_elim (\_ : nat. nat) m (\_ : nat. \y : nat. (S y)) n)) 
+        (S (S O))) 
+        (S (S O))).
