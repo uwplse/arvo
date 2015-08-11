@@ -12,11 +12,9 @@ static term* typecheck_app(telescope* Gamma, context* Sigma, typing_context* Del
   check(tyFun->tag == PI, "Function %W has type %W but expected to have pi-type",
         fun, print_term, tyFun, print_term);
 
-  tyArg = typecheck(Gamma, Sigma, Delta, arg);
-  check(tyArg != NULL, "Bad argument %W", arg, print_term);
-  check(definitionally_equal(Sigma, Delta, tyFun->left, tyArg),
-        "Type mismatch in function application: function has domain %W but argument has type %W",
-        tyFun->left, print_term, tyArg, print_term);
+  check(typecheck_check(Gamma, Sigma, Delta, arg, tyFun->left),
+        "Type mismatch in function application: argument expected to have type %W",
+        tyFun->left, print_term);
 
   term* ans = substitute(tyFun->var, arg, tyFun->right);
 
@@ -75,12 +73,44 @@ static term* typecheck_pi(telescope* Gamma, context* Sigma, typing_context* Delt
   return NULL;
 }
 
+int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, term* t, term* ty) {
+  check(t, "term must be non-NULL");
+  check(term_locally_well_formed(t), "term must be well formed");
+  check(ty, "type must be non-NULL");
+  check(term_locally_well_formed(ty), "type must be well formed");
 
+  switch (t->tag) {
+  case LAM:
+    if (t->left == NULL) {
+      check(ty->tag == PI, "checking lambda against non-pi %W", ty, print_term);
+      if (variable_equal(t->var, &ignore)) {
+        return typecheck_check(Gamma, Sigma, Delta, t->right, ty->right);
+      }
+      term* tvar = make_var(variable_dup(t->var));
+      Gamma = telescope_add(variable_dup(t->var), substitute(ty->var, tvar, ty->left), Gamma);
+      term* codomain = substitute(ty->var, tvar, ty->right);
+      int ans = typecheck_check(Gamma, Sigma, Delta, t->right, codomain);
+      telescope_pop(Gamma);
+      free_term(tvar);
+      free_term(codomain);
+      return ans;
+    }
+  default:
+    {
+      term* inferred = typecheck_infer(Gamma, Sigma, Delta, t);
+      int ans = definitionally_equal(Sigma, Delta, ty, inferred);
+      if (!ans)
+        log_err("in context %W\n%W expected to have type %W but has type %W", Gamma, print_telescope, t, print_term, ty, print_term, inferred, print_term);
+      free_term(inferred);
+      return ans;
+    }
+  }
 
-/*
-  Caller should free result.
- */
-term* typecheck(telescope* Gamma, context *Sigma, typing_context* Delta, term* t) {
+ error:
+  return 0;
+}
+
+term* typecheck_infer(telescope* Gamma, context *Sigma, typing_context* Delta, term* t) {
   check(t, "term must be non-NULL");
   check(term_locally_well_formed(t), "term must be well formed");
 
@@ -92,6 +122,7 @@ term* typecheck(telescope* Gamma, context *Sigma, typing_context* Delta, term* t
       return term_dup(ty);
     }
   case LAM:
+    check(t->left != NULL, "Cannot infer type ");
     return typecheck_lam(Gamma, Sigma, Delta, t->var, t->left, t->right);
   case PI:
     return typecheck_pi(Gamma, Sigma, Delta, t->var, t->left, t->right);
@@ -106,6 +137,7 @@ term* typecheck(telescope* Gamma, context *Sigma, typing_context* Delta, term* t
  error:
   return NULL;
 }
+
 
 int has_type(telescope *Gamma, context *Sigma, typing_context* Delta, term *t, term *ty) {
   term* tty = typecheck(Gamma, Sigma, Delta, t);

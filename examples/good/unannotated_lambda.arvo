@@ -1,0 +1,1 @@
+def Id : Type -> Type := \T. T.

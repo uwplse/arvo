@@ -38,7 +38,7 @@ static term* normalize_fuel_app(context *Sigma, typing_context* Delta, term* t, 
 term* normalize_fuel_lambda(context *Sigma, typing_context* Delta, term* t, int fuel) {
   term* b = NULL;
   term* A = normalize_fuel(Sigma, Delta, t->left, fuel-1);
-  if (!A) goto error;
+
   context* extend = context_add(variable_dup(t->var), NULL, Sigma);
   b = normalize_fuel(extend, Delta, t->right, fuel-1);
   context_pop(extend);
@@ -125,7 +125,7 @@ term* normalize_fuel_var(context *Sigma, typing_context* Delta, term* t, int fue
 }
 
 term* normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel) {
-  check(t, "t must be non-NULL");
+  if (t == NULL) return NULL;
   check(term_locally_well_formed(t), "t must be locally well formed");
   check(fuel >= 0, "Stack depth exceeded")
 

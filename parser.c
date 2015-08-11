@@ -51,10 +51,16 @@ term* ast_to_term(mpc_ast_t* ast) {
   } else if (strstr(ast->tag, "type")) {
     return make_type();
   } else if (prefix("lambda", ast->tag)) {
-    check(ast->children_num == 6, "malformed lambda node");
-    return make_lambda(make_variable(strdup(ast->children[1]->contents)),
-                       ast_to_term(ast->children[3]),
-                       ast_to_term(ast->children[5]));
+    if (ast->children_num == 4) {
+      return make_lambda(make_variable(strdup(ast->children[1]->contents)),
+                         NULL,
+                         ast_to_term(ast->children[3]));
+    } else {
+      check(ast->children_num == 6, "malformed lambda node");
+      return make_lambda(make_variable(strdup(ast->children[1]->contents)),
+                         ast_to_term(ast->children[3]),
+                         ast_to_term(ast->children[5]));
+    }
   } else if (prefix("pi", ast->tag)) {
     if (ast->children[0]->contents[0] == '(') {
       check(ast->children_num == 7, "malformed pi node");
@@ -123,9 +129,14 @@ command *ast_to_command(mpc_ast_t *ast) {
     return make_print(make_variable(strdup(ast->children[1]->contents)));
   }
   else if (prefix("check", ast->tag)) {
-    check(ast->children_num == 3, "malformed check");
-
-    return make_check(ast_to_term(ast->children[1]));
+    if (ast->children_num == 3) {
+      return make_check(ast_to_term(ast->children[1]));
+    } else {
+      check(ast->children_num == 5, "malformed check");
+      command* ans = make_check(ast_to_term(ast->children[1]));
+      ans->right = ast_to_term(ast->children[3]);
+      return ans;
+    }
   }
   else if (prefix("simpl", ast->tag)) {
     check(ast->children_num == 3, "malformed simpl");
@@ -207,7 +218,7 @@ parsing_context* parse(char* filename) {
               " comment : /@[^@]*@/                              ; \n"
               " var     : /[a-zA-Z][a-zA-Z0-9_]*/ ;                \n"
               " bound   : \"_\" | <var> ;                          \n"
-              " lambda  : \"\\\\\" <bound> ':' <term> '.' <term> ; \n"
+              " lambda  : \"\\\\\" <bound> (':' <term>)? '.' <term> ; \n"
               " pi      : '(' <bound> ':' <term> ')' \"->\" <term> \n"
               "         |  <app> \"->\" <term> ; \n"
               " base    : <type> | <var> | '(' <term> ')' ; \n"
@@ -218,7 +229,7 @@ parsing_context* parse(char* filename) {
               " axiom   : \"axiom\" <var> ':' <term> '.' ;\n"
               " import  : \"import\" <var> '.' ;\n"
               " print   : \"print\" <var> '.' ;\n"
-              " check   : \"check\" <term> '.' ;\n"
+              " check   : \"check\" <term> (':' <term>)? '.' ;\n"
               " simpl   : \"simpl\" <term> '.' ;\n"
               " constructor : <var> (':' <term>)? ;\n"
               " data    : \"data\" <var> \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"

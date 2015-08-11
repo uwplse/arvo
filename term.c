@@ -15,7 +15,11 @@ int print_term(FILE* stream, term* t) {
   case VAR:
     return print_variable(stream, t->var);
   case LAM:
-    return fprintf(stream, "\\%W : %W. %W", t->var, print_variable, t->left, print_term, t->right, print_term);
+    if (t->left == NULL) {
+      return fprintf(stream, "\\%W. %W", t->var, print_variable, t->right, print_term);
+    } else {
+      return fprintf(stream, "\\%W : %W. %W", t->var, print_variable, t->left, print_term, t->right, print_term);
+    }
   case PI:
     if (variable_equal(t->var, &ignore)) {
       return fprintf(stream, "(%W -> %W)", t->left, print_term, t->right, print_term);
@@ -140,7 +144,7 @@ int variable_equal(variable* x, variable* y) {
 }
 
 int syntactically_identical(term* a, term* b) {
-  check(a != NULL && b != NULL, "alpha_equiv requires non-NULL arguments");
+  if (a == NULL || b == NULL) return a == b;
   check(term_locally_well_formed(a) && term_locally_well_formed(b), 
         "alpha equiv requires well-formed arguments");
 
@@ -151,11 +155,10 @@ int syntactically_identical(term* a, term* b) {
     return variable_equal(a->var, b->var);
   case LAM:
     {
-      if (!syntactically_identical(a->left, b->left))
+      if (a->left != NULL && b->left != NULL && !syntactically_identical(a->left, b->left))
         return 0;
       if (variable_equal(a->var, b->var))
-        return syntactically_identical(a->left, b->left) &&
-          syntactically_identical(a->right, b->right);
+        return syntactically_identical(a->right, b->right);
 
       term* va = make_var(variable_dup(a->var));
       term* bsubs = substitute(b->var, va, b->right);
@@ -234,6 +237,8 @@ variable *gensym(char *name) {
 }
 
 int is_free(variable *var, term *haystack) {
+  if (haystack == NULL) return 0;
+
   switch(haystack->tag) {
   case VAR:
     if (variable_equal(var, haystack->var)) {
@@ -291,9 +296,12 @@ int is_free(variable *var, term *haystack) {
   the caller must free the result.
  */
 term* substitute(variable* from, term* to, term* haystack) {
-  check(from != NULL && to != NULL && haystack != NULL, "substitute requires non-NULL arguments");
+  if (haystack == NULL) return NULL;
+
+  check(from != NULL && to != NULL, "substitute requires non-NULL arguments");
   check(term_locally_well_formed(to), "substitute requires %W to be locally well-formed", to, print_term);
   check(term_locally_well_formed(haystack),"substitute requires %W to be locally well-formed", haystack, print_term);
+
 
 
   switch(haystack->tag) {
@@ -382,6 +390,7 @@ int term_locally_well_formed(term* t) {
   case VAR:
     return (t->var != NULL);
   case LAM:
+    return (t->var != NULL) && (t->right != NULL);
   case PI:
     return (t->var != NULL) && (t->left != NULL) && (t->right != NULL);
   case APP:
