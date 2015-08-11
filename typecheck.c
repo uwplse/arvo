@@ -93,7 +93,9 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
               t->left, print_term, nty->left, print_term);
       }
       if (variable_equal(t->var, &ignore)) {
-        return typecheck_check(Gamma, Sigma, Delta, t->right, nty->right);
+        int ans = typecheck_check(Gamma, Sigma, Delta, t->right, nty->right);
+        free_term(nty);
+        return ans;
       }
       term* tvar = make_var(variable_dup(t->var));
       Gamma = telescope_add(variable_dup(t->var), substitute(nty->var, tvar, nty->left), Gamma);

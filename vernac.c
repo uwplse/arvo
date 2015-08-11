@@ -55,6 +55,24 @@ static void vernac_run_def(command* c) {
   free_term(Type);
 }
 
+static void vernac_run_check(command* c) {
+  term* Type = NULL;
+  if (c->right == NULL) {
+    term* ty = typecheck(Gamma, Sigma, Delta, c->left);
+    printf("%W : %W\n", c->left, print_term, ty, print_term);
+    free_term(ty);
+  } else {
+    Type = make_type();
+    check(typecheck_check(Gamma, Sigma, Delta, c->right, Type), "RHS of check is ill-typed");
+    check(typecheck_check(Gamma, Sigma, Delta, c->left, c->right), "Check failed.");
+    printf("check succeeded.\n");
+    free_term(Type);
+  }
+  return;
+ error:
+  free_term(Type);
+}
+
 void vernac_run(command *c) {
   switch (c->tag) {
   case DEF:
@@ -64,18 +82,8 @@ void vernac_run(command *c) {
     printf("%W\n", context_lookup(c->var, Sigma), print_term);
     break;
   case CHECK:
-    {
-      if (c->right == NULL) {
-        term* ty = typecheck(Gamma, Sigma, Delta, c->left);
-        printf("%W : %W\n", c->left, print_term, ty, print_term);
-        free_term(ty);
-      } else {
-        check(typecheck_check(Gamma, Sigma, Delta, c->right, make_type()), "RHS of check is ill-typed");
-        check(typecheck_check(Gamma, Sigma, Delta, c->left, c->right), "Check failed.");
-        printf("check succeeded.\n");
-      }
-      break;
-    }
+    vernac_run_check(c);
+    break;
   case SIMPL:
     {
       term* t = normalize(Sigma, Delta, c->left);
