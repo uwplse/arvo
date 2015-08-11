@@ -15,21 +15,21 @@ axiom J : (A : Type) -> (P : (a : A) -> (b : A) -> eq A a b -> Type) -> (a : A) 
 check J.
 
 def eq_sym : (A : Type) -> (a : A) -> (b : A) -> eq A a b -> eq A b a :=
-    \A : Type. \a : A. \b : A. \pf : eq A a b.
-    subst A (\x : A. eq A x a) a (refl A a) b pf.
+    \A. \a. \b. \pf.
+    subst A (\x. eq A x a) a (refl A a) b pf.
 check eq_sym.
 print eq_sym.
 
 def eq_trans : (A : Type) -> (a : A) -> (b : A) -> (c : A) -> eq A a b -> eq A b c -> eq A a c :=
-    \A : Type. \a : A. \b : A. \c : A.
-      \ab : eq A a b.
-        subst A (\x : A. eq A x c -> eq A a c) a (\y : eq A a c. y) b ab.
+    \A. \a. \b. \c.
+      \ab.
+        subst A (\x. eq A x c -> eq A a c) a (\y. y) b ab.
 check eq_trans.
 print eq_trans.
 
 def f_equal : (A : Type) -> (B : Type) -> (f : A -> B) -> (x : A) -> (y : A) ->
               eq A x y -> eq B (f x) (f y) :=
-  \A : Type. \B : Type. \f : A -> B. \x : A. \y : A. \H : eq A x y.
-    subst A (\z : A. eq B (f x) (f z)) x (refl B (f x)) y H.
+  \A. \B. \f. \x. \y. \H.
+    subst A (\z. eq B (f x) (f z)) x (refl B (f x)) y H.
 check f_equal.
 print f_equal.
