@@ -51,10 +51,16 @@ term* ast_to_term(mpc_ast_t* ast) {
   } else if (strstr(ast->tag, "type")) {
     return make_type();
   } else if (prefix("lambda", ast->tag)) {
-    check(ast->children_num == 6, "malformed lambda node");
-    return make_lambda(make_variable(strdup(ast->children[1]->contents)),
-                       ast_to_term(ast->children[3]),
-                       ast_to_term(ast->children[5]));
+    if (ast->children_num == 4) {
+      return make_lambda(make_variable(strdup(ast->children[1]->contents)),
+                         NULL,
+                         ast_to_term(ast->children[3]));
+    } else {
+      check(ast->children_num == 6, "malformed lambda node");
+      return make_lambda(make_variable(strdup(ast->children[1]->contents)),
+                         ast_to_term(ast->children[3]),
+                         ast_to_term(ast->children[5]));
+    }
   } else if (prefix("pi", ast->tag)) {
     if (ast->children[0]->contents[0] == '(') {
       check(ast->children_num == 7, "malformed pi node");
@@ -207,7 +213,7 @@ parsing_context* parse(char* filename) {
               " comment : /@[^@]*@/                              ; \n"
               " var     : /[a-zA-Z][a-zA-Z0-9_]*/ ;                \n"
               " bound   : \"_\" | <var> ;                          \n"
-              " lambda  : \"\\\\\" <bound> ':' <term> '.' <term> ; \n"
+              " lambda  : \"\\\\\" <bound> (':' <term>)? '.' <term> ; \n"
               " pi      : '(' <bound> ':' <term> ')' \"->\" <term> \n"
               "         |  <app> \"->\" <term> ; \n"
               " base    : <type> | <var> | '(' <term> ')' ; \n"
