@@ -1,0 +1,8 @@
+data False := .
+
+axiom c : False.
+
+def exfalso : (A : Type) -> A :=
+   \ A : Type. (False_elim (\ _ : False. A) c).
+
+check exfalso.
