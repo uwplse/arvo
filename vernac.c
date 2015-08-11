@@ -36,30 +36,38 @@ int print_command(FILE* stream, command* c) {
   }
 }
 
+static void vernac_run_def(command* c) {
+  term* ty = NULL;
+  term* kind = typecheck(Gamma, Sigma, Delta, c->left);
+  term* Type = make_type();
+  check(definitionally_equal(Sigma, Delta, kind, Type), "%W is not well typed.", c->left, print_term);
+  free_term(Type);
+  Type = NULL;
+  free_term(kind);
+  kind = NULL;
+
+  ty = typecheck(Gamma, Sigma, Delta, c->right);
+  check(definitionally_equal(Sigma, Delta, ty, c->left), "Term %W\n has type %W\n instead of %W",
+        c->right, print_term,
+        ty, print_term,
+        c->left, print_term);
+  free_term(ty);
+
+  Gamma = telescope_add(variable_dup(c->var), term_dup(c->left), Gamma);
+  Sigma = context_add(variable_dup(c->var), term_dup(c->right), Sigma);
+  printf("%W defined\n", c->var, print_variable);
+  return;
+ error:
+  free_term(ty);
+  free_term(kind);
+  free_term(Type);
+}
+
 void vernac_run(command *c) {
   switch (c->tag) {
   case DEF:
-    {
-      term* kind = typecheck(Gamma, Sigma, Delta, c->left);
-      term* Type = make_type();
-      check(definitionally_equal(Sigma, Delta, kind, Type), "%W is not well typed.", c->left, print_term);
-      free_term(Type);
-      Type = NULL;
-      free_term(kind);
-      kind = NULL;
-
-      term* ty = typecheck(Gamma, Sigma, Delta, c->right);
-      check(definitionally_equal(Sigma, Delta, ty, c->left), "Term %W has type %W <> %W",
-            c->right, print_term,
-            ty, print_term,
-            c->left, print_term);
-      free_term(ty);
-
-      Gamma = telescope_add(variable_dup(c->var), term_dup(c->left), Gamma);
-      Sigma = context_add(variable_dup(c->var), term_dup(c->right), Sigma);
-      printf("%W defined\n", c->var, print_variable);
-      break;
-    }
+    vernac_run_def(c);
+    break;
   case PRINT:
     printf("%W\n", context_lookup(c->var, Sigma), print_term);
     break;
