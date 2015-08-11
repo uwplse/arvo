@@ -1,3 +1,5 @@
+import axiomatic_equality.
+
 data N := Zero | Succ : (_ : N) -> N.
 data bool := true | false.
 
