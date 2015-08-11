@@ -463,7 +463,7 @@ term* make_intro(variable* name, int num_args) {
   ans->tag = INTRO;
   ans->var = name;
   ans->num_args = num_args;
-  ans->args = malloc(num_args * sizeof(term*));
+  ans->args = calloc(num_args, sizeof(term*));
   return ans;
 }
 
@@ -472,7 +472,7 @@ term* make_elim(variable* name, int num_args) {
   ans->tag = ELIM;
   ans->var = name;
   ans->num_args = num_args;
-  ans->args = malloc(num_args * sizeof(term*));
+  ans->args = calloc(num_args, sizeof(term*));
   return ans;
 }
 
