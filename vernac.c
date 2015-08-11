@@ -45,6 +45,8 @@ void vernac_run(command *c) {
       check(definitionally_equal(Sigma, Delta, kind, Type), "%W is not well typed.", c->left, print_term);
       free_term(Type);
       Type = NULL;
+      free(kind);
+      kind = NULL;
 
       term* ty = typecheck(Gamma, Sigma, Delta, c->right);
       check(definitionally_equal(Sigma, Delta, ty, c->left), "Term %W has type %W <> %W",
