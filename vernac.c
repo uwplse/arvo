@@ -276,6 +276,7 @@ void vernac_run(command *c) {
   case AXIOM:
     {
       term* ty = normalize_and_free(Sigma, Delta, typecheck(Gamma, Sigma, Delta, c->left));
+      check(ty != NULL, "Axiom's type %W does not typecheck", c->left, print_term);
       check(ty->tag == TYPE, "Axiom's type %W has type %W instead of Type", c->left, print_term, ty, print_term);
       Gamma = telescope_add(variable_dup(c->var), term_dup(c->left), Gamma);
       Sigma = context_add(variable_dup(c->var), NULL, Sigma);
