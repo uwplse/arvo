@@ -85,14 +85,6 @@ term* ast_to_term(mpc_ast_t* ast) {
   } else if (prefix("base", ast->tag)) {
     check(ast->children_num == 3, "malformed base/parens node");
     return ast_to_term(ast->children[1]);
-  } else if (prefix("term", ast->tag)) {
-    check(ast->children_num == 0, "malformed term node");
-    if (strstr(ast->tag, "var")) {
-      return make_var(make_variable(strdup(ast->contents)));
-    } else if (strstr(ast->tag, "type")) {
-      return make_type();
-    }
-    sentinel("malformed parse tree with tag %s", ast->tag);
   } else if (prefix(">", ast->tag)) {
     check(ast->children_num == 3, "malformed root node");
     return ast_to_term(ast->children[1]);
