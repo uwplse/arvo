@@ -40,6 +40,12 @@ void vernac_run(command *c) {
   switch (c->tag) {
   case DEF:
     {
+      term* kind = typecheck(Gamma, Sigma, Delta, c->left);
+      term* Type = make_type();
+      check(definitionally_equal(Sigma, Delta, kind, Type), "%W is not well typed.", c->left, print_term);
+      free_term(Type);
+      Type = NULL;
+
       term* ty = typecheck(Gamma, Sigma, Delta, c->right);
       check(definitionally_equal(Sigma, Delta, ty, c->left), "Term %W has type %W <> %W",
             c->right, print_term,
