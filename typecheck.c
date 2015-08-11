@@ -86,10 +86,13 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
       if (variable_equal(t->var, &ignore)) {
         return typecheck_check(Gamma, Sigma, Delta, t->right, ty->right);
       }
-      term* tvar = make_var(t->var);
+      term* tvar = make_var(variable_dup(t->var));
       Gamma = telescope_add(variable_dup(t->var), substitute(ty->var, tvar, ty->left), Gamma);
-      int ans = typecheck_check(Gamma, Sigma, Delta, t->right, substitute(ty->var, tvar, ty->right));
+      term* codomain = substitute(ty->var, tvar, ty->right);
+      int ans = typecheck_check(Gamma, Sigma, Delta, t->right, codomain);
       telescope_pop(Gamma);
+      free_term(tvar);
+      free_term(codomain);
       return ans;
     }
   default:
