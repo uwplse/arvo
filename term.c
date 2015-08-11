@@ -172,8 +172,7 @@ int syntactically_identical(term* a, term* b) {
       if (!syntactically_identical(a->left, b->left))
         return 0;
       if (variable_equal(a->var, b->var))
-        return syntactically_identical(a->left, b->left) &&
-          syntactically_identical(a->right, b->right);
+        return syntactically_identical(a->right, b->right);
 
 
       term* va = make_var(variable_dup(a->var));
