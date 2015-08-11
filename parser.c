@@ -25,8 +25,22 @@ static int prefix(char* s, char* t) {
   return 0;
 }
 
-static mpc_result_t r;
-static int command_index;
+typedef struct parsing_context {
+  mpc_result_t result;
+  int command_index;
+} parsing_context;
+
+static parsing_context* make_parsing_context() {
+  parsing_context* ans = malloc(sizeof(parsing_context));
+  ans->command_index = 0;
+  return ans;
+}
+
+void free_parsing_context(parsing_context* pc) {
+  mpc_ast_delete(pc->result.output);
+  pc->result.output = NULL;
+  free(pc);
+}
 
 
 term* ast_to_term(mpc_ast_t* ast) {
@@ -99,6 +113,10 @@ command *ast_to_command(mpc_ast_t *ast) {
     return make_axiom(make_variable(strdup(ast->children[1]->contents)),
                       ast_to_term(ast->children[3]));
   }
+  else if (prefix("import", ast->tag)) {
+    check(ast->children_num == 3, "malformed import");
+    return make_import(make_variable(strdup(ast->children[1]->contents)));
+  }
   else if (prefix("print", ast->tag)) {
     check(ast->children_num == 3, "malformed print");
 
@@ -154,6 +172,7 @@ static mpc_parser_t* pTerm;
 static mpc_parser_t* pCommand;
 static mpc_parser_t* pDef;
 static mpc_parser_t* pAxiom;
+static mpc_parser_t* pImport;
 static mpc_parser_t* pPrint;
 static mpc_parser_t* pCheck;
 static mpc_parser_t* pSimpl;
@@ -161,7 +180,7 @@ static mpc_parser_t* pConstructor;
 static mpc_parser_t* pData;
 static mpc_parser_t* pProgram;
 
-int parse(char* filename) {
+parsing_context* parse(char* filename) {
   pVar = mpc_new("var");
   pBound = mpc_new("bound");
   pLambda = mpc_new("lambda");
@@ -173,6 +192,7 @@ int parse(char* filename) {
   pCommand = mpc_new("command");
   pDef = mpc_new("def");
   pAxiom = mpc_new("axiom");
+  pImport = mpc_new("import");
   pPrint = mpc_new("print");
   pCheck = mpc_new("check");
   pSimpl = mpc_new("simpl");
@@ -192,17 +212,18 @@ int parse(char* filename) {
               " type    : \"Type\" ;\n"
               " term    : <lambda> | <pi> | <app>;\n"
               " def     : \"def\" <var> ':' <term> \":=\" <term> '.' ;\n"
-              " axiom     : \"axiom\" <var> ':' <term> '.' ;\n"
+              " axiom   : \"axiom\" <var> ':' <term> '.' ;\n"
+              " import  : \"import\" <var> '.' ;\n"
               " print   : \"print\" <var> '.' ;\n"
               " check   : \"check\" <term> '.' ;\n"
               " simpl   : \"simpl\" <term> '.' ;\n"
               " constructor : <var> (':' <term>)? ;\n"
               " data    : \"data\" <var> \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"
-              " command : <def> | <print> | <check> | <simpl> | <data> | <axiom> ;\n"
+              " command : <def> | <print> | <check> | <simpl> | <data> | <axiom> | <import> ;\n"
               " program  : /^/ <command> * /$/ ;\n",
               pVar, pBound, pLambda, pPi, pBase, pApp, pType,
               pTerm,
-              pDef, pAxiom, pPrint, pCheck, pSimpl, pConstructor, pData, pCommand, pProgram, NULL);
+              pDef, pAxiom, pImport, pPrint, pCheck, pSimpl, pConstructor, pData, pCommand, pProgram, NULL);
 
   if (err != NULL) {
     mpc_err_print(err);
@@ -210,30 +231,34 @@ int parse(char* filename) {
     goto error;
   }
 
-  if (!mpc_parse_contents(filename, pProgram, &r)) {
+  parsing_context* ans = make_parsing_context();
+
+  if (!mpc_parse_contents(filename, pProgram, &ans->result)) {
     printf ("error: \n");
-    mpc_err_print(r.error);
-    mpc_err_delete(r.error);
+    mpc_err_print(ans->result.error);
+    mpc_err_delete(ans->result.error);
     goto error;
   }
-  //mpc_ast_print(r.output);
-  command_index = 1;
-  return 1;
+  mpc_cleanup(18, pVar, pBound, pLambda, pPi, pApp, pBase, pType,
+              pTerm, pCommand, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl,
+              pConstructor, pData, pProgram);
+  //mpc_ast_print(ans->ast.output);
+  ans->command_index = 1;
+  return ans;
  error:
-  return 0;
+  mpc_cleanup(18, pVar, pBound, pLambda, pPi, pApp, pBase, pType,
+              pTerm, pCommand, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl,
+              pConstructor, pData, pProgram);
+  return NULL;
 }
 
-command *next_command() {
-  mpc_ast_t *ast = r.output;
-  if (command_index >= ast->children_num-1) {
+command *next_command(parsing_context* pc) {
+  mpc_ast_t *ast = pc->result.output;
+  if (pc->command_index >= ast->children_num-1) {
     return NULL;
   }
-  return ast_to_command(ast->children[command_index++]);
+  return ast_to_command(ast->children[pc->command_index++]);
 }
 
-void free_ast() {
-  mpc_cleanup(16, pVar, pBound, pLambda, pPi, pApp, pBase, pType,
-              pTerm, pCommand, pDef, pAxiom, pPrint, pCheck, pSimpl,
-              pConstructor, pData, pProgram);
-  mpc_ast_delete(r.output);
-}
+
+

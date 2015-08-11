@@ -10,7 +10,8 @@ typedef enum command_tag {
   CHECK,
   SIMPL,
   DATA,
-  AXIOM
+  AXIOM,
+  IMPORT
 } command_tag;
 
 typedef struct command {
@@ -22,7 +23,7 @@ typedef struct command {
   term** args;
 } command;
 
-void vernac_init(void);
+void vernac_init(char* working_directory);
 void vernac_run(command *c);
 
 command *make_def(variable *var, term *ty, term *t);
@@ -31,6 +32,9 @@ command *make_check(term *t);
 command *make_simpl(term *t);
 command *make_data(variable* name, int num_constructors);
 command *make_axiom(variable* name, term* ty);
+command *make_import(variable* name);
+
+int process_file(char* filename);
 
 int print_command(FILE* stream, command* c);
 void free_command(command* c);

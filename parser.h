@@ -4,9 +4,11 @@
 #include "term.h"
 #include "vernac.h"
 
-int parse(char* filename);
+typedef struct parsing_context parsing_context;
 
-command *next_command(void);
-void free_ast(void);
+parsing_context* parse(char* filename);
+
+command *next_command(parsing_context* pc);
+void free_parsing_context(parsing_context* pc);
 
 #endif  // PARSER_H

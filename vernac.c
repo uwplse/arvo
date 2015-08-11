@@ -5,6 +5,7 @@
 #include "typecheck.h"
 #include "term.h"
 #include "normalize.h"
+#include "parser.h"
 #include "printing.h"
 
 #include <stdlib.h>
@@ -12,11 +13,13 @@
 static telescope *Gamma;
 static context *Sigma;
 static typing_context *Delta;
+static char* wd;
 
-void vernac_init() {
+void vernac_init(char* working_directory) {
   Gamma = telescope_empty();
   Sigma = context_empty();
   Delta = typing_context_empty();
+  wd = strdup(working_directory);
 }
 
 int print_command(FILE* stream, command* c) {
@@ -284,6 +287,17 @@ void vernac_run(command *c) {
       free_term(ty);
       break;
     }
+  case IMPORT:
+    {
+      log_info("importing file %s", c->var->name);
+      char* filename;
+      asprintf(&filename, "%s/%s%s", wd, c->var->name, ".arvo");
+      log_info("path = %s", filename);
+      fflush(stdout);
+      check(process_file(filename) == 0, "Failed to import file %s.", c->var->name);
+      free(filename);
+      break;
+    }
   }
 
  error:
@@ -363,3 +377,30 @@ command *make_axiom(variable *var, term *ty) {
   ans->left = ty;
   return ans;
 }
+
+command *make_import(variable* name) {
+  command *ans = make_command();
+  ans->tag = IMPORT;
+  ans->var = name;
+  return ans;
+}
+
+int process_file(char* filename) {
+  command *c;
+
+  parsing_context* pc = parse(filename);
+  check(pc, "Parse error");
+
+  while((c = next_command(pc))) {
+    vernac_run(c);
+    free_command(c);
+  }
+
+  free_parsing_context(pc);
+
+  return 0;
+
+ error:
+  return 1;
+}
+
