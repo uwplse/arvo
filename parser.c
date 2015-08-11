@@ -50,6 +50,8 @@ term* ast_to_term(mpc_ast_t* ast) {
     return make_var(make_variable(strdup(ast->contents)));
   } else if (strstr(ast->tag, "type")) {
     return make_type();
+  } else if (strstr(ast->tag, "hole")) {
+    return make_hole();
   } else if (prefix("lambda", ast->tag)) {
     if (ast->children_num == 4) {
       return make_lambda(make_variable(strdup(ast->children[1]->contents)),

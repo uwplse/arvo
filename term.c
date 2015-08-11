@@ -14,6 +14,8 @@ int print_term(FILE* stream, term* t) {
   switch (t->tag) {
   case VAR:
     return print_variable(stream, t->var);
+  case HOLE:
+    return fprintf(stream, "<hole>");
   case LAM:
     if (t->left == NULL) {
       return fprintf(stream, "\\%W. %W", t->var, print_variable, t->right, print_term);
@@ -103,6 +105,13 @@ term* make_pi(variable* x, term* A, term* B) {
 term* make_type() {
   term* ans = make_term();
   ans->tag = TYPE;
+
+  return ans;
+}
+
+term* make_hole() {
+  term* ans = make_term();
+  ans->tag = HOLE;
 
   return ans;
 }
@@ -244,6 +253,8 @@ int is_free(variable *var, term *haystack) {
     if (variable_equal(var, haystack->var)) {
       return 1;
     }
+    return 0;
+  case HOLE:
     return 0;
   case LAM:
   case PI:
@@ -399,6 +410,7 @@ int term_locally_well_formed(term* t) {
   case INTRO:
   case ELIM:
   case DATATYPE:
+  case HOLE:
     return 1;
 
   default:
