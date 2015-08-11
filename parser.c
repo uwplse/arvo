@@ -25,10 +25,10 @@ static int prefix(char* s, char* t) {
   return 0;
 }
 
-typedef struct parsing_context {
+struct parsing_context {
   mpc_result_t result;
   int command_index;
-} parsing_context;
+};
 
 static parsing_context* make_parsing_context() {
   parsing_context* ans = malloc(sizeof(parsing_context));
