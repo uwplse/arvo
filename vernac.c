@@ -166,7 +166,7 @@ void vernac_run(command *c) {
          - elim : \M : (A -> Type) . \x1 : M a1 . ... \xn : M an . \a : A . ELIM(M; x1; ...; xn; a)
       */
 
-      int *inductive_args = malloc(total_args * sizeof(int));
+      int *inductive_args = calloc(total_args, sizeof(int));
       int total_arg_index = 0;
       term **intros = malloc(num_constructors * sizeof(term*));
 

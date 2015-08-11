@@ -58,19 +58,20 @@ term* normalize(context *Sigma, typing_context* Delta, term* t) {
       if (last->tag == INTRO) {
         datatype* T = elim_to_datatype(t->var, Delta);
         int index = datatype_intro_index(last->var, T);
-        term *app = t->args[index + 1];
+        term *app = term_dup(t->args[index + 1]);
         int i;
         for (i = 0; i < last->num_args; i++) {
           app = make_app(app, term_dup(last->args[i]));
           if (constructor_arg_is_inductive(T, last->var, i)) {
             term *inductive = term_dup(t);
+            free_term(inductive->args[inductive->num_args - 1]);
             inductive->args[inductive->num_args - 1] = term_dup(last->args[i]);
             app = make_app(app, inductive);
           }
         }
         free_term(last);
         last = NULL;
-        return normalize(Sigma, Delta, app);
+        return normalize_and_free(Sigma, Delta, app);
       } else {
         term* ans = make_elim(variable_dup(t->var), t->num_args);
         int i;
