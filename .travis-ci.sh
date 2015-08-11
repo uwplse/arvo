@@ -1,1 +1,1 @@
-./memtest.sh
+./test.sh && ./memtest.sh
