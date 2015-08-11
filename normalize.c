@@ -19,6 +19,7 @@ term *normalize_and_free(context *Sigma, typing_context* Delta, term* t) {
 term* normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel) {
   check(t, "t must be non-NULL");
   check(term_locally_well_formed(t), "t must be locally well formed");
+  check(fuel >= 0, "Stack depth exceeded")
 
   switch (t->tag) {
   case VAR:
