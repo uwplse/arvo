@@ -80,19 +80,32 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
   check(term_locally_well_formed(ty), "type must be well formed");
 
   switch (t->tag) {
+  case HOLE:
+    log_info("Hole has type %W", ty, print_term);
+    return 1;
   case LAM:
-    if (t->left == NULL) {
-      check(ty->tag == PI, "checking lambda against non-pi %W", ty, print_term);
+    {
+      term* nty = normalize(Sigma, Delta, ty);
+      check(nty->tag == PI, "checking lambda term %W against non-pi %W", t, print_term, nty, print_term);
+      if (t->left != NULL) {
+        check(definitionally_equal(Sigma, Delta, t->left, nty->left),
+              "annotation %W does not match type %W",
+              t->left, print_term, nty->left, print_term);
+      }
       if (variable_equal(t->var, &ignore)) {
-        return typecheck_check(Gamma, Sigma, Delta, t->right, ty->right);
+        int ans = typecheck_check(Gamma, Sigma, Delta, t->right, nty->right);
+        free_term(nty);
+        return ans;
       }
       term* tvar = make_var(variable_dup(t->var));
-      Gamma = telescope_add(variable_dup(t->var), substitute(ty->var, tvar, ty->left), Gamma);
-      term* codomain = substitute(ty->var, tvar, ty->right);
+      Gamma = telescope_add(variable_dup(t->var), substitute(nty->var, tvar, nty->left), Gamma);
+      term* codomain = substitute(nty->var, tvar, nty->right);
+
       int ans = typecheck_check(Gamma, Sigma, Delta, t->right, codomain);
       telescope_pop(Gamma);
       free_term(tvar);
       free_term(codomain);
+      free_term(nty);
       return ans;
     }
   default:
@@ -130,6 +143,8 @@ term* typecheck_infer(telescope* Gamma, context *Sigma, typing_context* Delta, t
     return typecheck_app(Gamma, Sigma, Delta, t->left, t->right);
   case TYPE:
     return make_type();
+  case HOLE:
+    sentinel("Cannot infer type of hole.");
   default:
     sentinel("Bad tag %d", t->tag);
   }

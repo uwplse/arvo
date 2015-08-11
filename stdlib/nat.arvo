@@ -46,3 +46,9 @@ def plus_comm : (n : nat) -> (m : nat) -> eq nat (plus n m) (plus m n) :=
                                           (plus_n_S m x)))
                  n.
 
+def plus_assoc : (a : nat) -> (b : nat) -> (c : nat) -> eq nat (plus (plus a b) c) (plus a (plus b c)) :=
+    \a. \b. \c.
+      nat_elim (\x. eq nat (plus (plus x b) c) (plus x (plus b c)))
+               (refl nat (plus b c))
+               (\x. \IH. f_equal nat nat S (plus (plus x b) c) (plus x (plus b c)) IH)
+               a.

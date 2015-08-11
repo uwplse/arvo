@@ -50,6 +50,8 @@ term* ast_to_term(mpc_ast_t* ast) {
     return make_var(make_variable(strdup(ast->contents)));
   } else if (strstr(ast->tag, "type")) {
     return make_type();
+  } else if (strstr(ast->tag, "hole")) {
+    return make_hole();
   } else if (prefix("lambda", ast->tag)) {
     if (ast->children_num == 4) {
       return make_lambda(make_variable(strdup(ast->children[1]->contents)),
@@ -166,6 +168,7 @@ command *ast_to_command(mpc_ast_t *ast) {
 
 static mpc_parser_t* pComment;
 static mpc_parser_t* pVar;
+static mpc_parser_t* pHole;
 static mpc_parser_t* pBound;
 static mpc_parser_t* pLambda;
 static mpc_parser_t* pPi;
@@ -187,6 +190,7 @@ static mpc_parser_t* pProgram;
 parsing_context* parse(char* filename) {
   pComment = mpc_new("comment");
   pVar = mpc_new("var");
+  pHole = mpc_new("hole");
   pBound = mpc_new("bound");
   pLambda = mpc_new("lambda");
   pPi = mpc_new("pi");
@@ -209,11 +213,12 @@ parsing_context* parse(char* filename) {
     mpca_lang(MPCA_LANG_DEFAULT,
               " comment : /@[^@]*@/                              ; \n"
               " var     : /[a-zA-Z][a-zA-Z0-9_]*/ ;                \n"
+              " hole    : \"\?\" ; \n"
               " bound   : \"_\" | <var> ;                          \n"
               " lambda  : \"\\\\\" <bound> (':' <term>)? '.' <term> ; \n"
               " pi      : '(' <bound> ':' <term> ')' \"->\" <term> \n"
               "         |  <app> \"->\" <term> ; \n"
-              " base    : <type> | <var> | '(' <term> ')' ; \n"
+              " base    : <type> | <hole> | <var> | '(' <term> ')' ; \n"
               " app     : <base> <base>* ;\n"
               " type    : \"Type\" ;\n"
               " term    : <lambda> | <pi> | <app>;\n"
@@ -227,7 +232,7 @@ parsing_context* parse(char* filename) {
               " data    : \"data\" <var> \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"
               " command : <def> | <print> | <check> | <simpl> | <data> | <axiom> | <import> | <comment>;\n"
               " program  : /^/ <command> * /$/ ;\n",
-              pComment, pVar, pBound, pLambda, pPi, pBase, pApp, pType,
+              pComment, pVar, pHole, pBound, pLambda, pPi, pBase, pApp, pType,
               pTerm,
               pDef, pAxiom, pImport, pPrint, pCheck, pSimpl, pConstructor, pData, pCommand, pProgram, NULL);
 
@@ -245,14 +250,14 @@ parsing_context* parse(char* filename) {
     mpc_err_delete(ans->result.error);
     goto error;
   }
-  mpc_cleanup(19, pComment, pVar, pBound, pLambda, pPi, pApp, pBase, pType,
+  mpc_cleanup(20, pComment, pVar, pHole, pBound, pLambda, pPi, pApp, pBase, pType,
               pTerm, pCommand, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl,
               pConstructor, pData, pProgram);
   //mpc_ast_print(ans->result.output);
   ans->command_index = 1;
   return ans;
  error:
-  mpc_cleanup(19, pComment, pVar, pBound, pLambda, pPi, pApp, pBase, pType,
+  mpc_cleanup(20, pComment, pVar, pHole, pBound, pLambda, pPi, pApp, pBase, pType,
               pTerm, pCommand, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl,
               pConstructor, pData, pProgram);
   return NULL;
