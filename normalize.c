@@ -16,6 +16,25 @@ term *normalize_and_free(context *Sigma, typing_context* Delta, term* t) {
   return normalize_and_free_fuel(Sigma, Delta, t, FUEL);
 }
 
+static term* normalize_app_fuel(context *Sigma, typing_context* Delta, term* t, int fuel) {
+  term *f = normalize_fuel(Sigma, Delta, t->left, fuel-1);
+  term *x = normalize_fuel(Sigma, Delta, t->right, fuel-1);
+  check(f && x, "");
+  if (f->tag == LAM) {
+    term* subs = substitute(f->var, x, f->right);
+    free_term(f);
+    free_term(x);
+    term* ans = normalize_fuel(Sigma, Delta, subs, fuel-1);
+    free_term(subs);
+    return ans;
+  }
+  return make_app(f, x);
+ error:
+  free_term(f);
+  free_term(x);
+  return NULL;
+}
+
 term* normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel) {
   check(t, "t must be non-NULL");
   check(term_locally_well_formed(t), "t must be locally well formed");
@@ -31,19 +50,7 @@ term* normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel) {
       return normalize_fuel(Sigma, Delta, defn, fuel-1);
     }
   case APP:
-    {
-      term *f = normalize_fuel(Sigma, Delta, t->left, fuel-1);
-      term *x = normalize_fuel(Sigma, Delta, t->right, fuel-1);
-      if (f->tag == LAM) {
-        term* subs = substitute(f->var, x, f->right);
-        free_term(f);
-        free_term(x);
-        term* ans = normalize_fuel(Sigma, Delta, subs, fuel-1);
-        free_term(subs);
-        return ans;
-      }
-      return make_app(f, x);
-    }
+    return normalize_app_fuel(Sigma, Delta, t, fuel);
   case LAM:
     {
       term* A = normalize_fuel(Sigma, Delta, t->left, fuel-1);
