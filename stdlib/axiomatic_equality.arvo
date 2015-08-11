@@ -26,3 +26,10 @@ def eq_trans : (A : Type) -> (a : A) -> (b : A) -> (c : A) -> eq A a b -> eq A b
         subst A (\x : A. eq A x c -> eq A a c) a (\y : eq A a c. y) b ab.
 check eq_trans.
 print eq_trans.
+
+def f_equal : (A : Type) -> (B : Type) -> (f : A -> B) -> (x : A) -> (y : A) ->
+              eq A x y -> eq B (f x) (f y) :=
+  \A : Type. \B : Type. \f : A -> B. \x : A. \y : A. \H : eq A x y.
+    subst A (\z : A. eq B (f x) (f z)) x (refl B (f x)) y H.
+check f_equal.
+print f_equal.

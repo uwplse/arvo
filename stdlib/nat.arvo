@@ -1,0 +1,28 @@
+import axiomatic_equality.
+
+data nat := O | S : nat -> nat.
+
+def plus : nat -> nat -> nat :=
+    \ n : nat. \m : nat.
+      nat_elim (\_ : nat. nat) m (\_ : nat. \y : nat. S y) n.
+
+check (\n : nat. plus O n).
+simpl (\n : nat. plus O n).
+
+
+check ((n : nat) -> eq nat (plus O n) O).
+simpl ((n : nat) -> eq nat (plus O n) O).
+
+def plus_O_n : (n : nat) -> eq nat (plus O n) n :=
+    \n : nat. refl nat n.
+
+check subst.
+
+axiom admit : (A : Type) -> A.
+
+check nat_elim.
+
+def plus_n_O : (n : nat) -> eq nat (plus n O) n :=
+     \n : nat. nat_elim (\x : nat. eq nat (plus x O) x) (refl nat O)
+                        (\x : nat. \IH : eq nat (plus x O) x.
+                           f_equal nat nat S (plus x O) x IH) n.
