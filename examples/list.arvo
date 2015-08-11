@@ -71,7 +71,10 @@ def minus : nat -> nat -> nat :=
 simpl minus (Succ (Succ Zero)) (Succ Zero).
 
 def leb : nat -> nat -> bool :=
-  \n : nat. \m : nat. nat_elim (\_ : nat. bool) True (\ _: nat. \ _: bool. False) (minus n m).
+  nat_elim (\ _ : nat . nat -> bool) (\ _ : nat . True)
+           (\ _ : nat. \ x : nat -> bool.
+                             nat_elim ( \ _ : nat .bool) False (\ predm : nat . \ _ : bool . x predm)).
+
 
 simpl leb (Succ Zero) (Succ Zero).
 
@@ -82,6 +85,8 @@ simpl eqb (Succ (Succ Zero)) (Succ (Succ Zero)).
 simpl eqb (Succ Zero) (Succ (Succ Zero)).
 simpl eqb (Succ (Succ Zero)) (Succ Zero).
 simpl eqb (Succ Zero) (Succ Zero).
+
+simpl eqb (minus (Succ (Succ Zero)) (Succ Zero)) (Succ Zero).
 
 def inb : nat -> natlist -> bool :=
   \x : nat. \l : natlist.
