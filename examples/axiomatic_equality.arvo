@@ -1,0 +1,28 @@
+axiom eq : (A : Type) -> A -> A -> Type.
+check eq.
+
+axiom refl : (A : Type) -> (a : A) -> eq A a a.
+check refl.
+
+axiom subst : (A : Type) -> (P : A -> Type) -> (a : A) -> P a -> (b : A) -> eq A a b -> P b.
+check subst.
+
+axiom subst_compute : (A : Type) -> (P : A -> Type) -> (a : A) -> (pf : P a) ->
+      eq (P a) (subst A P a pf a (refl A a)) pf.
+check subst_compute.
+
+axiom J : (A : Type) -> (P : (a : A) -> (b : A) -> eq A a b -> Type) -> (a : A) -> P a a (refl A a) -> (b : A) -> (pf : eq A a b) -> P a b pf.
+check J.
+
+def eq_sym : (A : Type) -> (a : A) -> (b : A) -> eq A a b -> eq A b a :=
+    \A : Type. \a : A. \b : A. \pf : eq A a b.
+    subst A (\x : A. eq A x a) a (refl A a) b pf.
+check eq_sym.
+print eq_sym.
+
+def eq_trans : (A : Type) -> (a : A) -> (b : A) -> (c : A) -> eq A a b -> eq A b c -> eq A a c :=
+    \A : Type. \a : A. \b : A. \c : A.
+      \ab : eq A a b.
+        subst A (\x : A. eq A x c -> eq A a c) a (\y : eq A a c. y) b ab.
+check eq_trans.
+print eq_trans.
