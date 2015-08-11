@@ -65,9 +65,15 @@ void vernac_run(command *c) {
     break;
   case CHECK:
     {
-      term* ty = typecheck(Gamma, Sigma, Delta, c->left);
-      printf("%W : %W\n", c->left, print_term, ty, print_term);
-      free_term(ty);
+      if (c->right == NULL) {
+        term* ty = typecheck(Gamma, Sigma, Delta, c->left);
+        printf("%W : %W\n", c->left, print_term, ty, print_term);
+        free_term(ty);
+      } else {
+        check(typecheck_check(Gamma, Sigma, Delta, c->right, make_type()), "RHS of check is ill-typed");
+        check(typecheck_check(Gamma, Sigma, Delta, c->left, c->right), "Check failed.");
+        printf("check succeeded.\n");
+      }
       break;
     }
   case SIMPL:
