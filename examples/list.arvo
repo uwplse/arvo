@@ -38,3 +38,56 @@ simpl plus Zero Zero.
 simpl plus (Succ (Succ Zero)) (Succ Zero).
 
 simpl sum (Cons (Succ (Succ Zero)) (Cons (Succ Zero) Nil)).
+
+def andb : bool -> bool -> bool :=
+  \b1 : bool. \b2 : bool.
+    bool_elim (\ _ : bool. bool) b2 False b1.
+
+def orb : bool -> bool -> bool :=
+  \b1 : bool. \b2 : bool.
+    bool_elim (\ _ : bool. bool) True b2 b1.
+
+simpl (andb True True).
+simpl (andb True False).
+simpl (andb False True).
+simpl (andb False False).
+
+simpl (orb True True).
+simpl (orb True False).
+simpl (orb False True).
+simpl (orb False False).
+
+def pred : nat -> nat :=
+  \n : nat. nat_elim (\ _ : nat . nat) Zero (\ y : nat. \ _ : nat. y) n.
+
+simpl pred (Succ (Succ Zero)).
+
+def minus : nat -> nat -> nat :=
+  \n : nat. \m : nat.
+    nat_elim (\_ : nat . nat) n
+             (\ predm : nat. \ nminuspredm : nat.
+               (nat_elim (\ _ : nat . nat) Zero (\_ : nat. \y : nat . pred nminuspredm) n)) m.
+
+simpl minus (Succ (Succ Zero)) (Succ Zero).
+
+def leb : nat -> nat -> bool :=
+  \n : nat. \m : nat. nat_elim (\_ : nat. bool) True (\ _: nat. \ _: bool. False) (minus n m).
+
+simpl leb (Succ Zero) (Succ Zero).
+
+def eqb : nat -> nat -> bool :=
+  \n : nat. \m : nat. andb (leb n m) (leb m n).
+
+simpl eqb (Succ (Succ Zero)) (Succ (Succ Zero)).
+simpl eqb (Succ Zero) (Succ (Succ Zero)).
+simpl eqb (Succ (Succ Zero)) (Succ Zero).
+simpl eqb (Succ Zero) (Succ Zero).
+
+def inb : nat -> natlist -> bool :=
+  \x : nat. \l : natlist.
+    natlist_elim (\ _ : natlist . bool) False
+                 (\ y : nat . \ _ : natlist . \ rest : bool . orb (eqb x y) rest)
+                 l.
+
+simpl inb (Succ Zero) (Cons Zero (Cons (Succ Zero) (Cons (Succ (Succ Zero)) Nil))).
+simpl inb (Succ Zero) (Cons Zero (Cons Zero (Cons (Succ (Succ Zero)) Nil))).
