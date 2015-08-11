@@ -271,6 +271,7 @@ void vernac_run(command *c) {
       printf("added datatype %W\n", A, print_term);
       free_term(A);
       A = NULL;
+      break;
     }
   case AXIOM:
     {
