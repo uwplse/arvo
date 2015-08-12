@@ -143,6 +143,12 @@ term* typecheck_infer(telescope* Gamma, context *Sigma, typing_context* Delta, t
     return typecheck_app(Gamma, Sigma, Delta, t->left, t->right);
   case TYPE:
     return make_type();
+  case DATATYPE:
+    return make_type();
+  case INTRO:
+    return term_dup(t->left);
+  case ELIM:
+    return make_app(term_dup(t->args[0]), term_dup(t->args[t->num_args-1]));
   case HOLE:
     sentinel("Cannot infer type of hole.");
   default:
