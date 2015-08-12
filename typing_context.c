@@ -2,13 +2,10 @@
 
 #include <stdlib.h>
 
-datatype* make_datatype(variable* name, int num_intros, term* elim, int *inductive_args) {
+datatype* make_datatype(variable* name, int num_intros) {
   datatype* ans = malloc(sizeof(datatype));
   ans->name = name;
   ans->num_intros = num_intros;
-  ans->intros = malloc(num_intros * sizeof(term*));
-  ans->elim = elim;
-  ans->inductive_args = inductive_args;
   return ans;
 }
 

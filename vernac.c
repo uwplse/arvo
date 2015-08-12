@@ -255,8 +255,8 @@ static void vernac_run_data(command *c) {
     return;
   }
   add_datatype_to_context(c);
-  datatype *T = make_datatype(variable_dup(c->var), c->num_args,
-                              NULL, NULL);
+  datatype *T = make_datatype(variable_dup(c->var), c->num_args);
+  
   build_constructors(c, T);
   build_eliminator(c, T);
   Delta = typing_context_add(T, Delta);

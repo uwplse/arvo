@@ -12,7 +12,7 @@ typedef struct {
   int *inductive_args;
 } datatype;
 
-datatype* make_datatype(variable* name, int num_intros, term* elim, int *inductive_args);
+datatype* make_datatype(variable* name, int num_intros);
 
 int datatype_intro_index(variable* needle, datatype* T);
 
