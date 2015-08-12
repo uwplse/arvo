@@ -82,7 +82,7 @@ static int check_datatype(command *c) {
   term *A = make_var(variable_dup(c->var));
   int num_constructors = c->num_args;
   int i;
-  term *type;
+  term *type = NULL;
   for (i = 0; i < num_constructors; i++) {
     term *constructor = c->args[i];
     if (constructor->left == NULL) {
