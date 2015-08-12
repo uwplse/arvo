@@ -103,7 +103,7 @@ term* normalize_fuel_elim(context *Sigma, typing_context* Delta, term* t, int fu
 }
 
 term* normalize_fuel_intro(context *Sigma, typing_context* Delta, term* t, int fuel) {
-  term* ans = make_intro(variable_dup(t->var), t->num_args);
+  term* ans = make_intro(variable_dup(t->var), term_dup(t->left), t->num_args);
   int i;
   for (i = 0; i < t->num_args; i++) {
     // FIXME: this leaks on error --jrw
