@@ -157,6 +157,16 @@ int syntactically_identical(term* a, term* b) {
   check(term_locally_well_formed(a) && term_locally_well_formed(b), 
         "alpha equiv requires well-formed arguments");
 
+  if (a->tag == HOLE) {
+    log_info("Hole should unify with %W", b, print_term);
+    return 1;
+  }
+
+  if (b->tag == HOLE) {
+    log_info("Hole should unify with %W", a, print_term);
+    return 1;
+  }
+
   if (a->tag != b-> tag) return 0;
 
   switch (a->tag) {
@@ -322,6 +332,8 @@ term* substitute(variable* from, term* to, term* haystack) {
     } else {
       return term_dup(haystack);
     }
+  case HOLE:
+    return term_dup(haystack);
   case LAM:
     if (variable_equal(from, haystack->var)) {
       return make_lambda(variable_dup(haystack->var),
