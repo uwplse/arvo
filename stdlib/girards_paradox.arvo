@@ -1,0 +1,42 @@
+import prelude.
+import nat.
+import sig.
+
+def rel : Type -> Type := \A. A -> A -> Type.
+
+def transitive : (A:Type) -> rel A -> Type := 
+  \A.\lt. (x:A)->(y:A)->(z:A)-> lt x y -> lt y z -> lt x z.
+
+def noChains : (A:Type) -> rel A -> Type :=
+  \A.\lt. (f:nat->A) -> ((n:nat) -> lt (f (S n)) (f n)) -> False.
+
+def orderingOk : (A:Type) -> rel A -> Type :=
+  \A.\lt. sigT (transitive A lt) (\_. (noChains A lt)).
+
+def ordering : Type := sigT Type (\A. 
+                       sigT (rel A)
+                       (orderingOk A)).
+
+def carrier : ordering -> Type :=
+  \o. projT1 Type (\A. sigT (rel A) (orderingOk A)) o.
+
+def lt : (o:ordering) -> rel (carrier o) :=
+  \o. projT1 (rel (carrier o)) (orderingOk (carrier o))
+    (projT2 Type (\A. sigT (rel A) (orderingOk A)) o).
+
+def orderingOkProof : (o:ordering) -> orderingOk (carrier o) (lt o) :=
+  \o. projT2 (rel (carrier o)) (orderingOk (carrier o))
+    (projT2 Type (\A. sigT (rel A) (orderingOk A)) o).
+
+def transitiveProof : (o:ordering) -> transitive (carrier o) (lt o) :=
+  \o. projT1 (transitive (carrier o) (lt o))
+             (\_.noChains (carrier o) (lt o))
+             (orderingOkProof o).
+
+def noChainsProof : (o:ordering) -> noChains (carrier o) (lt o) :=
+  \o. projT2 (transitive (carrier o) (lt o))
+             (\_.noChains (carrier o) (lt o))
+             (orderingOkProof o).
+
+def irreflexive : (o:ordering) -> (a:carrier o) -> lt o a a -> False :=
+  \o.\a.\h. noChainsProof o (\_.a) (\_.h).
