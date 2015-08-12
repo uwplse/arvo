@@ -5,6 +5,9 @@
 variable ignore = { .name = "_"};
 
 int print_variable(FILE* stream, variable* v) {
+  if (v == NULL) {
+    return fprintf(stream, "NULL");
+  }
   return fprintf(stream, "%s", v->name);
 }
 
