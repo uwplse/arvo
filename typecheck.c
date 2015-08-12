@@ -117,9 +117,11 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
       term* inferred = typecheck_infer(Gamma, Sigma, Delta, t);
       int ans = definitionally_equal(Sigma, Delta, ty, inferred);
       if (!ans) {
-        term* n = whnf(Sigma, Delta, t);
-        log_err("in context %W\n%W expected to have type %W but has type %W", Gamma, print_telescope, t, print_term, n, print_term, inferred, print_term);
-        free_term(n);
+        term* nty = whnf(Sigma, Delta, ty);
+        term* ninf = whnf(Sigma, Delta, inferred);
+        log_err("in context %W\n%W expected to have type %W but has type %W", Gamma, print_telescope, t, print_term, nty, print_term, ninf, print_term);
+        free_term(nty);
+        free_term(ninf);
       }
       free_term(inferred);
       return ans;
