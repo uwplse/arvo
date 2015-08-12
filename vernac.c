@@ -149,7 +149,7 @@ static void build_constructors(command *c, datatype *T) {
       num_args++;
       constructor_type = constructor_type->right;
     }
-    term *intro = make_intro(variable_dup(c->args[i]->var), A, num_args);
+    term *intro = make_intro(variable_dup(c->args[i]->var), term_dup(A), num_args);
     T->intros[i] = intro;
     term *lambda_wrapped_intro = intro;
     term *prev = NULL;
@@ -178,6 +178,8 @@ static void build_constructors(command *c, datatype *T) {
                           typecheck(Gamma, Sigma, Delta, lambda_wrapped_intro),
                           Gamma);
   }
+  free_term(A);
+  A = NULL;
 }
 
 static void build_eliminator(command *c, datatype *T) {
