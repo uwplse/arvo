@@ -81,8 +81,12 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
 
   switch (t->tag) {
   case HOLE:
-    log_info("Hole has type %W", ty, print_term);
-    return 1;
+    {
+      term* nty = whnf(Sigma, Delta, ty);
+      log_info("Hole has type %W", nty, print_term);
+      free_term(nty);
+      return 1;
+    }
   case LAM:
     {
       term* nty = whnf(Sigma, Delta, ty);
@@ -112,8 +116,11 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
     {
       term* inferred = typecheck_infer(Gamma, Sigma, Delta, t);
       int ans = definitionally_equal(Sigma, Delta, ty, inferred);
-      if (!ans)
-        log_err("in context %W\n%W expected to have type %W but has type %W", Gamma, print_telescope, t, print_term, ty, print_term, inferred, print_term);
+      if (!ans) {
+        term* n = whnf(Sigma, Delta, t);
+        log_err("in context %W\n%W expected to have type %W but has type %W", Gamma, print_telescope, t, print_term, n, print_term, inferred, print_term);
+        free_term(n);
+      }
       free_term(inferred);
       return ans;
     }
