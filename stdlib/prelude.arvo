@@ -1,0 +1,3 @@
+axiom False : Type.
+
+def id : (A : Type) -> A -> A := \_.\a. a.

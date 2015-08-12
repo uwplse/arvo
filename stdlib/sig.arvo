@@ -1,0 +1,27 @@
+import axiomatic_equality.
+
+axiom sigT : (A : Type) -> (A -> Type) -> Type.
+
+axiom existT : (A : Type) -> (B : A -> Type) -> (a : A) -> B a -> sigT A B.
+
+axiom sigT_elim : (A : Type) -> (B : A -> Type) -> (T : sigT A B -> Type) ->
+                  ((a : A) -> (b : B a) -> T (existT A B a b)) -> 
+                  (s : sigT A B) -> T s.
+
+axiom sigT_elim_compute : (A:Type) -> (B:A -> Type) -> (T:sigT A B -> Type) ->
+                          (f : (a:A) -> (b:B a) -> T (existT A B a b)) ->
+                          (a:A) -> (b:B a) ->
+                          eq (T (existT A B a b)) 
+                             (sigT_elim A B T f (existT A B a b)) 
+                             (f a b).
+
+def projT1 : (A : Type) -> (B : A -> Type) -> sigT A B -> A :=
+  \A.\B.\s. sigT_elim A B (\_. A) (\a.\_. a) s.
+
+def projT1_compute : (A : Type) -> (B : A -> Type) -> (a : A) -> (b : B a) -> 
+                     eq A (projT1 A B (existT A B a b)) a := 
+  \A.\B.\a.\b. sigT_elim_compute A B (\_.A) (\a.\_.a) a b.
+
+def projT2 : (A : Type) -> (B : A -> Type) -> (s : sigT A B) -> B (projT1 A B s) :=
+  \A.\B.\s. sigT_elim A B (\s. B (projT1 A B s)) (\a.\b.
+    rewrite A B a b (projT1 A B (existT A B a b)) (projT1_compute A B a b)) s.
