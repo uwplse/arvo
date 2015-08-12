@@ -73,6 +73,196 @@ static void vernac_run_check(command* c) {
   free_term(Type);
 }
 
+static int check_datatype(command *c) {
+  int res = 0;
+  telescope *Gamma_prime = telescope_add(variable_dup(c->var), make_type(), Gamma);
+  term *tA = make_datatype_term(variable_dup(c->var));
+  context *Sigma_prime = context_add(variable_dup(c->var), tA, Sigma);
+      
+  term *A = make_var(variable_dup(c->var));
+  int num_constructors = c->num_args;
+  int i;
+  term *type;
+  for (i = 0; i < num_constructors; i++) {
+    term *constructor = c->args[i];
+    if (constructor->left == NULL) {
+      constructor->left = term_dup(A);
+    }
+    type = make_type();
+    check(has_type(Gamma_prime, Sigma_prime, Delta, constructor->left, type),
+          "constructor %W has type %W instead of Type", constructor->var,
+          print_variable,
+          typecheck(Gamma_prime, Sigma_prime, Delta, constructor->left),
+          print_term);
+    check(is_pi_returning(Sigma_prime, Delta,
+                          constructor->left, A), "constructor %W does not return %W",
+          constructor->var, print_variable, A, print_term);
+    free_term(type);
+    type = NULL;
+    // todo: positivity
+    // todo: allow constructor types to normalize to pi-types
+  }
+  res = 1;
+ error:
+  telescope_pop(Gamma_prime);
+  Gamma_prime = NULL;
+
+  context_pop(Sigma_prime);
+  Sigma_prime = NULL;
+
+  free_term(A);
+  A = NULL;
+
+  if (type) {
+    free_term(type);
+    type = NULL;
+  }
+  
+  return res;
+}
+
+static void add_datatype_to_context(command *c) {
+  Gamma = telescope_add(variable_dup(c->var), make_type(), Gamma);
+  term *tA = make_datatype_term(variable_dup(c->var));
+  Sigma = context_add(variable_dup(c->var), tA, Sigma);
+}
+
+static void build_constructors(command *c, datatype *T) {
+  int i;
+  int total_args = 0;
+  term *A = make_var(variable_dup(c->var));  
+  for (i = 0; i < T->num_intros; i++) {
+    term *constructor_type = c->args[i]->left;
+    while (constructor_type->tag == PI) {
+      total_args++;
+      constructor_type = constructor_type->right;
+    }
+  }
+  T->inductive_args = calloc(total_args, sizeof(int));
+  int total_arg_index = 0;
+  T->intros = malloc(T->num_intros * sizeof(term*));
+
+  for (i = 0; i < c->num_args; i++) {
+    term *constructor_type = c->args[i]->left;
+    int num_args = 0;
+    while (constructor_type->tag == PI) {
+      num_args++;
+      constructor_type = constructor_type->right;
+    }
+    term *intro = make_intro(variable_dup(c->args[i]->var), A, num_args);
+    T->intros[i] = intro;
+    term *lambda_wrapped_intro = intro;
+    term *prev = NULL;
+    int j;
+    constructor_type = c->args[i]->left;
+    for (j = 0; j < num_args; j++) {
+      variable *x = gensym("x");
+      term *new_lambda = make_lambda(x, term_dup(constructor_type->left), intro);
+      if (prev == NULL) {
+        lambda_wrapped_intro = new_lambda;
+      }
+      else {
+        prev->right = new_lambda;
+      }
+      term *arg = make_var(variable_dup(x));
+      if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
+        T->inductive_args[total_arg_index] = 1;
+      }
+      total_arg_index++;
+      intro->args[j] = arg;
+      prev = new_lambda;
+      constructor_type = constructor_type->right;
+    }
+    Sigma = context_add(variable_dup(c->args[i]->var), lambda_wrapped_intro, Sigma);
+    Gamma = telescope_add(variable_dup(c->args[i]->var),
+                          typecheck(Gamma, Sigma, Delta, lambda_wrapped_intro),
+                          Gamma);
+  }
+}
+
+static void build_eliminator(command *c, datatype *T) {
+  variable **vars = malloc((c->num_args+2) * sizeof(variable*));
+  term *A = make_var(variable_dup(c->var));  
+  vars[0] = gensym("M");
+  vars[c->num_args+1] = gensym("a");
+  int i;
+  for (i = 0; i < c->num_args; i++) {
+    vars[i+1] = gensym("c");
+  }
+  char *elim_name;
+  asprintf(&elim_name, "%W_elim", A, print_term);
+  term *wrapped_eliminator;
+  T->elim = make_elim(make_variable(strdup(elim_name)), c->num_args + 2);
+  for (i = 0; i < c->num_args+2; i++) {
+    T->elim->args[i] = make_var(variable_dup(vars[i]));
+  }
+  wrapped_eliminator = T->elim;
+  wrapped_eliminator = make_lambda(variable_dup(vars[c->num_args+1]),
+                                   term_dup(A), wrapped_eliminator);
+  for (i = c->num_args-1; i >= 0; i--) {
+    term *constructor_type = c->args[i]->left;
+    term *app = make_app(make_var(variable_dup(vars[0])), make_var(variable_dup(c->args[i]->var)));
+    term *prev = NULL;
+    term *wrapped = app;
+    while (constructor_type->tag == PI) {
+      term *new_wrapper;
+      variable *x = gensym("x");
+      new_wrapper = make_pi(variable_dup(x), term_dup(constructor_type->left), app);
+      if (prev == NULL) {
+        wrapped = new_wrapper;
+      }
+      else
+      {
+        prev->right = new_wrapper;
+      }
+      // check to see if this is an inductive case
+      if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
+        new_wrapper->right = make_pi(variable_dup(&ignore),
+                                     make_app(make_var(variable_dup(vars[0])),
+                                              make_var(variable_dup(x))),
+                                     app);
+        new_wrapper = new_wrapper->right;
+      }          
+      app->right = make_app(app->right, make_var(variable_dup(x)));
+      prev = new_wrapper;
+      constructor_type = constructor_type->right;
+      free_variable(x);
+      x = NULL;
+    }
+    wrapped_eliminator = make_lambda(variable_dup(vars[i+1]),
+                       wrapped,
+                       wrapped_eliminator);
+  }
+  wrapped_eliminator = make_lambda(variable_dup(vars[0]),
+                                   make_pi(variable_dup(&ignore), term_dup(A), make_type()),
+                     wrapped_eliminator);
+  for (i = 0; i < c->num_args+2; i++) {
+    free_variable(vars[i]);
+    vars[i] = NULL;
+  }
+  free(vars);
+  vars = NULL;
+  Sigma = context_add(make_variable(strdup(elim_name)), wrapped_eliminator, Sigma);
+  Gamma = telescope_add(make_variable(strdup(elim_name)),
+                        typecheck(Gamma, Sigma, Delta, wrapped_eliminator),
+                        Gamma);
+  free(elim_name);
+  elim_name = NULL;
+}
+
+static void vernac_run_data(command *c) {
+  if (!check_datatype(c)) {
+    return;
+  }
+  add_datatype_to_context(c);
+  datatype *T = make_datatype(variable_dup(c->var), c->num_args,
+                              NULL, NULL);
+  build_constructors(c, T);
+  build_eliminator(c, T);
+  Delta = typing_context_add(T, Delta);
+  printf("added datatype %W\n", T->name, print_variable);
+}
+
 void vernac_run(command *c) {
   switch (c->tag) {
   case DEF:
@@ -93,209 +283,7 @@ void vernac_run(command *c) {
     }
   case DATA:
     {
-      // check that this is a reasonable type definition
-      telescope *Gamma_prime = telescope_add(variable_dup(c->var), make_type(), Gamma);
-      term *tA = make_datatype_term(variable_dup(c->var));
-      context *Sigma_prime = context_add(variable_dup(c->var), tA, Sigma);
-      
-      term *A = make_var(variable_dup(c->var));
-      int num_constructors = c->num_args;
-      int i;
-      for (i = 0; i < num_constructors; i++) {
-        term *constructor = c->args[i];
-        if (constructor->left == NULL) {
-          constructor->left = term_dup(A);
-        }
-        term *type = make_type();
-        check(has_type(Gamma_prime, Sigma_prime, Delta, constructor->left, type),
-              "constructor %W has type %W instead of Type", constructor->var,
-              print_variable,
-              typecheck(Gamma_prime, Sigma_prime, Delta, constructor->left),
-              print_term);
-        free(type);
-        type = NULL;
-        check(is_pi_returning(Sigma_prime, Delta,
-                              constructor->left, A), "constructor %W does not return %W",
-              constructor->var, print_variable, A, print_term);
-        // todo: positivity
-        // todo: allow constructor types to normalize to pi-types
-      }
-      
-      
-      /* Modify Gamma. For a datatype A with constructors a1,...,an and
-         eliminator E, we need terms with types: 
-         - A : Type
-         - a1,...,an : A
-         - E : (M : A -> Type) -> M a1 -> ... -> M an -> (a : A) -> M a
-      */
-      Gamma = Gamma_prime;
-      for (i = 0; i < c->num_args; i++) {
-        Gamma = telescope_add(variable_dup(c->args[i]->var), term_dup(c->args[i]->left), Gamma);
-      }
-      
-      term *tyMotive = make_pi(variable_dup(&ignore), term_dup(A), make_type());
-      variable *M = gensym("M");
-      term *tM = make_var(M);
-      variable *a = gensym("a");
-      term *ta = make_var(a);
-      term *elim_type = make_pi(variable_dup(a), term_dup(A), make_app(term_dup(tM), term_dup(ta)));
-      free_term(ta);
-      ta = NULL;
-      int total_args = 0;
-      
-      for (i = c->num_args-1; i >= 0; i--) {
-        term *constructor_type = c->args[i]->left;
-        term *app = make_app(term_dup(tM), make_var(variable_dup(c->args[i]->var)));
-        term *prev = NULL;
-        term *wrapped = app;
-        while (constructor_type->tag == PI) {
-          total_args++;
-          term *new_wrapper;
-          variable *x = gensym("x");
-          new_wrapper = make_pi(variable_dup(x), term_dup(constructor_type->left), app);
-          if (prev == NULL) {
-            wrapped = new_wrapper;
-          }
-          else
-          {
-            prev->right = new_wrapper;
-          }
-          // check to see if this is an inductive case
-          if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
-            new_wrapper->right = make_pi(variable_dup(&ignore), make_app(term_dup(tM), make_var(variable_dup(x))), app);
-            new_wrapper = new_wrapper->right;
-          }          
-          app->right = make_app(app->right, make_var(variable_dup(x)));
-          prev = new_wrapper;
-          constructor_type = constructor_type->right;
-          free_variable(x);
-        }
-        elim_type = make_pi(variable_dup(&ignore),
-                       wrapped,
-                       elim_type);
-      }
-      elim_type = make_pi(variable_dup(M), tyMotive, elim_type);
-      free_term(tM);
-      tM = NULL;
-      char *elim_name;
-      asprintf(&elim_name, "%W_elim", A, print_term);
-      Gamma = telescope_add(make_variable(strdup(elim_name)), elim_type, Gamma);
-      
-      /* Modify Sigma. For a datatype A with constructors a1,...,an and
-         eliminator E, we need terms with tags:
-         - A : DATATYPE
-         - a1,...,an : INTRO
-         - elim : \M : (A -> Type) . \x1 : M a1 . ... \xn : M an . \a : A . ELIM(M; x1; ...; xn; a)
-      */
-
-      int *inductive_args = calloc(total_args, sizeof(int));
-      int total_arg_index = 0;
-      term **intros = malloc(num_constructors * sizeof(term*));
-
-      Sigma = Sigma_prime;
-      for (i = 0; i < c->num_args; i++) {
-        term *constructor_type = c->args[i]->left;
-        int num_args = 0;
-        while (constructor_type->tag == PI) {
-          num_args++;
-          constructor_type = constructor_type->right;
-        }
-        term *intro = make_intro(variable_dup(c->args[i]->var), num_args);
-        intros[i] = intro;
-        term *lambda_wrapped_intro = intro;
-        term *prev = NULL;
-        int j;
-        constructor_type = c->args[i]->left;
-        for (j = 0; j < num_args; j++) {
-          variable *x = gensym("x");
-          term *new_lambda = make_lambda(x, term_dup(constructor_type->left), intro);
-          if (prev == NULL) {
-            lambda_wrapped_intro = new_lambda;
-          }
-          else {
-            prev->right = new_lambda;
-          }
-          term *arg = make_var(variable_dup(x));
-          if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
-            inductive_args[total_arg_index] = 1;
-          }
-          total_arg_index++;
-          intro->args[j] = arg;
-          prev = new_lambda;
-          constructor_type = constructor_type->right;
-        }
-        Sigma = context_add(variable_dup(c->args[i]->var), lambda_wrapped_intro, Sigma);
-      }
-
-      
-      variable **vars = malloc((c->num_args+2) * sizeof(variable*));
-      vars[0] = gensym("M");
-      vars[c->num_args+1] = gensym("a");
-      for (i = 0; i < c->num_args; i++) {
-        vars[i+1] = gensym("c");
-      }
-      term *elim;
-      term *eliminator;
-      eliminator = make_elim(make_variable(strdup(elim_name)), c->num_args + 2);
-      for (i = 0; i < c->num_args+2; i++) {
-        eliminator->args[i] = make_var(variable_dup(vars[i]));
-      }
-      elim = eliminator;
-      elim = make_lambda(variable_dup(vars[c->num_args+1]), term_dup(A), elim);
-      for (i = c->num_args-1; i >= 0; i--) {
-        term *constructor_type = c->args[i]->left;
-        term *app = make_app(make_var(variable_dup(vars[0])), make_var(variable_dup(c->args[i]->var)));
-        term *prev = NULL;
-        term *wrapped = app;
-        while (constructor_type->tag == PI) {
-          term *new_wrapper;
-          variable *x = gensym("x");
-          new_wrapper = make_pi(variable_dup(x), term_dup(constructor_type->left), app);
-          if (prev == NULL) {
-            wrapped = new_wrapper;
-          }
-          else
-          {
-            prev->right = new_wrapper;
-          }
-          // check to see if this is an inductive case
-          if (definitionally_equal(Sigma, Delta, constructor_type->left, A)) {
-            new_wrapper->right = make_pi(variable_dup(&ignore), make_app(make_var(variable_dup(vars[0])), make_var(variable_dup(x))), app);
-            new_wrapper = new_wrapper->right;
-          }          
-          app->right = make_app(app->right, make_var(variable_dup(x)));
-          prev = new_wrapper;
-          constructor_type = constructor_type->right;
-          free_variable(x);
-          x = NULL;
-        }
-        elim = make_lambda(variable_dup(vars[i+1]),
-                           wrapped,
-                           elim);
-      }
-      elim = make_lambda(variable_dup(vars[0]), make_pi(variable_dup(&ignore), term_dup(A), make_type()),
-                         elim);
-      for (i = 0; i < c->num_args+2; i++) {
-        free_variable(vars[i]);
-        vars[i] = NULL;
-      }
-      free(vars);
-      vars = NULL;
-      Sigma = context_add(make_variable(strdup(elim_name)), elim, Sigma);
-      free(elim_name);
-      elim_name = NULL;
-      // Modify Delta
-      datatype *d = make_datatype(variable_dup(c->var), c->num_args,
-                                  term_dup(eliminator), inductive_args);
-      for (i = 0; i < c->num_args; i++) {
-        d->intros[i] = term_dup(intros[i]);
-      }
-      free(intros);
-      intros = NULL;
-      Delta = typing_context_add(d, Delta);
-      printf("added datatype %W\n", A, print_term);
-      free_term(A);
-      A = NULL;
+      vernac_run_data(c);
       break;
     }
   case AXIOM:
