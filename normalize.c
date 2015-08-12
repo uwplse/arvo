@@ -4,6 +4,55 @@
 
 #define FUEL 1000
 
+static term* elim_over_intro(typing_context* Delta, term* t);
+
+term* whnf_and_free(context *Sigma, typing_context* Delta, term* t) {
+  term* ans = whnf(Sigma, Delta, t);
+  free_term(t);
+  return ans;
+}
+
+term* whnf(context *Sigma, typing_context* Delta, term* t) {
+  if (t == NULL) return NULL;
+
+  switch (t->tag) {
+  case VAR:
+    {
+      term* defn = context_lookup(t->var, Sigma);
+      if (defn == NULL) {
+        return term_dup(t);
+      }
+      return whnf(Sigma, Delta, defn);
+    }
+  case APP:
+    {
+      term* l = whnf(Sigma, Delta, t->left);
+      check(l->tag == LAM, "%W whnf ==> %W, which should be a lambda", t->left, print_term, l, print_term);
+      term* subs = substitute(l->var, t->right, l->right);
+      free_term(l);
+      return whnf_and_free(Sigma, Delta, subs);
+    }
+  case ELIM:
+    {
+      term* last = t->args[t->num_args - 1];
+      term* nlast = whnf(Sigma, Delta, last);
+      term* c = term_dup(t);
+      free_term(c->args[c->num_args - 1]);
+      c->args[c->num_args - 1] = nlast;
+      return whnf_and_free(Sigma, Delta, c);
+    }
+  case HOLE:
+  case DATATYPE:
+  case TYPE:
+  case LAM:
+  case INTRO:
+  case PI:
+    return term_dup(t);
+  }
+ error:
+  return NULL;
+}
+
 static term * normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel);
 
 static term* normalize_and_free_fuel(context *Sigma, typing_context* Delta, term* t, int fuel) {
@@ -65,27 +114,38 @@ term* normalize_fuel_pi(context *Sigma, typing_context* Delta, term* t, int fuel
   return NULL;
 }
 
+static term* elim_over_intro(typing_context* Delta, term* t) {
+  check(t && t->args && t->args[t->num_args - 1], "ill formed term");
+  term* last = t->args[t->num_args - 1];
+  datatype* T = elim_to_datatype(t->var, Delta);
+  int index = datatype_intro_index(last->var, T);
+  term *app = term_dup(t->args[index + 1]);
+  int i;
+  for (i = 0; i < last->num_args; i++) {
+    app = make_app(app, term_dup(last->args[i]));
+    if (constructor_arg_is_inductive(T, last->var, i)) {
+      term *inductive = term_dup(t);
+      free_term(inductive->args[inductive->num_args - 1]);
+      inductive->args[inductive->num_args - 1] = term_dup(last->args[i]);
+      app = make_app(app, inductive);
+    }
+  }
+  free_term(last);
+  last = NULL;
+  return app;
+ error:
+  return NULL;
+}
+
 term* normalize_fuel_elim(context *Sigma, typing_context* Delta, term* t, int fuel) {
   term* ans = NULL;
   term* last = normalize_fuel(Sigma, Delta, t->args[t->num_args - 1], fuel-1);
   if (!last) goto error;
   if (last->tag == INTRO) {
-    datatype* T = elim_to_datatype(t->var, Delta);
-    int index = datatype_intro_index(last->var, T);
-    term *app = term_dup(t->args[index + 1]);
-    int i;
-    for (i = 0; i < last->num_args; i++) {
-      app = make_app(app, term_dup(last->args[i]));
-      if (constructor_arg_is_inductive(T, last->var, i)) {
-        term *inductive = term_dup(t);
-        free_term(inductive->args[inductive->num_args - 1]);
-        inductive->args[inductive->num_args - 1] = term_dup(last->args[i]);
-        app = make_app(app, inductive);
-      }
-    }
-    free_term(last);
-    last = NULL;
-    return normalize_and_free_fuel(Sigma, Delta, app, fuel-1);
+    term* c = term_dup(t);
+    free_term(c->args[c->num_args - 1]);
+    c->args[c->num_args - 1] = last;
+    return normalize_and_free_fuel(Sigma, Delta, elim_over_intro(Delta, c), fuel-1);
   } else {
     ans = make_elim(variable_dup(t->var), t->num_args);
     int i;
