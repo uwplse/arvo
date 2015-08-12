@@ -7,7 +7,7 @@
 static term* typecheck_app(telescope* Gamma, context* Sigma, typing_context* Delta, term* fun, term* arg) {
   term* tyArg = NULL;
 
-  term* tyFun = normalize_and_free(Sigma, Delta, typecheck(Gamma, Sigma, Delta, fun));
+  term* tyFun = whnf_and_free(Sigma, Delta, typecheck(Gamma, Sigma, Delta, fun));
   check(tyFun != NULL, "Bad function %W", fun, print_term);
   check(tyFun->tag == PI, "Function %W has type %W but expected to have pi-type",
         fun, print_term, tyFun, print_term);
@@ -85,7 +85,7 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
     return 1;
   case LAM:
     {
-      term* nty = normalize(Sigma, Delta, ty);
+      term* nty = whnf(Sigma, Delta, ty);
       check(nty->tag == PI, "checking lambda term %W against non-pi %W", t, print_term, nty, print_term);
       if (t->left != NULL) {
         check(definitionally_equal(Sigma, Delta, t->left, nty->left),
