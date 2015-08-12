@@ -27,10 +27,12 @@ term* whnf(context *Sigma, typing_context* Delta, term* t) {
   case APP:
     {
       term* l = whnf(Sigma, Delta, t->left);
-      check(l->tag == LAM, "%W whnf ==> %W, which should be a lambda", t->left, print_term, l, print_term);
-      term* subs = substitute(l->var, t->right, l->right);
-      free_term(l);
-      return whnf_and_free(Sigma, Delta, subs);
+      if (l->tag == LAM) {
+        term* subs = substitute(l->var, t->right, l->right);
+        free_term(l);
+        return whnf_and_free(Sigma, Delta, subs);
+      }
+      return make_app(l, term_dup(t->right));
     }
   case ELIM:
     {
@@ -49,8 +51,6 @@ term* whnf(context *Sigma, typing_context* Delta, term* t) {
   case PI:
     return term_dup(t);
   }
- error:
-  return NULL;
 }
 
 static term * normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel);
