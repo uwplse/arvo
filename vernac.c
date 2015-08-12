@@ -242,6 +242,8 @@ static void build_eliminator(command *c, datatype *T) {
   }
   free(vars);
   vars = NULL;
+  free_term(A);
+  A = NULL;
   Sigma = context_add(make_variable(strdup(elim_name)), wrapped_eliminator, Sigma);
   Gamma = telescope_add(make_variable(strdup(elim_name)),
                         typecheck(Gamma, Sigma, Delta, wrapped_eliminator),
