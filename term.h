@@ -68,7 +68,7 @@ term* make_var(variable* var);
 term* make_type();
 term* make_hole();
 
-term* make_intro(variable* name, int num_args);
+term* make_intro(variable* name, term *type, int num_args);
 term* make_elim(variable* name, int num_args);
 term* make_datatype_term(variable* name);
 

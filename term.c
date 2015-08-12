@@ -370,7 +370,7 @@ term* substitute(variable* from, term* to, term* haystack) {
     return term_dup(haystack);
   case INTRO:
     {
-      term* ans = make_intro(variable_dup(haystack->var), haystack->num_args);
+      term* ans = make_intro(variable_dup(haystack->var), term_dup(haystack->left), haystack->num_args);
       int i;
       for (i = 0; i < haystack->num_args; i++) {
         ans->args[i] = substitute(from, to, haystack->args[i]);
@@ -478,10 +478,11 @@ term* term_dup(term* t) {
   return ans;
 }
 
-term* make_intro(variable* name, int num_args) {
+term* make_intro(variable* name, term *type, int num_args) {
   term* ans = make_term();
   ans->tag = INTRO;
   ans->var = name;
+  ans->left = type;
   ans->num_args = num_args;
   ans->args = calloc(num_args, sizeof(term*));
   return ans;
