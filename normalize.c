@@ -130,8 +130,8 @@ static term* elim_over_intro(typing_context* Delta, term* t) {
       app = make_app(app, inductive);
     }
   }
-  free_term(last);
-  last = NULL;
+  free_term(t);
+  t = NULL;
   return app;
  error:
   return NULL;
