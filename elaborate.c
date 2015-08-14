@@ -307,13 +307,14 @@ int no_implicits(term* t) {
 void apply_solution(equation_set* es, term* t) {
   while (es) {
     equation* e = es->here;
-    check(no_implicits(e->right), "bad solution %W\n", es, print_equation_set);
-    substitute_implicit(e->left, e->right, t);
+    if (no_implicits(e->right)) {
+      substitute_implicit(e->left, e->right, t);
+    } else {
+      log_warn("bad solution %W\n", es, print_equation_set);
+    }
+
     es = es->rest;
   }
-  return;
- error:
-  exit(1);
   return;
 }
 
