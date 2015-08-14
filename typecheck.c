@@ -87,6 +87,8 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
       free_term(nty);
       return 1;
     }
+  case IMPLICIT:
+    sentinel("Unexpected implicit variable during typechecking. Elaborate first.");
   case LAM:
     {
       term* nty = whnf(Sigma, Delta, ty);
@@ -158,6 +160,8 @@ term* typecheck_infer(telescope* Gamma, context *Sigma, typing_context* Delta, t
     return term_dup(t->left);
   case ELIM:
     return make_app(term_dup(t->args[0]), term_dup(t->args[t->num_args-1]));
+  case IMPLICIT:
+    sentinel("Cannot infer type of implicit.");
   case HOLE:
     sentinel("Cannot infer type of hole.");
   default:
