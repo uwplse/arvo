@@ -2,3 +2,5 @@
 *.o
 arvo
 *.dSYM
+*.log
+*.memlog
