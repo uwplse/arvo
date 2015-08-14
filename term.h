@@ -83,4 +83,8 @@ variable* variable_dup(variable* v);
 
 term* substitute(variable* from, term* to, term* haystack);
 
+variable* fresh(char* prefix);
+
+int is_free(variable *var, term *haystack);
+
 #endif  // TERM_H

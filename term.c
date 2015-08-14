@@ -518,3 +518,12 @@ term* make_datatype_term(variable* name) {
   ans->var = name;
   return ans;
 }
+
+static int _fresh = 0;
+
+variable* fresh(char* prefix) {
+  char* meta;
+  asprintf(&meta, "_%s_%d", prefix, _fresh++);
+  return make_variable(meta);
+}
+
