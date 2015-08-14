@@ -49,6 +49,7 @@ term* whnf(context *Sigma, typing_context* Delta, term* t) {
   case LAM:
   case INTRO:
   case PI:
+  case IMPLICIT:
     return term_dup(t);
   }
 }
