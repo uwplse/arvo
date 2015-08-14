@@ -19,6 +19,12 @@ int print_term(FILE* stream, term* t) {
     return print_variable(stream, t->var);
   case HOLE:
     return fprintf(stream, "<hole>");
+  case IMPLICIT:
+    if (t->right == NULL) {
+      return fprintf(stream, "<implicit>");
+    } else {
+      return fprintf(stream, "%W", t->right, print_term);
+    }
   case LAM:
     if (t->left == NULL) {
       return fprintf(stream, "\\%W. %W", t->var, print_variable, t->right, print_term);
@@ -115,6 +121,14 @@ term* make_type() {
 term* make_hole() {
   term* ans = make_term();
   ans->tag = HOLE;
+
+  return ans;
+}
+
+term* make_implicit(variable* name) {
+  term* ans = make_term();
+  ans->tag = IMPLICIT;
+  ans->right = make_var(name);
 
   return ans;
 }
@@ -243,6 +257,8 @@ int syntactically_identical(term* a, term* b) {
     }
   case TYPE:
     return 1;
+  case IMPLICIT:
+    return syntactically_identical(a->right, b->right);
   default:
     sentinel("malformed term");
   }
@@ -268,6 +284,8 @@ int is_free(variable *var, term *haystack) {
     }
     return 0;
   case HOLE:
+    return 0;
+  case IMPLICIT:
     return 0;
   case LAM:
   case PI:
@@ -401,6 +419,8 @@ term* substitute(variable* from, term* to, term* haystack) {
       }
       return ans;
     }
+  case IMPLICIT:
+    return term_dup(haystack);
   default:
     sentinel("malformed term with tag %d", haystack->tag);
   }
@@ -426,6 +446,7 @@ int term_locally_well_formed(term* t) {
   case ELIM:
   case DATATYPE:
   case HOLE:
+  case IMPLICIT:
     return 1;
 
   default:
