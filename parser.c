@@ -52,11 +52,15 @@ term* ast_to_term(mpc_ast_t* ast) {
     return make_type();
   } else if (strstr(ast->tag, "hole")) {
     return make_hole();
+  } else if (strstr(ast->tag, "implicit")) {
+    return make_implicit(fresh("implicit"));
   } else if (prefix("lambda", ast->tag)) {
     if (ast->children_num == 4) {
-      return make_lambda(make_variable(strdup(ast->children[1]->contents)),
-                         NULL,
-                         ast_to_term(ast->children[3]));
+      term* ans =  make_lambda(make_variable(strdup(ast->children[1]->contents)),
+                               make_implicit(fresh("annotation")),
+                               ast_to_term(ast->children[3]));
+      ans->num_args = -1;
+      return ans;
     } else {
       check(ast->children_num == 6, "malformed lambda node");
       return make_lambda(make_variable(strdup(ast->children[1]->contents)),
@@ -170,6 +174,7 @@ static mpc_parser_t* pComment;
 static mpc_parser_t* pVar;
 static mpc_parser_t* pHole;
 static mpc_parser_t* pBound;
+static mpc_parser_t* pImplicit;
 static mpc_parser_t* pLambda;
 static mpc_parser_t* pPi;
 static mpc_parser_t* pApp;
@@ -191,6 +196,7 @@ parsing_context* parse(char* filename) {
   pComment = mpc_new("comment");
   pVar = mpc_new("var");
   pHole = mpc_new("hole");
+  pImplicit = mpc_new("implicit");
   pBound = mpc_new("bound");
   pLambda = mpc_new("lambda");
   pPi = mpc_new("pi");
@@ -214,11 +220,12 @@ parsing_context* parse(char* filename) {
               " comment : /@[^@]*@/                              ; \n"
               " var     : /[a-zA-Z][a-zA-Z0-9_]*/ ;                \n"
               " hole    : \"\?\" ; \n"
+              " implicit : \"_\" ; \n "
               " bound   : \"_\" | <var> ;                          \n"
               " lambda  : \"\\\\\" <bound> (':' <term>)? '.' <term> ; \n"
               " pi      : '(' <bound> ':' <term> ')' \"->\" <term> \n"
               "         |  <app> \"->\" <term> ; \n"
-              " base    : <type> | <hole> | <var> | '(' <term> ')' ; \n"
+              " base    : <type> | <implicit>| <hole> | <var> | '(' <term> ')' ; \n"
               " app     : <base> <base>* ;\n"
               " type    : \"Type\" ;\n"
               " term    : <lambda> | <pi> | <app>;\n"
@@ -232,7 +239,7 @@ parsing_context* parse(char* filename) {
               " data    : \"data\" <var> \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"
               " command : <def> | <print> | <check> | <simpl> | <data> | <axiom> | <import> | <comment>;\n"
               " program  : /^/ <command> * /$/ ;\n",
-              pComment, pVar, pHole, pBound, pLambda, pPi, pBase, pApp, pType,
+              pComment, pVar, pHole, pImplicit, pBound, pLambda, pPi, pBase, pApp, pType,
               pTerm,
               pDef, pAxiom, pImport, pPrint, pCheck, pSimpl, pConstructor, pData, pCommand, pProgram, NULL);
 
@@ -250,14 +257,14 @@ parsing_context* parse(char* filename) {
     mpc_err_delete(ans->result.error);
     goto error;
   }
-  mpc_cleanup(20, pComment, pVar, pHole, pBound, pLambda, pPi, pApp, pBase, pType,
+  mpc_cleanup(21, pComment, pVar, pHole, pImplicit, pBound, pLambda, pPi, pApp, pBase, pType,
               pTerm, pCommand, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl,
               pConstructor, pData, pProgram);
   //mpc_ast_print(ans->result.output);
   ans->command_index = 1;
   return ans;
  error:
-  mpc_cleanup(20, pComment, pVar, pHole, pBound, pLambda, pPi, pApp, pBase, pType,
+  mpc_cleanup(21, pComment, pVar, pHole, pBound, pImplicit, pLambda, pPi, pApp, pBase, pType,
               pTerm, pCommand, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl,
               pConstructor, pData, pProgram);
   return NULL;
