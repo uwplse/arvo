@@ -39,19 +39,19 @@ int print_command(FILE* stream, command* c) {
 
 static void vernac_run_def(command* c) {
   term* Type = make_type();
-  term* e = elaborate(Gamma, Sigma, Delta, c->left, Type);
+  term* e = elaborate(Gamma, Delta, c->left, Type);
   check(typecheck_check(Gamma, Sigma, Delta, e, Type), "%W is not well typed.", e, print_term);
   free_term(Type);
   Type = NULL;
 
-  term* er = elaborate(Gamma, Sigma, Delta, c->right, e);
+  term* er = elaborate(Gamma, Delta, c->right, e);
   check(typecheck_check(Gamma, Sigma, Delta, er, e), "Term %W\n failed to have type %W\n",
         er, print_term,
         e, print_term);
 
 
-  Gamma = telescope_add(variable_dup(c->var), term_dup(e), Gamma);
-  Sigma = context_add(variable_dup(c->var), term_dup(er), Sigma);
+  Gamma = telescope_add(variable_dup(c->var), e, Gamma);
+  Sigma = context_add(variable_dup(c->var), er, Sigma);
   printf("%W defined\n", c->var, print_variable);
   return;
  error:
@@ -60,8 +60,8 @@ static void vernac_run_def(command* c) {
 
 static void vernac_run_check(command* c) {
   term* Type = make_type();
-  term* er = elaborate(Gamma, Sigma, Delta, c->right, Type);
-  term* e = elaborate(Gamma, Sigma, Delta, c->left, er);
+  term* er = elaborate(Gamma, Delta, c->right, Type);
+  term* e = elaborate(Gamma, Delta, c->left, er);
   if (er == NULL) {
     term* ty = typecheck(Gamma, Sigma, Delta, e);
     printf("%W : %W\n", e, print_term, ty, print_term);
@@ -71,11 +71,10 @@ static void vernac_run_check(command* c) {
     check(typecheck_check(Gamma, Sigma, Delta, e, er), "Check failed.");
     printf("check succeeded.\n");
   }
-  free_term(Type);
-
-  return;
  error:
   free_term(Type);
+  free_term(er);
+  free_term(e);
 }
 
 static int check_datatype(command *c) {
@@ -285,9 +284,10 @@ void vernac_run(command *c) {
     break;
   case SIMPL:
     {
-      term* e = elaborate(Gamma, Sigma, Delta, c->left, NULL);
+      term* e = elaborate(Gamma, Delta, c->left, NULL);
       term* t = normalize(Sigma, Delta, e);
       printf("%W ==> %W\n", e, print_term, t, print_term);
+      free_term(e);
       free_term(t);
       break;
     }
@@ -299,13 +299,14 @@ void vernac_run(command *c) {
   case AXIOM:
     {
       term* Type = make_type();
-      term* e = elaborate(Gamma, Sigma, Delta, c->left, Type);
+      term* e = elaborate(Gamma, Delta, c->left, Type);
       term* ty = normalize_and_free(Sigma, Delta, typecheck(Gamma, Sigma, Delta, e));
       check(ty != NULL, "Axiom's type %W does not typecheck", e, print_term);
       check(ty->tag == TYPE, "Axiom's type %W has type %W instead of Type", e, print_term, ty, print_term);
       Gamma = telescope_add(variable_dup(c->var), term_dup(e), Gamma);
       Sigma = context_add(variable_dup(c->var), NULL, Sigma);
       printf("%W added as axiom\n", c->var, print_variable);
+      free_term(e);
       free_term(ty);
       free_term(Type);
       break;
