@@ -41,7 +41,11 @@ term* whnf(context *Sigma, typing_context* Delta, term* t) {
       term* c = term_dup(t);
       free_term(c->args[c->num_args - 1]);
       c->args[c->num_args - 1] = nlast;
-      return whnf_and_free(Sigma, Delta, c);
+      if (nlast->tag == INTRO) {
+        return elim_over_intro(Delta, c);
+      } else {
+        return c;
+      }
     }
   case HOLE:
   case DATATYPE:
