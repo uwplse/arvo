@@ -38,6 +38,36 @@ void equation_set_add(equation_set** es, equation* e) {
   *es = make_equation_set(e, *es);
 }
 
+void free_equation(equation* e) {
+  if (e == NULL) return;
+  free_term(e->left);
+  e->left = NULL;
+  free_term(e->right);
+  e->right = NULL;
+  free(e);
+}
+
+void pop_equation_set(equation_set** es) {
+  equation* e = (*es)->here;
+  equation_set* rest = (*es)->rest;
+  (*es)->here = NULL;
+  (*es)->rest = NULL;
+  free(*es);
+  *es = rest;
+  free_equation(e);
+}
+
+void free_equation_set(equation_set* es) {
+  while (es) {
+    free_equation(es->here);
+    es->here = NULL;
+    equation_set* rest = es->rest;
+    es->rest = NULL;
+    free(es);
+    es = rest;
+  }
+}
+
 int occurs(term* x, term* t) {
   check(x->tag == IMPLICIT, "bad var");
   check(t, "bad term");
@@ -58,8 +88,13 @@ int occurs(term* x, term* t) {
   }
 
  error:
-  exit(1);
   return 1;
+}
+
+void swap_term(term* a, term* b) {
+  term tmp = *a;
+  *a = *b;
+  *b = tmp;
 }
 
 void substitute_implicit(term* from, term* to, term* haystack) {
@@ -80,7 +115,9 @@ void substitute_implicit(term* from, term* to, term* haystack) {
     break;
   case IMPLICIT:
     if (variable_equal(from->right->var, haystack->right->var)) {
-      *haystack = *to;
+      term* copy = term_dup(to);
+      swap_term(haystack, copy);
+      free_term(copy);
     }
     break;
   default:
@@ -88,11 +125,10 @@ void substitute_implicit(term* from, term* to, term* haystack) {
   }
   return;
  error:
-  exit(1);
   return;
 }
 
-void swap(void** a, void** b) {
+void swap_ptr(void** a, void** b) {
   void* t = *a;
   *a = *b;
   *b = t;
@@ -124,13 +160,12 @@ int unify(typing_context* Delta, equation_set** es, equation_set** ans) {
   equation_set** t = es;
   while (*t) {
     equation* e = (*t)->here;
-    e->left = normalize_no_unfold(Delta, e->left);
-    e->right = normalize_no_unfold(Delta, e->right);
+    e->left = normalize_no_unfold_and_free(Delta, e->left);
+    e->right = normalize_no_unfold_and_free(Delta, e->right);
 
     if (syntactically_identical(e->left, e->right)) {
       //log_info("deleting equation %W", e, print_equation);
-      //free_equation(e);
-      *t = (*t)->rest;
+      pop_equation_set(t);
       continue;
     }
 
@@ -146,26 +181,36 @@ int unify(typing_context* Delta, equation_set** es, equation_set** ans) {
         return 0;
       } else {
         //log_info("substituting %W -> %W", e->left, print_term, e->right, print_term);
-        *t = (*t)->rest;  // unlink
+        (*t)->here = NULL;
+        pop_equation_set(t);
         substitute_set(e->left, e->right, *es);
         substitute_set_rights(e->left, e->right, *ans);
         equation_set_add(ans, e);
         continue;
       }
     } else if (e->left->tag == APP && e->right->tag == APP) {
-      equation* el = make_equation(e->left->left, e->right->left);
-      equation* er = make_equation(e->left->right, e->right->right);
+      term* l = term_dup(e->left);
+      term* r = term_dup(e->right);
+      equation* el = make_equation(term_dup(l->left), term_dup(r->left));
+      equation* er = make_equation(term_dup(l->right), term_dup(r->right));
       //log_info("splitting %W to %W and %W", e, print_equation, el, print_equation, er, print_equation);
-      //free_equation(e);
-      *t = (*t)->rest;
+      free_term(l); l = NULL;
+      free_term(r); r = NULL;
+
+      pop_equation_set(t);
+
       equation_set_add(t, el);
       equation_set_add(t, er);
       continue;
     } else if (e->left->tag == PI && e->right->tag == PI) {
-      equation* el = make_equation(e->left->left, e->right->left);
-      equation* er = make_equation(e->left->right, e->right->right);
-      //free_equation(e);
-      *t = (*t)->rest;
+      term* l = term_dup(e->left);
+      term* r = term_dup(e->right);
+      equation* el = make_equation(term_dup(l->left), term_dup(r->left));
+      equation* er = make_equation(term_dup(l->right), term_dup(r->right));
+
+      (*t)->here = NULL;
+      pop_equation_set(t);
+
       equation_set_add(t, el);
       if ((variable_equal(e->left->var, &ignore) ||
            !is_free(e->left->var, e->left->right)) &&
@@ -175,17 +220,23 @@ int unify(typing_context* Delta, equation_set** es, equation_set** ans) {
         equation_set_add(t, er);
       } else {
         //log_warn("dropping equation %W because it's too hard", er, print_equation);
+        free_equation(er); er = NULL;
       }
+      free_term(l); l = NULL;
+      free_term(r); r = NULL;
+      free_equation(e); e = NULL;
+
       continue;
     } else {
       //log_info("not unifiable: %W", e, print_equation);
-      //free_equation(e);
-      *t = (*t)->rest;
+      pop_equation_set(t);
       continue;
     }
-    t = &(*t)->rest;
+    sentinel("bad");
   }
   return 1;
+ error:
+  return 0;
 }
 
 term* generate_constraints(telescope* Gamma, typing_context* Delta, equation_set** es, term* t);
@@ -199,7 +250,7 @@ void climb(telescope* Gamma, typing_context* Delta, equation_set** es, term* t) 
 term* generate_constraints(telescope* Gamma, typing_context* Delta, equation_set** es, term* t) {
   //log_info("gc %W", t, print_term);
   if (t == NULL) return NULL;
-  t = normalize_no_unfold(Delta, t);
+
   switch (t->tag) {
   case APP:
     {
@@ -216,11 +267,13 @@ term* generate_constraints(telescope* Gamma, typing_context* Delta, equation_set
         term* ans = substitute(tyL->var, t->right, tyL->right);
         //climb(Gamma, Sigma, Delta, es, ans);
         //log_info("%W has type %W", t, print_term, ans, print_term);
+        free_term(tyL);
+        free_term(tyR);
         return ans;
       } else {
         term* tau = make_implicit(fresh("tau"));
-        term* pi = make_pi(variable_dup(&ignore), term_dup(tyR), term_dup(tau));
-        equation_set_add(es, make_equation(term_dup(tyL), pi));
+        term* pi = make_pi(variable_dup(&ignore), tyR, term_dup(tau));
+        equation_set_add(es, make_equation(tyL, pi));
         return tau;
       }
     }
@@ -229,7 +282,7 @@ term* generate_constraints(telescope* Gamma, typing_context* Delta, equation_set
       term* tau = NULL;
       check(t->left != NULL, "bad annotation");
 
-      term* tyL = generate_constraints(Gamma, Delta, es, t->left);
+      free_term(generate_constraints(Gamma, Delta, es, t->left));
 
       tau = term_dup(t->left);
 
@@ -245,13 +298,13 @@ term* generate_constraints(telescope* Gamma, typing_context* Delta, equation_set
     }
   case PI:
     {
-      term* tyL = generate_constraints(Gamma, Delta, es, t->left);
+      free_term(generate_constraints(Gamma, Delta, es, t->left));
       //climb(Gamma, Sigma, Delta, es, tyL);
 
       if (!variable_equal(t->var, &ignore)) {
         Gamma = telescope_add(variable_dup(t->var), term_dup(t->left), Gamma);
       }
-      term* tyR = generate_constraints(Gamma, Delta, es, t->right);
+      free_term(generate_constraints(Gamma, Delta, es, t->right));
       //climb(Gamma, Sigma, Delta, es, tyR);
       if (!variable_equal(t->var, &ignore)) {
         telescope_pop(Gamma);
@@ -278,7 +331,6 @@ term* generate_constraints(telescope* Gamma, typing_context* Delta, equation_set
     sentinel("Unexpected tag %d", t->tag)
   }
  error:
-  exit(1);
   return NULL;
 }
 
@@ -300,7 +352,6 @@ int no_implicits(term* t) {
     sentinel("bad tag %d")
   }
  error:
-  exit(1);
   return 0;
 }
 
@@ -325,6 +376,7 @@ void erase_bad_annotations(term* t) {
   case LAM:
     if (t->num_args != 0) {
       t->num_args = 0;
+      free_term(t->left);
       t->left = NULL;
     }
     erase_bad_annotations(t->right);
@@ -346,18 +398,23 @@ void erase_bad_annotations(term* t) {
 
   }
  error:
-  exit(1);
+  return;
 }
 
-term* elaborate(telescope* Gamma, context* Sigma, typing_context* Delta, term* t, term* check) {
+term* elaborate(telescope* Gamma, typing_context* Delta, term* t, term* check) {
   if (t == NULL) return NULL;
 
   equation_set* s = NULL;
 
   //log_info("elaborating %W", t, print_term);
-
-  term* ty = generate_constraints(Gamma, Delta, &s, term_dup(t));
-  if (check != NULL) equation_set_add(&s, make_equation(ty, term_dup(check)));
+  t = normalize_no_unfold(Delta, t);
+  term* ty = generate_constraints(Gamma, Delta, &s, t);
+  if (check != NULL) {
+    equation_set_add(&s, make_equation(ty, term_dup(check)));
+  } else {
+    free_term(ty);
+    ty = NULL;
+  }
 
   //log_info("constraint generation returned type %W", ty, print_term);
   //log_info("...and equation set:\n%W", s, print_equation_set);
@@ -368,13 +425,12 @@ term* elaborate(telescope* Gamma, context* Sigma, typing_context* Delta, term* t
   //log_info("after unification:\n%W", sol, print_equation_set);
   //log_info("leftover:\n%W", s, print_equation_set);
 
-  term* ans = term_dup(t);
+  term* ans = t;
   apply_solution(sol, ans);
   erase_bad_annotations(ans);
   //log_info("result: %W", ans, print_term);
-
+  free_equation_set(sol);
   return ans;
  error:
-  exit(1);
   return NULL;
 }
