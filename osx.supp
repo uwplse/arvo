@@ -6,7 +6,6 @@
    fun:xprintf_malloc
    fun:__printf_comp
    fun:__v2printf
-   fun:__xvprintf
 }
 {
    xprintf-indirect
@@ -16,7 +15,6 @@
    fun:xprintf_malloc
    fun:__printf_comp
    fun:__v2printf
-   fun:__xvprintf
 }
 {
    xprintf-indirect-calloc
@@ -26,7 +24,6 @@
    fun:xprintf_calloc
    fun:__printf_comp
    fun:__v2printf
-   fun:__xvprintf
 }
 {
    xprintf-read
@@ -35,7 +32,6 @@
    fun:__sfvwrite
    fun:__printf_exec
    fun:__v2printf
-   fun:__xvprintf
 }
 {
    xprintf-jump
@@ -44,11 +40,4 @@
    fun:__sfvwrite
    fun:__printf_exec
    fun:__v2printf
-   fun:__xvprintf
-   fun:fxprintf
-   fun:print_variable
-   fun:print_custom
-   fun:__printf_exec
-   fun:__v2printf
-   fun:__xvprintf
 }
