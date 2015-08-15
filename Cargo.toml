@@ -1,0 +1,9 @@
+[package]
+name = "arvo"
+version = "0.1.0"
+authors = ["jrw"]
+[dependencies]
+libc = "*"
+[lib]
+name = "arvo"
+crate-type = ["staticlib"]
