@@ -29,7 +29,7 @@ def plus_n_O : (n : nat) -> eq _ (plus n O) n :=
                   (\x. \IH : eq _ (plus x O) x. f_equal _ _ S _ _ IH)
                   n.
 
-def plus_n_S : (n : nat) -> (m : nat) -> eq _ (plus n (S m)) (S (plus n m)) :=
+def plus_n_S : (n m : nat) -> eq _ (plus n (S m)) (S (plus n m)) :=
     \n. \m.
         nat_elim (\x. eq _ (plus x (S m)) (S (plus x m)))
                  (refl _ (S m))
@@ -37,7 +37,7 @@ def plus_n_S : (n : nat) -> (m : nat) -> eq _ (plus n (S m)) (S (plus n m)) :=
                    f_equal _ _ S _ _ IH)
                  n.
 
-def plus_comm : (n : nat) -> (m : nat) -> eq nat (plus n m) (plus m n) :=
+def plus_comm : (n m : nat) -> eq nat (plus n m) (plus m n) :=
     \n. nat_elim (\x. (m : nat) -> eq _ (plus x m) (plus m x))
                  (\m. eq_sym _ _ _ (plus_n_O m))
                  (\x. \IH : (m : nat) -> eq _ (plus x m) (plus m x).
@@ -46,7 +46,7 @@ def plus_comm : (n : nat) -> (m : nat) -> eq nat (plus n m) (plus m n) :=
                                   (eq_sym _ _ _ (plus_n_S m x)))
                  n.
 
-def plus_assoc : (a : nat) -> (b : nat) -> (c : nat) ->
+def plus_assoc : (a b c : nat) ->
                  eq _ (plus (plus a b) c) (plus a (plus b c)) :=
     \a. \b. \c.
       nat_elim (\x. eq _ (plus (plus x b) c) (plus x (plus b c)))
@@ -64,7 +64,7 @@ def mult_n_O : (n : nat) -> eq _ (mult n O) O :=
                (\x. \IH. IH)
                n.
 
-def lemma : (a : nat) -> (b : nat) -> (c : nat) ->
+def lemma : (a b c : nat) ->
              eq _ (plus a (plus b c))
                   (plus b (plus a c)) :=
   \a. \b. \c.
@@ -81,7 +81,7 @@ def lemma : (a : nat) -> (b : nat) -> (c : nat) ->
           (plus_assoc a b c).
 
 
-def mult_n_S : (n : nat) -> (m : nat) -> eq _ (mult n (S m)) (plus n (mult n m)) :=
+def mult_n_S : (n m : nat) -> eq _ (mult n (S m)) (plus n (mult n m)) :=
   \n. \m.
      nat_elim (\x. eq _ (mult x (S m)) (plus x (mult x m)))
      	      (refl _ O)
@@ -95,7 +95,7 @@ def mult_n_S : (n : nat) -> (m : nat) -> eq _ (mult n (S m)) (plus n (mult n m))
                              IH))
 	      n.
 
-def mult_comm : (n : nat) -> (m : nat) -> eq _ (mult n m) (mult m n) :=
+def mult_comm : (n m : nat) -> eq _ (mult n m) (mult m n) :=
   \n. \m.
     nat_elim (\x. eq _ (mult x m) (mult m x))
              (eq_sym _ _ _ (mult_n_O _))
@@ -108,7 +108,7 @@ def mult_comm : (n : nat) -> (m : nat) -> eq _ (mult n m) (mult m n) :=
                        (mult_n_S m x))
              n.
 
-def mult_plus_dist_r : (a : nat) -> (b : nat) -> (c : nat) -> eq _ (mult (plus a b) c) (plus (mult a c) (mult b c)) :=
+def mult_plus_dist_r : (a b c : nat) -> eq _ (mult (plus a b) c) (plus (mult a c) (mult b c)) :=
   \a. \b. \c.
     nat_elim (\x. eq _ (mult (plus x b) c) (plus (mult x c) (mult b c)))
              (refl _ _)
@@ -122,7 +122,7 @@ def mult_plus_dist_r : (a : nat) -> (b : nat) -> (c : nat) -> eq _ (mult (plus a
              a.
 
 
-def mult_assoc : (a : nat) -> (b : nat) -> (c : nat) -> eq _ (mult (mult a b) c) (mult a (mult b c)) :=
+def mult_assoc : (a b c : nat) -> eq _ (mult (mult a b) c) (mult a (mult b c)) :=
   \a. \b. \c.
     nat_elim (\x. eq _ (mult (mult x b) c) (mult x (mult b c)))
              (refl _ _)
@@ -145,6 +145,12 @@ def nat_case : (P : nat -> Type) -> P O -> ((n : nat) -> P (S n)) -> (n : nat) -
 def nat_case_simple : (A : Type) -> A -> ((n : nat) -> A) -> (n : nat) -> A :=
   \A. nat_case (\_. A).
 
+def nat_rec : (A : Type) -> A -> (A -> A) -> (n : nat) -> A :=
+  \A. \o. \s.
+    nat_elim (\_. A)
+             o
+             (\_. s).
+
 def eqb_nat : nat -> nat -> bool :=
   \n.
     nat_elim (\_. nat -> bool)
@@ -159,7 +165,7 @@ def eqb_nat_refl : (n : nat) -> eq _ (eqb_nat n n) true :=
              (\_. \IH. IH)
              n.
 
-def eqb_nat_sound : (n : nat) -> (m : nat) -> eq _ (eqb_nat n m) true -> eq _ n m :=
+def eqb_nat_sound : (n m : nat) -> eq _ (eqb_nat n m) true -> eq _ n m :=
   \n.
     nat_elim (\z. (m : nat) -> eq _ (eqb_nat z m) true -> eq _ z m)
              (\m. nat_case (\z. eq _ (nat_case_simple _ true (\_. false) z) true -> eq _ O z)

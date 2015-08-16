@@ -28,7 +28,7 @@ check (\a. \b. \c. refl _ (normalize_local (Plus (Plus a b) c))) :
            (expr_case_simple _ (\n. Plus (Atom n) (normalize_local c))
                         (\ll. \lr. Plus ll (Plus lr (normalize_local c))) (normalize_local (Plus a b))).
 
-def expr_case : (P : expr -> Type) -> ((n : nat) -> P (Atom n)) -> ((l : expr) -> (r : expr) -> P (Plus l r)) -> (e : expr) -> P e :=
+def expr_case : (P : expr -> Type) -> ((n : nat) -> P (Atom n)) -> ((l r : expr) -> P (Plus l r)) -> (e : expr) -> P e :=
   \P. \a. \f. expr_elim P a (\l. \_. \r. \_. f l r).
 
 
@@ -99,8 +99,7 @@ def eval_uncollect :
         l.
 
 def sum_append :
-  (l : nonempty_natlist) ->
-  (r : nonempty_natlist) ->
+  (l r : nonempty_natlist) ->
     eq _ (sum (append l r)) (plus (sum l) (sum r)) :=
   \l. \r.
     nonempty_natlist_elim (\z. eq _ (sum (append z r)) (plus (sum z) (sum r)))
@@ -146,7 +145,7 @@ simpl (\a. \b. \c.
               (Plus (Plus (Atom b) (Atom a)) (Plus (Atom c) (Atom c))))).
 
 def example :
-    (a : nat) -> (b : nat) -> (c : nat) ->
+    (a b c : nat) ->
     eq _ (plus (plus (plus a b) (plus c c))
                (plus (plus b a) (plus c c)))
          (plus a (plus b (plus c (plus c

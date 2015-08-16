@@ -1,0 +1,6 @@
+axiom eq : (A : Type) -> A -> A -> Type.
+
+data nat := O | S : nat -> nat.
+
+def comm : (f : nat -> nat -> nat) -> Type :=
+  \f. (n m : nat) -> eq _ (f n m) (f m n).

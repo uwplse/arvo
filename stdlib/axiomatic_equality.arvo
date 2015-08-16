@@ -16,13 +16,13 @@ axiom J : (A : Type) -> (P : (a : A) -> (b : A) -> eq _ a b -> Type) ->
 check J.
 
 
-def eq_sym : (A : Type) -> (a : A) -> (b : A) -> eq _ a b -> eq _ b a :=
+def eq_sym : (A : Type) -> (a b : A) -> eq _ a b -> eq _ b a :=
     \A : Type. \a : A. \b : A. \pf : eq A a b.
      subst A (\x : A. eq A x a) a (refl A a) b pf.
 check eq_sym.
 print eq_sym.
 
-def eq_trans : (A : Type) -> (a : A) -> (b : A) -> (c : A) ->
+def eq_trans : (A : Type) -> (a b c : A) ->
                eq _ a b -> eq _ b c -> eq _ a c :=
     \A. \a. \b. \c.
       \ab.
@@ -30,7 +30,7 @@ def eq_trans : (A : Type) -> (a : A) -> (b : A) -> (c : A) ->
 check eq_trans.
 print eq_trans.
 
-def f_equal : (A : Type) -> (B : Type) -> (f : A -> B) -> (x : A) -> (y : A) ->
+def f_equal : (A B : Type) -> (f : A -> B) -> (x y : A) ->
               eq A x y -> eq B (f x) (f y) :=
   \A. \B. \f. \x. \y. \H.
     subst A (\z. eq B (f x) (f z)) x (refl B (f x)) y H.
@@ -42,10 +42,10 @@ def rewrite : (A : Type) -> (P : A -> Type) -> (a : A) -> P a -> (b : A) ->
   \A. \P. \a. \pa. \b. \Heq.
     subst A P a pa b (eq_sym _ _ _ Heq).
 
-def f_equal2 : (A : Type) -> (B : Type) -> (C : Type) ->
+def f_equal2 : (A B C : Type) ->
                (f : A -> B -> C) ->
-               (a1 : A) -> (a2 : A) -> eq _ a1 a2 ->
-               (b1 : B) -> (b2 : B) -> eq _ b1 b2 ->
+               (a1 a2 : A) -> eq _ a1 a2 ->
+               (b1 b2 : B) -> eq _ b1 b2 ->
                eq _ (f a1 b1) (f a2 b2) :=
   \A. \B. \C.
   \f.
