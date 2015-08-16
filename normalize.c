@@ -41,7 +41,11 @@ term* whnf(context *Sigma, typing_context* Delta, term* t) {
       term* c = term_dup(t);
       free_term(c->args[c->num_args - 1]);
       c->args[c->num_args - 1] = nlast;
-      return whnf_and_free(Sigma, Delta, c);
+      if (nlast->tag == INTRO) {
+        return elim_over_intro(Delta, c);
+      } else {
+        return c;
+      }
     }
   case HOLE:
   case DATATYPE:
@@ -49,8 +53,48 @@ term* whnf(context *Sigma, typing_context* Delta, term* t) {
   case LAM:
   case INTRO:
   case PI:
+  case IMPLICIT:
     return term_dup(t);
   }
+}
+
+term* normalize_no_unfold_and_free(typing_context* Delta, term* t) {
+  term* ans = normalize_no_unfold(Delta, t);
+  free_term(t);
+  return ans;
+}
+
+term* normalize_no_unfold(typing_context* Delta, term* t) {
+  if (t == NULL) return NULL;
+
+  switch (t->tag) {
+  case VAR:
+    {
+      return term_dup(t);
+    }
+  case APP:
+    {
+      term* l = normalize_no_unfold(Delta, t->left);
+      term* r = normalize_no_unfold(Delta, t->right);
+      if (l->tag == LAM) {
+        term* subs = substitute(l->var, r, l->right);
+        free_term(l);
+        free_term(r);
+        return normalize_no_unfold_and_free(Delta, subs);
+      }
+      return make_app(l, r);
+    }
+  case IMPLICIT:
+  case HOLE:
+  case TYPE:
+  case LAM:
+  case PI:
+    return term_dup(t);
+  default:
+    sentinel("unexpected tag %d");
+  }
+ error:
+  return NULL;
 }
 
 static term * normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel);

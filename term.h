@@ -25,7 +25,8 @@ typedef enum {
   INTRO,
   ELIM,
   DATATYPE,
-  HOLE
+  HOLE,
+  IMPLICIT
 } term_tag;
 
 
@@ -67,6 +68,7 @@ term* make_var(variable* var);
 
 term* make_type();
 term* make_hole();
+term* make_implicit();
 
 term* make_intro(variable* name, term *type, int num_args);
 term* make_elim(variable* name, int num_args);
@@ -82,5 +84,9 @@ term* term_dup(term* t);
 variable* variable_dup(variable* v);
 
 term* substitute(variable* from, term* to, term* haystack);
+
+variable* fresh(char* prefix);
+
+int is_free(variable *var, term *haystack);
 
 #endif  // TERM_H

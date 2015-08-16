@@ -1,20 +1,21 @@
 import axiomatic_equality.
+import bool.
 
 data nat := O | S : nat -> nat.
 
 def plus : nat -> nat -> nat :=
     \n. \m.
-      nat_elim (\_. nat) m (\_. \y. S y) n.
+      nat_elim (\x. nat) m (\x. \y. S y) n.
 
 check (\n : nat. plus O n).
 simpl (\n : nat. plus O n).
 
 
-check ((n : nat) -> eq nat (plus O n) O).
-simpl ((n : nat) -> eq nat (plus O n) O).
+check ((n : nat) -> eq _ (plus O n) O).
+simpl ((n : nat) -> eq _ (plus O n) O).
 
-def plus_O_n : (n : nat) -> eq nat (plus O n) n :=
-    \n. refl nat n.
+def plus_O_n : (n : nat) -> eq _ (plus O n) n :=
+    \n. refl _ n.
 
 check subst.
 
@@ -22,74 +23,153 @@ axiom admit : (A : Type) -> A.
 
 check nat_elim.
 
-def plus_n_O : (n : nat) -> eq nat (plus n O) n :=
-     \n. nat_elim (\x. eq nat (plus x O) x)
-                  (refl nat O)
-                  (\x. \IH. f_equal nat nat S (plus x O) x IH)
+def plus_n_O : (n : nat) -> eq _ (plus n O) n :=
+     \n. nat_elim (\x. eq _ (plus x O) x)
+                  (refl _ O)
+                  (\x. \IH : eq _ (plus x O) x. f_equal _ _ S _ _ IH)
                   n.
 
-def plus_n_S : (n : nat) -> (m : nat) -> eq nat (plus n (S m)) (S (plus n m)) :=
+def plus_n_S : (n : nat) -> (m : nat) -> eq _ (plus n (S m)) (S (plus n m)) :=
     \n. \m.
-        nat_elim (\x. eq nat (plus x (S m)) (S (plus x m)))
-                 (refl nat (S m))
-                 (\x. \IH : eq nat (plus x (S m)) (S (plus x m)).
-                   f_equal nat nat S (plus x (S m)) (S (plus x m)) IH)
+        nat_elim (\x. eq _ (plus x (S m)) (S (plus x m)))
+                 (refl _ (S m))
+                 (\x. \IH : eq _ (plus x (S m)) (S (plus x m)).
+                   f_equal _ _ S _ _ IH)
                  n.
 
 def plus_comm : (n : nat) -> (m : nat) -> eq nat (plus n m) (plus m n) :=
-    \n. nat_elim (\x. (m : nat) -> eq nat (plus x m) (plus m x))
-                 (\m. eq_sym nat (plus m O) (plus O m) (plus_n_O m))
-                 (\x. \IH.
-                     \m. eq_trans nat (plus (S x) m) (S (plus m x)) (plus m (S x))
-                                  (f_equal nat nat S (plus x m) (plus m x) (IH m))
-                                  (eq_sym nat (plus m (S x)) (S (plus m x))
-                                          (plus_n_S m x)))
+    \n. nat_elim (\x. (m : nat) -> eq _ (plus x m) (plus m x))
+                 (\m. eq_sym _ _ _ (plus_n_O m))
+                 (\x. \IH : (m : nat) -> eq _ (plus x m) (plus m x).
+                     \m. eq_trans _ _ _ _
+                                  (f_equal _ _ S _ _ (IH m))
+                                  (eq_sym _ _ _ (plus_n_S m x)))
                  n.
 
-def plus_assoc : (a : nat) -> (b : nat) -> (c : nat) -> eq nat (plus (plus a b) c) (plus a (plus b c)) :=
+def plus_assoc : (a : nat) -> (b : nat) -> (c : nat) ->
+                 eq _ (plus (plus a b) c) (plus a (plus b c)) :=
     \a. \b. \c.
-      nat_elim (\x. eq nat (plus (plus x b) c) (plus x (plus b c)))
-               (refl nat (plus b c))
-               (\x. \IH. f_equal nat nat S (plus (plus x b) c) (plus x (plus b c)) IH)
+      nat_elim (\x. eq _ (plus (plus x b) c) (plus x (plus b c)))
+               (refl _ (plus b c))
+               (\x. \IH. f_equal _ _ S (plus (plus x b) c) (plus x (plus b c)) IH)
                a.
 
 def mult : nat -> nat -> nat :=
   \n. \m.
      nat_elim (\_.nat) O (\_. \y. plus m y) n.
 
-def mult_n_O : (n : nat) -> eq nat (mult n O) O :=
-  \n. nat_elim (\x. eq nat (mult x O) O)
-               (refl nat O)
+def mult_n_O : (n : nat) -> eq _ (mult n O) O :=
+  \n. nat_elim (\x. eq _ (mult x O) O)
+               (refl _ O)
                (\x. \IH. IH)
                n.
 
 def lemma : (a : nat) -> (b : nat) -> (c : nat) ->
-             eq nat (plus a (plus b c))
-                    (plus b (plus a c)) :=
+             eq _ (plus a (plus b c))
+                  (plus b (plus a c)) :=
   \a. \b. \c.
-    subst nat
-          (\z. eq nat z (plus b (plus a c)))
-          (plus (plus a b) c)
-          (rewrite nat
-                   (\z. eq nat (plus z c) (plus b (plus a c)))
-                   (plus b a)
+    subst _
+          (\z. eq _ z (plus b (plus a c)))
+          _
+          (rewrite _
+                   (\z. eq _ (plus z c) (plus b (plus a c)))
+                   _
                    (plus_assoc b a c)
-                   (plus a b)
+                   _
                    (plus_comm a b))
-          (plus a (plus b c))
+          _
           (plus_assoc a b c).
 
 
-def mult_n_S : (n : nat) -> (m : nat) -> eq nat (mult n (S m)) (plus n (mult n m)) :=
+def mult_n_S : (n : nat) -> (m : nat) -> eq _ (mult n (S m)) (plus n (mult n m)) :=
   \n. \m.
-     nat_elim (\x. eq nat (mult x (S m)) (plus x (mult x m)))
-     	      (refl nat O)
-	      (\x. \IH : eq nat (mult x (S m)) (plus x (mult x m)).
-                  f_equal nat nat S (plus m (mult x (S m))) (plus x (plus m (mult x m)))
-                    (rewrite nat
+     nat_elim (\x. eq _ (mult x (S m)) (plus x (mult x m)))
+     	      (refl _ O)
+	      (\x. \IH : eq _ (mult x (S m)) (plus x (mult x m)).
+                  f_equal _ _ S _ _
+                    (rewrite _
                              (\z. eq nat (plus m z) (plus x (plus m (mult x m))))
-                             (plus x (mult x m))
-                             (lemma m x (mult x m))
-                             (mult x (S m))
+                             _
+                             (lemma _ _ _)
+                             _
                              IH))
 	      n.
+
+def mult_comm : (n : nat) -> (m : nat) -> eq _ (mult n m) (mult m n) :=
+  \n. \m.
+    nat_elim (\x. eq _ (mult x m) (mult m x))
+             (eq_sym _ _ _ (mult_n_O _))
+             (\x. \IH : eq _ (mult x m) (mult m x).
+               rewrite _
+                       (\z. eq _ (mult (S x) m) z)
+                       _
+                       (f_equal _ _ _ (mult x m) _ IH)
+                       _
+                       (mult_n_S m x))
+             n.
+
+def mult_plus_dist_r : (a : nat) -> (b : nat) -> (c : nat) -> eq _ (mult (plus a b) c) (plus (mult a c) (mult b c)) :=
+  \a. \b. \c.
+    nat_elim (\x. eq _ (mult (plus x b) c) (plus (mult x c) (mult b c)))
+             (refl _ _)
+             (\x. \IH : eq _ (mult (plus x b) c) (plus (mult x c) (mult b c)).
+               rewrite _
+                       (\z. eq _ (plus c (mult (plus x b) c)) z)
+                       _
+                       (f_equal _ _ _ _ _ IH)
+                       _
+                       (plus_assoc c (mult x c) (mult b c)))
+             a.
+
+
+def mult_assoc : (a : nat) -> (b : nat) -> (c : nat) -> eq _ (mult (mult a b) c) (mult a (mult b c)) :=
+  \a. \b. \c.
+    nat_elim (\x. eq _ (mult (mult x b) c) (mult x (mult b c)))
+             (refl _ _)
+             (\x. \IH : eq _ (mult (mult x b) c) (mult x (mult b c)).
+               rewrite _
+                       (\z. eq _ z (plus (mult b c) (mult x (mult b c))))
+                       _
+                       (f_equal _ _ _ _ _ IH)
+                       _
+                       (mult_plus_dist_r b (mult x b) c))
+             a.
+
+def nat_case : (P : nat -> Type) -> P O -> ((n : nat) -> P (S n)) -> (n : nat) -> P n :=
+  \P. \o. \s : (n : nat) -> P (S n). \n.
+    nat_elim P
+             o
+             (\x. \_. s x)
+             n.
+
+def nat_case_simple : (A : Type) -> A -> ((n : nat) -> A) -> (n : nat) -> A :=
+  \A. nat_case (\_. A).
+
+def eqb_nat : nat -> nat -> bool :=
+  \n.
+    nat_elim (\_. nat -> bool)
+             (\m. nat_case_simple _ true (\_. false) m)
+             (\x. \rec. \m. nat_case_simple _ false rec m)
+             n.
+
+def eqb_nat_refl : (n : nat) -> eq _ (eqb_nat n n) true :=
+  \n.
+    nat_elim (\z. eq _ (eqb_nat z z) true)
+             (refl _ _)
+             (\_. \IH. IH)
+             n.
+
+def eqb_nat_sound : (n : nat) -> (m : nat) -> eq _ (eqb_nat n m) true -> eq _ n m :=
+  \n.
+    nat_elim (\z. (m : nat) -> eq _ (eqb_nat z m) true -> eq _ z m)
+             (\m. nat_case (\z. eq _ (nat_case_simple _ true (\_. false) z) true -> eq _ O z)
+                           (\_. refl _ _)
+                           (\x. \H : eq _ false true. exfalso (false_true_inv H) (eq _ O (S x)))
+                           m)
+             (\x. \IH : (m : nat) -> eq _ (eqb_nat x m) true -> eq _ x m.
+                \m. nat_case (\z. eq _ (nat_case_simple _ false (eqb_nat x) z) true -> eq _ (S x) z)
+                             (\H : eq _ false true. exfalso (false_true_inv H) _)
+                             (\p. \H : eq _ (eqb_nat x p) true.
+                               f_equal _ _ S _ _ (IH _ H))
+                             m)
+             n.

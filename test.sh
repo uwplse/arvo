@@ -6,7 +6,7 @@ GOOD=0
 
 for f in examples/good/*.arvo stdlib/*.arvo ; do
     ./arvo $f > $f.log 2>&1
-    if grep ERROR $f.log ; then
+    if [ $? -ne 0 ] || grep ERROR $f.log ; then
         echo test failed: $f
         GOOD=1
     else

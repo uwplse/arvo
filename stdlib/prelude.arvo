@@ -1,3 +1,7 @@
-axiom False : Type.
+data False := .
+def exfalso : False -> (A : Type) -> A :=
+  \x. \A. False_elim (\z. A) x.
+
+data True := I.
 
 def id : (A : Type) -> A -> A := \_.\a. a.

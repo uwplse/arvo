@@ -1,0 +1,43 @@
+{
+   xprintf
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:xprintf_malloc
+   fun:__printf_comp
+   fun:__v2printf
+}
+{
+   xprintf-indirect
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:xprintf_malloc
+   fun:__printf_comp
+   fun:__v2printf
+}
+{
+   xprintf-indirect-calloc
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:calloc
+   fun:xprintf_calloc
+   fun:__printf_comp
+   fun:__v2printf
+}
+{
+   xprintf-read
+   Memcheck:Addr32
+   fun:_platform_memchr$VARIANT$Haswell
+   fun:__sfvwrite
+   fun:__printf_exec
+   fun:__v2printf
+}
+{
+   xprintf-jump
+   Memcheck:Cond
+   fun:_platform_memchr$VARIANT$Haswell
+   fun:__sfvwrite
+   fun:__printf_exec
+   fun:__v2printf
+}

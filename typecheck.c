@@ -73,6 +73,14 @@ static term* typecheck_pi(telescope* Gamma, context* Sigma, typing_context* Delt
   return NULL;
 }
 
+int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, term* t, term* ty);
+
+int typecheck_check_and_free_type(telescope* Gamma, context *Sigma, typing_context* Delta, term* t, term* ty) {
+  int ans = typecheck_check(Gamma, Sigma, Delta, t, ty);
+  free_term(ty);
+  return ans;
+}
+
 int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, term* t, term* ty) {
   check(t, "term must be non-NULL");
   check(term_locally_well_formed(t), "term must be well formed");
@@ -87,11 +95,14 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
       free_term(nty);
       return 1;
     }
+  case IMPLICIT:
+    sentinel("Unexpected implicit variable during typechecking. Elaborate first.");
   case LAM:
     {
       term* nty = whnf(Sigma, Delta, ty);
       check(nty->tag == PI, "checking lambda term %W against non-pi %W", t, print_term, nty, print_term);
       if (t->left != NULL) {
+        check(typecheck_check_and_free_type(Gamma, Sigma, Delta, t->left, make_type()), "Bad annotation %W", t->left, print_term);
         check(definitionally_equal(Sigma, Delta, t->left, nty->left),
               "annotation %W does not match type %W",
               t->left, print_term, nty->left, print_term);
@@ -158,6 +169,8 @@ term* typecheck_infer(telescope* Gamma, context *Sigma, typing_context* Delta, t
     return term_dup(t->left);
   case ELIM:
     return make_app(term_dup(t->args[0]), term_dup(t->args[t->num_args-1]));
+  case IMPLICIT:
+    sentinel("Cannot infer type of implicit.");
   case HOLE:
     sentinel("Cannot infer type of hole.");
   default:
