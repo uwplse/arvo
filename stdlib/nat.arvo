@@ -145,6 +145,12 @@ def nat_case : (P : nat -> Type) -> P O -> ((n : nat) -> P (S n)) -> (n : nat) -
 def nat_case_simple : (A : Type) -> A -> ((n : nat) -> A) -> (n : nat) -> A :=
   \A. nat_case (\_. A).
 
+def nat_rec : (A : Type) -> A -> (A -> A) -> (n : nat) -> A :=
+  \A. \o. \s.
+    nat_elim (\_. A)
+             o
+             (\_. s).
+
 def eqb_nat : nat -> nat -> bool :=
   \n.
     nat_elim (\_. nat -> bool)
