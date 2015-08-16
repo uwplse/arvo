@@ -1,44 +1,184 @@
-@ commented out in expectation of merge with branch girard
 import prelude.
 import nat.
-import sig.
 
 def rel : Type -> Type := \A. A -> A -> Type.
 
-def transitive : (A:Type) -> rel A -> Type := 
-  \A.\lt. (x:A)->(y:A)->(z:A)-> lt x y -> lt y z -> lt x z.
-
-def noChains : (A:Type) -> rel A -> Type :=
-  \A.\lt. (f:nat->A) -> ((n:nat) -> lt (f (S n)) (f n)) -> False.
-
-def orderingOk : (A:Type) -> rel A -> Type :=
-  \A.\lt. sigT (transitive A lt) (\_. (noChains A lt)).
-
-def ordering : Type := sigT Type (\A. 
-                       sigT (rel A)
-                       (orderingOk A)).
+data ordering :=
+  mkOrdering : (A : Type) -> (lt : rel A) ->
+               ((x y z : A) -> lt x y -> lt y z -> lt x z) ->
+               ((f : nat -> A) -> ((n : nat) -> lt (f (S n)) (f n)) -> False) ->
+               ordering.
 
 def carrier : ordering -> Type :=
-  \o. projT1 Type (\A. sigT (rel A) (orderingOk A)) o.
+  ordering_elim (\_. Type) (\A. \_. \_. \_. A).
 
-def lt : (o:ordering) -> rel (carrier o) :=
-  \o. projT1 (rel (carrier o)) (orderingOk (carrier o))
-    (projT2 Type (\A. sigT (rel A) (orderingOk A)) o).
+def lt : (o : ordering) -> rel (carrier o) :=
+  \o. ordering_elim (\z. rel (carrier z)) (\_. \lt. \_. \_. lt) o.
 
-def orderingOkProof : (o:ordering) -> orderingOk (carrier o) (lt o) :=
-  \o. projT2 (rel (carrier o)) (orderingOk (carrier o))
-    (projT2 Type (\A. sigT (rel A) (orderingOk A)) o).
+def transitive :
+    (o : ordering) ->
+    (x y z : carrier o) -> lt o x y -> lt o y z -> lt o x z :=
+  \o. ordering_elim (\w. (x y z : carrier w) -> lt w x y -> lt w y z -> lt w x z)
+                    (\_. \_. \t. \_. t) o.
 
-def transitiveProof : (o:ordering) -> transitive (carrier o) (lt o) :=
-  \o. projT1 (transitive (carrier o) (lt o))
-             (\_.noChains (carrier o) (lt o))
-             (orderingOkProof o).
+def noChains :
+    (o : ordering) ->
+    ((f : nat -> carrier o) -> ((n : nat) -> lt o (f (S n)) (f n)) -> False) :=
+  \o. ordering_elim (\w. (f : nat -> carrier w) -> ((n : nat) -> lt w (f (S n)) (f n)) -> False)
+                    (\_. \_. \_. \nc. nc) o.
 
-def noChainsProof : (o:ordering) -> noChains (carrier o) (lt o) :=
-  \o. projT2 (transitive (carrier o) (lt o))
-             (\_.noChains (carrier o) (lt o))
-             (orderingOkProof o).
+def irreflexive :
+    (o : ordering) ->
+    (a : carrier o) ->
+    lt o a a ->
+    False :=
+  \o. \a. \H.
+   noChains o (\_. a) (\_. H).
 
-def irreflexive : (o:ordering) -> (a:carrier o) -> lt o a a -> False :=
-  \o.\a.\h. noChainsProof o (\_.a) (\_.h).
-@
+data orderingLe (o1 : ordering) (o2 : ordering) :=
+  mkOrderingLe :
+    (map : carrier o1 -> carrier o2) ->
+    (max : carrier o2) ->
+    ((x y : carrier o1) -> lt o1 x y -> lt o2 (map x) (map y)) ->
+    ((x : carrier o1) -> lt o2 (map x) max) ->
+    orderingLe o1 o2.
+
+def map : (o1 o2 : ordering) -> orderingLe o1 o2 -> carrier o1 -> carrier o2 :=
+  \o1. \o2.
+    orderingLe_elim o1 o2 (\_. carrier o1 -> carrier o2)
+      (\map. \_. \_. \_. map).
+
+def max : (o1 o2 : ordering) -> orderingLe o1 o2 -> carrier o2 :=
+  \o1. \o2.
+    orderingLe_elim o1 o2 (\_. carrier o2)
+      (\_. \max. \_. \_. max).
+
+def mapOk : (o1 o2 : ordering) -> (ole : orderingLe o1 o2) -> (x y : carrier o1) -> lt o1 x y -> lt o2 (map o1 o2 ole x) (map o1 o2 ole y) :=
+  \o1. \o2. \ole.
+    orderingLe_elim o1 o2 (\z. (x y : carrier o1) -> lt o1 x y -> lt o2 (map o1 o2 z x) (map o1 o2 z y))
+      (\_. \_. \mapOk. \_. mapOk) ole.
+
+def maxOk : (o1 o2 : ordering) -> (ole : orderingLe o1 o2) -> (x : carrier o1) -> lt o2 (map o1 o2 ole x) (max o1 o2 ole) :=
+  \o1. \o2. \ole.
+    orderingLe_elim o1 o2 (\z. (x : carrier o1) -> lt o2 (map o1 o2 z x) (max o1 o2 z))
+      (\_. \_. \_. \maxOk. maxOk) ole.
+
+
+def the_map : (f : nat -> ordering) -> ((n : nat) -> orderingLe (f (S n)) (f n)) -> (n : nat) -> carrier (f n) -> carrier (f O) :=
+  \f. \Hf.
+    nat_elim (\z. carrier (f z) -> carrier (f O))
+      (\x. x)
+      (\n. \rec : carrier (f n) -> carrier (f O). \x : carrier (f (S n)).
+        rec (map (f (S n)) (f n) (Hf n) x))
+  .
+
+def the_map_monotonic : (f : nat -> ordering) -> (Hf : (n : nat) -> orderingLe (f (S n)) (f n)) ->
+                        (n : nat) ->
+                        (x y : carrier (f n)) ->
+                        lt (f n) x y ->
+                        lt (f O) (the_map f Hf n x) (the_map f Hf n y) :=
+  \f. \Hf.
+    nat_elim (\z. (x y : carrier (f z)) -> lt (f z) x y -> lt (f O) (the_map f Hf z x) (the_map f Hf z y))
+      (\x. \y. \Hxy. Hxy)
+      (\n. \IHn. \x. \y. \Hxy.
+        IHn (map (f (S n)) (f n) (Hf n) x)
+            (map (f (S n)) (f n) (Hf n) y)
+            (mapOk (f (S n)) (f n) (Hf n) x y Hxy))
+  .
+
+def orderingLe_noChains :
+    (f : nat -> ordering) ->
+    ((n : nat) -> orderingLe (f (S n)) (f n)) ->
+    False :=
+  \f. \Hf.
+    noChains (f O) (\n. the_map f Hf n (max (f (S n)) (f n) (Hf n)))
+      (\n. the_map_monotonic f Hf n
+             (map (f (S n)) (f n) (Hf n) (max (f (S (S n))) (f (S n)) (Hf (S n))))
+             (max (f (S n)) (f n) (Hf n))
+             (maxOk (f (S n)) (f n) (Hf n) (max (f (S (S n))) (f (S n)) (Hf (S n)))))
+  .
+
+def orderingLe_trans : (o1 o2 o3 : ordering) ->
+                       orderingLe o1 o2 ->
+                       orderingLe o2 o3 ->
+                       orderingLe o1 o3 :=
+  \o1. \o2. \o3.
+  \ole12. \ole23.
+    mkOrderingLe o1 o3
+      (\x. map o2 o3 ole23 (map o1 o2 ole12 x))
+      (max o2 o3 ole23)
+      (\x. \y. \Hxy.
+        mapOk o2 o3 ole23 (map o1 o2 ole12 x) (map o1 o2 ole12 y) (mapOk o1 o2 ole12 x y Hxy))
+      (\x. maxOk o2 o3 ole23 (map o1 o2 ole12 x))
+  .
+
+def orderingOfOrderings : ordering :=
+  mkOrdering ordering orderingLe orderingLe_trans orderingLe_noChains.
+
+data sigT (A : Type) (B : A -> Type) :=
+  existT : (a : A) -> B a -> sigT A B.
+
+def projT1 : (A : Type) -> (B : A -> Type) -> sigT A B -> A :=
+  \A. \B. sigT_elim A B (\z. A) (\a. \_. a).
+
+def projT2 : (A : Type) -> (B : A -> Type) -> (s : sigT A B) -> B (projT1 A B s) :=
+  \A. \B. sigT_elim A B (\z. B (projT1 A B z)) (\a. \b. b).
+
+def subOrdering_carrier : (o : ordering) -> carrier o -> Type :=
+  \o. \a. (sigT (carrier o) (\x. lt o x a)).
+
+def subOrdering_proj : (o : ordering) -> (a : carrier o) -> subOrdering_carrier o a -> carrier o :=
+  \o. \a. \s. projT1 (carrier o) (\x. lt o x a) s.
+
+def subOrdering_proof : (o : ordering) -> (a : carrier o) -> (x : subOrdering_carrier o a) -> lt o (subOrdering_proj o a x) a :=
+  \o. \a. projT2 (carrier o) (\x. lt o x a).
+
+def subOrdering : (o : ordering) -> carrier o -> ordering :=
+  \o. \a.
+    mkOrdering
+      (subOrdering_carrier o a)
+      (\x. \y. lt o (subOrdering_proj o a x) (subOrdering_proj o a y))
+      (\x. \y. \z. \Hxy. \Hyz. transitive o (subOrdering_proj o a x) (subOrdering_proj o a y) (subOrdering_proj o a z) Hxy Hyz)
+      (\f. \Hf. noChains o (\n. subOrdering_proj o a (f n)) (\n. Hf n))
+  .
+
+def subOrdering_monotonic : (o : ordering) -> (a b : carrier o) ->
+                            lt o a b ->
+                            orderingLe (subOrdering o a) (subOrdering o b) :=
+  \o. \a. \b. \Hab.
+    mkOrderingLe (subOrdering o a) (subOrdering o b)
+      (\x. existT (carrier o) (\x. lt o x b) (subOrdering_proj o a x) (transitive o (subOrdering_proj o a x) a b (subOrdering_proof o a x) Hab))
+      (existT (carrier o) (\x. lt o x b) a Hab)
+      (\x. \y. \Hxy. Hxy)
+      (\x. subOrdering_proof o a x)
+  .
+
+def subOrdering_less_than_original :
+    (o : ordering) -> (a : carrier o) ->
+    orderingLe (subOrdering o a) o :=
+  \o. \a.
+    mkOrderingLe (subOrdering o a) o
+      (subOrdering_proj o a)
+      a
+      (\x. \y. \Hxy. Hxy)
+      (\x. subOrdering_proof o a x)
+  .
+
+def orderingOfOrderings_is_max :
+    (o : ordering) ->
+    orderingLe o orderingOfOrderings :=
+  \o.
+    mkOrderingLe
+      o orderingOfOrderings
+      (subOrdering o)
+      o
+      (\x. \y. \Hxy. subOrdering_monotonic o x y Hxy)
+      (\x. subOrdering_less_than_original o x).
+
+
+def orderingOfOrderings_reflexive :
+    orderingLe orderingOfOrderings orderingOfOrderings :=
+  orderingOfOrderings_is_max orderingOfOrderings.
+
+def girards_paradox : False :=
+  irreflexive orderingOfOrderings orderingOfOrderings orderingOfOrderings_reflexive.
