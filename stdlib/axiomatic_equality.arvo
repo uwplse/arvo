@@ -41,3 +41,19 @@ def rewrite : (A : Type) -> (P : A -> Type) -> (a : A) -> P a -> (b : A) ->
               eq _ b a -> P b :=
   \A. \P. \a. \pa. \b. \Heq.
     subst A P a pa b (eq_sym _ _ _ Heq).
+
+def f_equal2 : (A : Type) -> (B : Type) -> (C : Type) ->
+               (f : A -> B -> C) ->
+               (a1 : A) -> (a2 : A) -> eq _ a1 a2 ->
+               (b1 : B) -> (b2 : B) -> eq _ b1 b2 ->
+               eq _ (f a1 b1) (f a2 b2) :=
+  \A. \B. \C.
+  \f.
+  \a1. \a2. \pfa.
+  \b1. \b2. \pfb.
+    rewrite A
+            (\z. eq C (f z b1) (f a2 b2))
+            a2
+            (f_equal B C (f a2) b1 b2 pfb)
+            a1
+            pfa.
