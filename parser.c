@@ -69,10 +69,20 @@ term* ast_to_term(mpc_ast_t* ast) {
     }
   } else if (prefix("pi", ast->tag)) {
     if (ast->children[0]->contents[0] == '(') {
-      check(ast->children_num == 7, "malformed pi node");
-      return make_pi(make_variable(strdup(ast->children[1]->contents)),
-                     ast_to_term(ast->children[3]),
-                     ast_to_term(ast->children[6]));
+      check(ast->children_num >= 7, "malformed pi node");
+      int n = ast->children_num;
+      term* ty = ast_to_term(ast->children[n-4]);
+      term* ans = make_pi(make_variable(strdup(ast->children[n-6]->contents)),
+                          ty,
+                          ast_to_term(ast->children[n-1]));
+
+      int i;
+      for (i = n-7; i > 0; i--) {
+        ans = make_pi(make_variable(strdup(ast->children[i]->contents)),
+                      term_dup(ty),
+                      ans);
+      }
+      return ans;
     } else {
       check(ast->children_num == 3, "malformed pi node");
       return make_pi(variable_dup(&ignore),
@@ -223,7 +233,7 @@ parsing_context* parse(char* filename) {
               " implicit : \"_\" ; \n "
               " bound   : \"_\" | <var> ;                          \n"
               " lambda  : \"\\\\\" <bound> (':' <term>)? '.' <term> ; \n"
-              " pi      : '(' <bound> ':' <term> ')' \"->\" <term> \n"
+              " pi      : '(' <bound>* ':' <term> ')' \"->\" <term> \n"
               "         |  <app> \"->\" <term> ; \n"
               " base    : <type> | <implicit>| <hole> | <var> | '(' <term> ')' ; \n"
               " app     : <base> <base>* ;\n"

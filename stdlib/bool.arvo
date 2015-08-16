@@ -45,7 +45,7 @@ def eqb_bool : bool -> bool -> bool :=
     if _ x y (notb y).
 
 
-def eqb_bool_sound : (x : bool) -> (y : bool) -> eq _ (eqb_bool x y) true -> eq _ x y :=
+def eqb_bool_sound : (x y : bool) -> eq _ (eqb_bool x y) true -> eq _ x y :=
   \x. \y.
     bool_elim (\z. eq _ (eqb_bool z y) true -> eq _ z y)
               (\H. eq_sym _ _ _ H)
