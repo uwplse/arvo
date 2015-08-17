@@ -37,12 +37,15 @@
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.arvo\\'" . arvo-mode))
 
-
+(defun position-of-string (s)
+  (save-excursion (search-forward s (line-end-position) 't)))
 
 (defconst arvo-font-lock-keywords
   '(("\\<\\(def\\|axiom\\|import\\|print\\|check\\|simpl\\|data\\)\\>" . font-lock-keyword-face)
-    ("\\<def\\>" "\\<\\(\\w+\\)\\>" (save-excursion (search-forward ":" (line-end-position) 't)) nil (1 font-lock-function-name-face))
-    ;("\\<\\(\\w+\\)\\>" . font-lock-variable-name-face)
+    ("\\<Type\\>" . font-lock-type-face)
+    ("\\<def\\>" "\\<\\(\\w+\\)\\>" (position-of-string ":") nil (1 font-lock-function-name-face))
+    ("\\\\" "\\<\\w+\\>" (position-of-string ".") nil (0 font-lock-variable-name-face))
+    ("([^:()]+:" "[^:]\\(\\<\\w+\\>\\)" (progn (search-backward "(") (+ 1 (position-of-string ":"))) nil (1 font-lock-variable-name-face))
 ))
 
 (defconst arvo-pretty-symbols
