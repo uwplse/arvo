@@ -361,7 +361,7 @@ void apply_solution(equation_set* es, term* t) {
     if (no_implicits(e->right)) {
       substitute_implicit(e->left, e->right, t);
     } else {
-      log_warn("bad solution %W\n", es, print_equation_set);
+      //log_warn("bad solution %W\n", es, print_equation_set);
     }
 
     es = es->rest;
