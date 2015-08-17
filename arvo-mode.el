@@ -44,7 +44,12 @@
   '(("\\<\\(def\\|axiom\\|import\\|print\\|check\\|simpl\\|data\\)\\>" . font-lock-keyword-face)
     ("\\<Type\\>" . font-lock-type-face)
     ("\\<def\\>" "\\<\\(\\w+\\)\\>" (position-of-string ":") nil (1 font-lock-function-name-face))
-    ("\\\\" "\\<\\w+\\>" (position-of-string ".") nil (0 font-lock-variable-name-face))
+    ("\\\\" "\\<\\w+\\>" (if (position-of-string ".")
+                             (min (position-of-string ".")
+                                  (or (position-of-string ":")
+                                      (position-of-string ".")))
+                           nil)
+ nil (0 font-lock-variable-name-face))
     ("([^:()]+:" "[^:]\\(\\<\\w+\\>\\)" (progn (search-backward "(") (+ 1 (position-of-string ":"))) nil (1 font-lock-variable-name-face))
 ))
 
