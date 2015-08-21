@@ -27,10 +27,10 @@ term* telescope_lookup(variable* var, telescope* Gamma) {
 
 int print_telescope(FILE* stream, telescope* Gamma) {
   if (Gamma) {
-    return fprintf(stream, "%W, (%W : %W)", Gamma->rest, print_telescope, Gamma->var, print_variable, Gamma->ty, print_term);
+    return fprintf(stream, "%W(%W : %W)\n", Gamma->rest, print_telescope, Gamma->var, print_variable, Gamma->ty, print_term);
   }
   else {
-    return fprintf(stream, ".");
+    return fprintf(stream, ".\n");
   }
 }
 
