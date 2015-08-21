@@ -166,7 +166,7 @@ term *make_var(variable *var) {
 }
 
 int variable_equal(variable* x, variable* y) {
-  return (x == NULL && y == NULL) || (strcmp(x->name, y->name) == 0);
+  return (x == NULL && y == NULL) || (x != NULL && y != NULL && strcmp(x->name, y->name) == 0);
 }
 
 int syntactically_identical(term* a, term* b) {
