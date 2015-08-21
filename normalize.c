@@ -230,7 +230,7 @@ term* normalize_fuel_var(context *Sigma, typing_context* Delta, term* t, int fue
 
 term* normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel) {
   if (t == NULL) return NULL;
-  check(term_locally_well_formed(t), "t must be locally well formed");
+  check(term_locally_well_formed(t), "%W must be locally well formed", t, print_term);
   check(fuel >= 0, "Stack depth exceeded")
 
   switch (t->tag) {
