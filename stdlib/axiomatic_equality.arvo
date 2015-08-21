@@ -1,32 +1,32 @@
 axiom eq : (A : Type) -> A -> A -> Type.
 check eq.
 
-axiom refl : (A : Type) -> (a : A) -> eq _ a a.
+axiom refl : (A : Type) -> (a : A) -> eq A a a.
 check refl.
 
-axiom subst : (A : Type) -> (P : A -> Type) -> (a : A) -> P a -> (b : A) -> eq _ a b -> P b.
+axiom subst : (A : Type) -> (P : A -> Type) -> (a : A) -> P a -> (b : A) -> eq A a b -> P b.
 check subst.
 
 axiom subst_compute : (A : Type) -> (P : A -> Type) -> (a : A) -> (pf : P a) ->
-      eq _ (subst _ _ a pf a (refl _ a)) pf.
+      eq (P a) (subst A P a pf a (refl A a)) pf.
 check subst_compute.
 
-axiom J : (A : Type) -> (P : (a : A) -> (b : A) -> eq _ a b -> Type) ->
-          (a : A) -> P _ _ (refl _ a) -> (b : A) -> (pf : eq _ a b) -> P a b pf.
+axiom J : (A : Type) -> (P : (a : A) -> (b : A) -> eq A a b -> Type) ->
+          (a : A) -> P a a (refl A a) -> (b : A) -> (pf : eq A a b) -> P a b pf.
 check J.
 
 
-def eq_sym : (A : Type) -> (a b : A) -> eq _ a b -> eq _ b a :=
+def eq_sym : (A : Type) -> (a b : A) -> eq A a b -> eq A b a :=
     \A : Type. \a : A. \b : A. \pf : eq A a b.
      subst A (\x : A. eq A x a) a (refl A a) b pf.
 check eq_sym.
 print eq_sym.
 
 def eq_trans : (A : Type) -> (a b c : A) ->
-               eq _ a b -> eq _ b c -> eq _ a c :=
+               eq A a b -> eq A b c -> eq A a c :=
     \A. \a. \b. \c.
       \ab.
-        subst _ (\x. eq A x c -> eq _ a c) _ (\y. y) b ab.
+        subst A (\x. eq A x c -> eq A a c) a (\y. y) b ab.
 check eq_trans.
 print eq_trans.
 
@@ -38,15 +38,15 @@ check f_equal.
 print f_equal.
 
 def rewrite : (A : Type) -> (P : A -> Type) -> (a : A) -> P a -> (b : A) ->
-              eq _ b a -> P b :=
+              eq A b a -> P b :=
   \A. \P. \a. \pa. \b. \Heq.
-    subst A P a pa b (eq_sym _ _ _ Heq).
+    subst A P a pa b (eq_sym A b a Heq).
 
 def f_equal2 : (A B C : Type) ->
                (f : A -> B -> C) ->
-               (a1 a2 : A) -> eq _ a1 a2 ->
-               (b1 b2 : B) -> eq _ b1 b2 ->
-               eq _ (f a1 b1) (f a2 b2) :=
+               (a1 a2 : A) -> eq A a1 a2 ->
+               (b1 b2 : B) -> eq B b1 b2 ->
+               eq C (f a1 b1) (f a2 b2) :=
   \A. \B. \C.
   \f.
   \a1. \a2. \pfa.
@@ -57,3 +57,4 @@ def f_equal2 : (A B C : Type) ->
             (f_equal B C (f a2) b1 b2 pfb)
             a1
             pfa.
+

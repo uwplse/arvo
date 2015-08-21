@@ -11,50 +11,50 @@ def if : (A : Type) -> bool -> A -> A -> A :=
               b.
 
 def notb : bool -> bool :=
-  \x. if _ x false true.
+  \x. if bool x false true.
 
-def true_false_inv : eq _ true false -> False :=
-  \H. subst _
-            (\z. if _ z True False)
-            _
+def true_false_inv : eq bool true false -> False :=
+  \H. subst bool
+            (\z. if Type z True False)
+            true
             I
-            _
+            false
             H.
 
-def false_true_inv : eq _ false true -> False :=
-  \H. true_false_inv (eq_sym _ _ _ H).
+def false_true_inv : eq bool false true -> False :=
+  \H. true_false_inv (eq_sym bool false true H).
 
-def notb_true : (x : bool) -> eq _ (notb x) true -> eq _ x false :=
+def notb_true : (x : bool) -> eq bool (notb x) true -> eq bool x false :=
   \x.
-    bool_elim (\z. eq _ (notb z) true -> eq _ z false)
-              (\H. exfalso (false_true_inv H) _)
-              (\_. refl _ _)
+    bool_elim (\z. eq bool (notb z) true -> eq bool z false)
+              (\H. exfalso (false_true_inv H) (eq bool true false))
+              (\_. refl bool false)
               x.
 
 def andb : bool -> bool -> bool :=
   \x. \y.
-    if _ x y false.
+    if bool x y false.
 
 def orb : bool -> bool -> bool :=
   \x. \y.
-    if _ x true y.
+    if bool x true y.
 
 
 def eqb_bool : bool -> bool -> bool :=
   \x. \y.
-    if _ x y (notb y).
+    if bool x y (notb y).
 
 
-def eqb_bool_sound : (x y : bool) -> eq _ (eqb_bool x y) true -> eq _ x y :=
+def eqb_bool_sound : (x y : bool) -> eq bool (eqb_bool x y) true -> eq bool x y :=
   \x. \y.
-    bool_elim (\z. eq _ (eqb_bool z y) true -> eq _ z y)
-              (\H. eq_sym _ _ _ H)
-              (\H. eq_sym _ _ _ (notb_true _ H))
+    bool_elim (\z. eq bool (eqb_bool z y) true -> eq bool z y)
+              (\H. eq_sym bool (eqb_bool true y) true H)
+              (\H. eq_sym bool y false (notb_true y H))
               x.
 
-def eqb_bool_refl : (x : bool) -> eq _ (eqb_bool x x) true :=
+def eqb_bool_refl : (x : bool) -> eq bool (eqb_bool x x) true :=
   \x.
-    bool_elim (\z. eq _ (eqb_bool z z) true)
-              (refl _ _)
-              (refl _ _)
+    bool_elim (\z. eq bool (eqb_bool z z) true)
+              (refl bool true)
+              (refl bool true)
               x.

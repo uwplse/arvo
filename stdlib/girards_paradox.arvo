@@ -1,3 +1,4 @@
+@ commented out in expectation of merge with branch girard
 import prelude.
 import nat.
 import sig.
@@ -40,3 +41,4 @@ def noChainsProof : (o:ordering) -> noChains (carrier o) (lt o) :=
 
 def irreflexive : (o:ordering) -> (a:carrier o) -> lt o a a -> False :=
   \o.\a.\h. noChainsProof o (\_.a) (\_.h).
+@
