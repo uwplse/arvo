@@ -22,8 +22,6 @@ void vernac_init(char* working_directory) {
   wd = strdup(working_directory);
 }
 
-term* rust_test(term* t);
-
 int print_command(FILE* stream, command* c) {
   if (c == NULL) return fprintf(stream, "NULL");
 
@@ -272,12 +270,8 @@ void vernac_run(command *c) {
     vernac_run_def(c);
     break;
   case PRINT:
-    {
-      term* ans = rust_test(context_lookup(c->var, Sigma));
-      printf("ans = %W\n", ans, print_term);
-      //printf("%W\n", context_lookup(c->var, Sigma), print_term);
-      break;
-    }
+    printf("%W\n", context_lookup(c->var, Sigma), print_term);
+    break;
   case CHECK:
     vernac_run_check(c);
     break;
