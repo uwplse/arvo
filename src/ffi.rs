@@ -95,7 +95,7 @@ pub unsafe fn cterm_to_term(t: *mut term) -> Box<Term> {
     )
 }
 
-fn string_to_cstring(s: &String) -> *mut libc::c_char {
+pub fn string_to_cstring(s: &String) -> *mut libc::c_char {
     unsafe { 
         strdup(CString::new(s.clone()).unwrap().as_ptr())
     }

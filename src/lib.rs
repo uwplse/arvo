@@ -2,10 +2,11 @@
 extern crate libc;
 mod term;
 mod ffi;
+mod prettyprint;
 
 #[no_mangle]
-pub extern "C" fn rust_test(t: *mut ffi::term) -> *mut ffi::term {
+pub extern "C" fn C_prettyprint(t: *mut ffi::term) -> *const libc::c_char{
     let rt = unsafe { ffi::cterm_to_term(t) }; 
-    println!("{:?}", rt);
-    ffi::term_to_cterm(&rt)
+    let s = prettyprint::prettyprint(&*rt);
+    ffi::string_to_cstring(&s)
 }
