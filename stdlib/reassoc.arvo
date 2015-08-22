@@ -11,48 +11,48 @@ def expr_case_simple : (A : Type) -> (nat -> A) -> (expr -> expr -> A) -> expr -
       expr_elim (\_.A) a (\l. \_. \r. \_. f l r).
 
 def eval : expr -> nat :=
-  expr_rec _ (\n. n) plus.
+  expr_rec nat (\n. n) plus.
 
 def normalize_local : expr -> expr :=
-  expr_rec _
+  expr_rec expr
            Atom
-           (\l. \r. expr_case_simple _
+           (\l. \r. expr_case_simple expr
                               (\n. Plus (Atom n) r)
                               (\ll. \lr. Plus ll (Plus lr r)) l).
 
 simpl (normalize_local (Plus (Plus (Atom O) (Atom (S O))) (Atom (S (S O))))).
 
-check (\a. \b. \c. refl _ (normalize_local (Plus (Plus a b) c))) :
+check (\a. \b. \c. refl expr (normalize_local (Plus (Plus a b) c))) :
       (a : expr) -> (b : expr) -> (c : expr) ->
-      eq _ (normalize_local (Plus (Plus a b) c))
-           (expr_case_simple _ (\n. Plus (Atom n) (normalize_local c))
-                        (\ll. \lr. Plus ll (Plus lr (normalize_local c))) (normalize_local (Plus a b))).
+      eq expr (normalize_local (Plus (Plus a b) c))
+              (expr_case_simple expr (\n. Plus (Atom n) (normalize_local c))
+                           (\ll. \lr. Plus ll (Plus lr (normalize_local c))) (normalize_local (Plus a b))).
 
 def expr_case : (P : expr -> Type) -> ((n : nat) -> P (Atom n)) -> ((l r : expr) -> P (Plus l r)) -> (e : expr) -> P e :=
   \P. \a. \f. expr_elim P a (\l. \_. \r. \_. f l r).
 
 
-def normalize_local_correct : (e : expr) -> eq _ (eval e) (eval (normalize_local e)) :=
-  \e. expr_elim (\z. eq _ (eval z) (eval (normalize_local z)))
-                (\n. refl _ n)
-                (\l. \IHl : eq _ (eval l) (eval (normalize_local l)). \r. \IHr : eq _ (eval r) (eval (normalize_local r)).
+def normalize_local_correct : (e : expr) -> eq nat (eval e) (eval (normalize_local e)) :=
+  \e. expr_elim (\z. eq nat (eval z) (eval (normalize_local z)))
+                (\n. refl nat n)
+                (\l. \IHl : eq nat (eval l) (eval (normalize_local l)). \r. \IHr : eq nat (eval r) (eval (normalize_local r)).
                   expr_case (\z.
-                              eq _ (eval l) (eval z) ->
-                              eq _ (plus (eval l) (eval r))
-                                   (eval (expr_case_simple _
+                              eq nat (eval l) (eval z) ->
+                              eq nat (plus (eval l) (eval r))
+                                   (eval (expr_case_simple expr
                                      (\n. Plus (Atom n) (normalize_local r))
                                      (\ll. \lr. Plus ll (Plus lr (normalize_local r))) z)))
-                            (\n. \H : eq _ (eval l) (eval (Atom n)).
-                              (f_equal2 _ _ _ plus
-                                        _ _ H
-                                        _ _ IHr))
-                            (\ll. \lr. \H : eq _ (eval l) (eval (Plus ll lr)).
-                              subst _ (\z. eq _ (plus (eval l) (eval r)) z)
-                                    _
-                                    (f_equal2 _ _ _ plus
-                                              _ _ H
-                                              _ _ IHr)
-                                    _
+                            (\n. \H : eq nat (eval l) (eval (Atom n)).
+                              (f_equal2 nat nat nat plus
+                                        (eval l) (eval (Atom n)) H
+                                        (eval r) (eval (normalize_local r)) IHr))
+                            (\ll. \lr. \H : eq nat (eval l) (eval (Plus ll lr)).
+                              subst nat (\z. eq nat (plus (eval l) (eval r)) z)
+                                    (plus (plus (eval ll) (eval lr)) (eval (normalize_local r)))
+                                    (f_equal2 nat nat nat plus
+                                              (eval l) (eval (Plus ll lr)) H
+                                              (eval r) (eval (normalize_local r)) IHr)
+                                    (plus (eval ll) (plus (eval lr) (eval (normalize_local r))))
                                     (plus_assoc (eval ll) (eval lr) (eval (normalize_local r))))
                             (normalize_local l)
                             IHl)
@@ -76,63 +76,63 @@ def nonempty_natlist_rec : (A : Type) -> (nat -> A) -> (nat -> A -> A) -> nonemp
 
 def append : nonempty_natlist -> nonempty_natlist -> nonempty_natlist :=
   \l. \r.
-    nonempty_natlist_rec _ (\n. cons n r) cons l.
+    nonempty_natlist_rec nonempty_natlist (\n. cons n r) cons l.
 
-def collect : expr -> nonempty_natlist := expr_rec _ singleton append.
+def collect : expr -> nonempty_natlist := expr_rec nonempty_natlist singleton append.
 
 def uncollect : nonempty_natlist -> expr :=
- nonempty_natlist_rec _ Atom (\n. \e. Plus (Atom n) e).
+ nonempty_natlist_rec expr Atom (\n. \e. Plus (Atom n) e).
 
 def normalize_global : expr -> expr := \e. uncollect (collect e).
 
 def sum : nonempty_natlist -> nat :=
-  nonempty_natlist_rec _ (\n. n) plus.
+  nonempty_natlist_rec nat (\n. n) plus.
 
 def eval_uncollect :
   (l : nonempty_natlist) ->
-    eq _ (eval (uncollect l))
-         (sum l) :=
-  \l. nonempty_natlist_elim (\z. eq _ (eval (uncollect z)) (sum z))
-        (\n. refl _ n)
-        (\n. \t. \IHt : eq _ (eval (uncollect t)) (sum t).
-          f_equal _ _ (plus n) _ _ IHt)
+    eq nat (eval (uncollect l))
+           (sum l) :=
+  \l. nonempty_natlist_elim (\z. eq nat (eval (uncollect z)) (sum z))
+        (\n. refl nat n)
+        (\n. \t. \IHt : eq nat (eval (uncollect t)) (sum t).
+          f_equal nat nat (plus n) (eval (uncollect t)) (sum t) IHt)
         l.
 
 def sum_append :
   (l r : nonempty_natlist) ->
-    eq _ (sum (append l r)) (plus (sum l) (sum r)) :=
+    eq nat (sum (append l r)) (plus (sum l) (sum r)) :=
   \l. \r.
-    nonempty_natlist_elim (\z. eq _ (sum (append z r)) (plus (sum z) (sum r)))
-      (\n. refl _ (plus n (sum r)))
-      (\h. \t. \IHt : eq _ (sum (append t r)) (plus (sum t) (sum r)).
-        rewrite _ (\z. eq _ (plus h (sum (append t r))) z)
-                _
-                (f_equal _ _ (plus h) _ _ IHt)
-                _
+    nonempty_natlist_elim (\z. eq nat (sum (append z r)) (plus (sum z) (sum r)))
+      (\n. refl nat (plus n (sum r)))
+      (\h. \t. \IHt : eq nat (sum (append t r)) (plus (sum t) (sum r)).
+        rewrite nat (\z. eq nat (plus h (sum (append t r))) z)
+                (plus h (plus (sum t) (sum r)))
+                (f_equal nat nat (plus h) (sum (append t r)) (plus (sum t) (sum r)) IHt)
+                (plus (plus h (sum t)) (sum r))
                 (plus_assoc h (sum t) (sum r)))
 
       l.
 
 def sum_collect :
   (e : expr) ->
-    eq _ (sum (collect e)) (eval e) :=
-  \e. expr_elim (\z. eq _ (sum (collect z)) (eval z))
-      (\n. refl _ n)
+    eq nat (sum (collect e)) (eval e) :=
+  \e. expr_elim (\z. eq nat (sum (collect z)) (eval z))
+      (\n. refl nat n)
       (\l. \IHl. \r. \IHr.
-        eq_trans _
-                 _
+        eq_trans nat
+                 (sum (collect (Plus l r)))
                  (plus (sum (collect l)) (sum (collect r)))
                  (plus (eval l) (eval r))
                  (sum_append (collect l) (collect r))
-                 (f_equal2 _ _ _ plus _ _ IHl _ _ IHr))
+                 (f_equal2 nat nat nat plus (sum (collect l)) (eval l) IHl (sum (collect r)) (eval r) IHr))
 
       e.
 
 def normalize_global_correct :
   (e : expr) ->
-    eq _ (eval e) (eval (normalize_global e)) :=
-  \e. eq_sym _ (eval (normalize_global e)) (eval e)
-     (eq_trans _
+    eq nat (eval e) (eval (normalize_global e)) :=
+  \e. eq_sym nat (eval (normalize_global e)) (eval e)
+     (eq_trans nat
                (eval (uncollect (collect e)))
                (sum (collect e))
                (eval e)
@@ -146,10 +146,11 @@ simpl (\a. \b. \c.
 
 def example :
     (a b c : nat) ->
-    eq _ (plus (plus (plus a b) (plus c c))
+    eq nat (plus (plus (plus a b) (plus c c))
                (plus (plus b a) (plus c c)))
          (plus a (plus b (plus c (plus c
            (plus b (plus a (plus c c))))))) :=
   \a. \b. \c.
     normalize_global_correct (Plus (Plus (Plus (Atom a) (Atom b)) (Plus (Atom c) (Atom c)))
               (Plus (Plus (Atom b) (Atom a)) (Plus (Atom c) (Atom c)))).
+
