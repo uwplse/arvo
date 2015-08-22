@@ -4,6 +4,7 @@ use term::Term::*;
 use term::Variable;
 use std::ffi::{CStr, CString};
 use std::str;
+use std::ptr;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -77,7 +78,7 @@ pub unsafe fn cterm_to_term(t: *mut term) -> Box<Term> {
             HOLE => Hole,
             VAR => Var(cvar_to_var((*t).var)),
             LAM => Lambda(cvar_to_var((*t).var), 
-                          cterm_to_term((*t).left), 
+                          if (*t).left.is_null() { None } else { Some(cterm_to_term((*t).left)) }, 
                           cterm_to_term((*t).right)),
             PI => Pi(cvar_to_var((*t).var),
                      cterm_to_term((*t).left), 
@@ -119,8 +120,8 @@ pub fn term_to_cterm(t: &Term) -> *mut term {
             Hole => make_hole(),
             Var(ref name) => make_var(var_to_cvar(name)),
             Lambda(ref x, ref a, ref b) => make_lambda(var_to_cvar(x),
-                                                       term_to_cterm(a), 
-                                                       term_to_cterm(b)),
+                                                   match *a { None => ptr::null_mut(), Some(ref t) => term_to_cterm(t) }, 
+                                                   term_to_cterm(b)),
             Pi(ref x, ref a, ref b) => make_pi(var_to_cvar(x),
                                                term_to_cterm(a), 
                                                term_to_cterm(b)),
