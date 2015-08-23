@@ -168,6 +168,15 @@ static void build_constructors(command *c, datatype *T) {
       total_arg_index++;
       intro->args[j] = arg;
       prev = new_lambda;
+      if (!variable_equal(&ignore, constructor_type->var)) {
+        term* to = make_var(variable_dup(x));
+        term* new = substitute(constructor_type->var, to, constructor_type->right);
+        free_term(to);
+        free_term(constructor_type->right);
+        constructor_type->right = new;
+        free_variable(constructor_type->var);
+        constructor_type->var = variable_dup(x);
+      }
       constructor_type = constructor_type->right;
     }
     Sigma = context_add(variable_dup(c->args[i]->var), lambda_wrapped_intro, Sigma);
@@ -224,6 +233,15 @@ static void build_eliminator(command *c, datatype *T) {
       }          
       app->right = make_app(app->right, make_var(variable_dup(x)));
       prev = new_wrapper;
+      if (!variable_equal(&ignore, constructor_type->var)) {
+        term* to = make_var(variable_dup(x));
+        term* new = substitute(constructor_type->var, to, constructor_type->right);
+        free_term(to);
+        free_term(constructor_type->right);
+        constructor_type->right = new;
+        free_variable(constructor_type->var);
+        constructor_type->var = variable_dup(x);
+      }
       constructor_type = constructor_type->right;
       free_variable(x);
       x = NULL;
