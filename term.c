@@ -11,77 +11,13 @@ int print_variable(FILE* stream, variable* v) {
   return fprintf(stream, "%s", v->name);
 }
 
-int print_term(FILE* stream, term* t) {
-  if (t == NULL) return fprintf(stream, "NULL");
+extern char* C_prettyprint(term* t);
 
-  switch (t->tag) {
-  case VAR:
-    return print_variable(stream, t->var);
-  case HOLE:
-    return fprintf(stream, "<hole>");
-  case IMPLICIT:
-    if (t->right == NULL) {
-      return fprintf(stream, "<implicit>");
-    } else {
-      return fprintf(stream, "%W", t->right, print_term);
-    }
-  case LAM:
-    if (t->left == NULL) {
-      return fprintf(stream, "\\%W. %W", t->var, print_variable, t->right, print_term);
-    } else {
-      return fprintf(stream, "\\%W : %W. %W", t->var, print_variable, t->left, print_term, t->right, print_term);
-    }
-  case PI:
-    if (variable_equal(t->var, &ignore)) {
-      return fprintf(stream, "(%W -> %W)", t->left, print_term, t->right, print_term);
-    } else {
-      return fprintf(stream, "((%W : %W) -> %W)", t->var, print_variable, t->left, print_term, t->right, print_term);
-    }
-  case APP:
-    return fprintf(stream, "(%W %W)", t->left, print_term, t->right, print_term);
-  case TYPE:
-    return fprintf(stream, "Type");
-  case INTRO:
-    {
-      int total = 0;
-      total += fprintf(stream, "%W", t->var, print_variable);
-      if (t->num_args) {
-        total += fprintf(stream, "(");
-        int i;
-        for (i = 0; i < t->num_args; i++) {
-          if (i) {
-            total += fprintf(stream, "; ");
-          }
-          total += fprintf(stream, "%W", t->args[i], print_term);
-        }
-        total += fprintf(stream, ")");
-      }
-      return total;
-    }
-    return fprintf(stream, "%W", t->var, print_variable);
-  case ELIM:
-    {
-      int total = 0;
-      total += fprintf(stream, "%W", t->var, print_variable);
-      total += fprintf(stream, "(");
-      int i;
-      for (i = 0; i < t->num_args; i++) {
-        if (i) {
-          total += fprintf(stream, "; ");
-        }
-        total += fprintf(stream, "%W", t->args[i], print_term);
-      }
-      total += fprintf(stream, ")");
-      return total;
-    }
-  case DATATYPE:
-    return fprintf(stream, "%W", t->var, print_variable);
-  default:
-    sentinel("Bad tag %d", t->tag);
-  }
-    
- error:
-  return -1;
+int print_term(FILE* stream, term* t) {
+  char* s = C_prettyprint(t);
+  int ans = fprintf(stream, "%s", s);
+  free(s);
+  return ans;
 }
 
 int print_term_and_free(FILE* stream, term* t) {
