@@ -1,0 +1,111 @@
+import bool. @ implies axiomatic_equality and prelude @
+
+data list (A : Type) := nil : list A | cons : A -> list A -> list A.
+
+def fold_right : (A B : Type) -> B -> (A -> B -> B) -> list A -> B :=
+  \A. \B. \z. \f.
+    list_elim A (\_. B) z (\h. \_. \rec. f h rec).
+
+def fold_left : (A B : Type) -> B -> (B -> A -> B) -> list A -> B :=
+  \A. \B. \z. \f. \l.
+    list_elim A (\_. B -> B) (\acc. acc) (\h. \t. \rec. \acc. rec (f acc h)) l z.
+
+
+def fold_left_ind : (A B : Type) -> (P : B -> Type) -> (f : B -> A -> B) -> ((b : B) -> (a : A) -> P b -> P (f b a)) -> (l : list A) -> (z : B) -> P z -> P (fold_left A B z f l) :=
+  \A. \B. \P. \f. \Pf.
+    \l.
+      list_elim A (\w. (z : B) -> P z -> P (fold_left A B z f w))
+                (\z. \Pz. Pz)
+                (\h. \t. \rec : (z : B) -> P z -> P (fold_left A B z f t).
+                  \z. \Pz.
+                    rec (f z h) (Pf z h Pz))
+                l.
+
+def example : list bool := cons bool true (cons bool false (cons bool false (cons bool true (cons bool true (nil bool))))).
+
+def map : (A B : Type) -> (A -> B) -> list A -> list B :=
+  \A. \B. \f. \l.
+    fold_right A (list B) (nil B) (\h. \rec. cons B (f h) rec) l.
+
+simpl example.
+
+simpl (map bool bool notb example).
+
+def filter : (A : Type) -> (A -> bool) -> list A -> list A :=
+  \A. \f. \l.
+    fold_right A (list A) (nil A) (\h. \t. if (list A) (f h) (cons A h t) t) l.
+
+simpl (filter bool (\x. x) example).
+
+
+def app : (A : Type) -> (xs ys : list A) -> list A :=
+  \A. \xs. \ys.
+    fold_right A (list A) ys (cons A) xs.
+
+def app_nil_r : (A : Type) -> (xs : list A) -> eq (list A) (app A xs (nil A)) xs :=
+  \A. \xs.
+    list_elim A (\z. eq (list A) (app A z (nil A)) z)
+      (refl (list A) (nil A))
+      (\h. \t. \IHt.
+        f_equal (list A) (list A) (cons A h) (app A t (nil A)) t IHt)
+      xs.
+
+def app_assoc : (A : Type) -> (xs ys zs : list A) -> eq (list A) (app A (app A xs ys) zs) (app A xs (app A ys zs)) :=
+  \A. \xs. \ys. \zs.
+    list_elim A (\z. eq (list A) (app A (app A z ys) zs) (app A z (app A ys zs)))
+      (refl (list A) (app A ys zs))
+      (\h. \t. \IHt.
+        f_equal (list A) (list A) (cons A h)
+                (app A (app A t ys) zs) (app A t (app A ys zs)) IHt)
+      xs.
+
+def snoc : (A : Type) -> list A -> A -> list A :=
+  \A. \l. \x. app A l (cons A x (nil A)).
+
+def rev : (A : Type) -> list A -> list A :=
+  \A. \l.
+    fold_right A (list A) (nil A) (\h. \t. snoc A t h) l.
+
+simpl (rev bool example).
+
+def rev_app : (A : Type) -> (xs ys : list A) -> eq (list A) (rev A (app A xs ys)) (app A (rev A ys) (rev A xs)) :=
+ \A. \xs. \ys.
+   list_elim A (\z. eq (list A) (rev A (app A z ys)) (app A (rev A ys) (rev A z)))
+     (eq_sym (list A) (app A (rev A ys) (nil A)) (rev A ys) (app_nil_r A (rev A ys)))
+     (\h. \t. \IHt : eq (list A) (rev A (app A t ys)) (app A (rev A ys) (rev A t)).
+       rewrite (list A)
+         (\z. eq (list A) (snoc A z h) (app A (rev A ys) (snoc A (rev A t) h)))
+         (app A (rev A ys) (rev A t))
+         (rewrite (list A)
+           (\z. eq (list A) z (app A (rev A ys) (snoc A (rev A t) h)))
+           (app A (rev A ys) (snoc A (rev A t) h))
+           (refl (list A) (app A (rev A ys) (snoc A (rev A t) h)))
+           (snoc A (app A (rev A ys) (rev A t)) h)
+           (app_assoc A (rev A ys) (rev A t) (cons A h (nil A))))
+         (rev A (app A t ys))
+         IHt)
+     xs.
+
+def rev_snoc : (A : Type) -> (xs : list A) -> (x : A) -> eq (list A) (rev A (snoc A xs x)) (cons A x (rev A xs)) :=
+  \A. \xs. \x.
+    list_elim A (\z. eq (list A) (rev A (snoc A z x)) (cons A x (rev A z)))
+      (refl (list A) (cons A x (nil A)))
+      (\h. \t. \IHt : eq (list A) (rev A (snoc A t x)) (cons A x (rev A t)).
+        f_equal2 (list A) A (list A) (snoc A)
+          (rev A (snoc A t x)) (cons A x (rev A t)) IHt
+          h h (refl A h))
+      xs.
+
+
+def rev_involutive : (A : Type) -> (l : list A) -> eq (list A) (rev A (rev A l)) l :=
+  \A. \l.
+    list_elim A (\z. eq (list A) (rev A (rev A z)) z)
+      (refl (list A) (nil A))
+      (\h. \t. \IHt : eq (list A) (rev A (rev A t)) t.
+        eq_trans (list A)
+          (rev A (snoc A (rev A t) h))
+          (cons A h (rev A (rev A t)))
+          (cons A h t)
+          (rev_snoc A (rev A t) h)
+          (f_equal (list A) (list A) (cons A h) (rev A (rev A t)) t IHt))
+      l.
