@@ -130,7 +130,7 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
       if (!ans) {
         term* nty = whnf(Sigma, Delta, ty);
         term* ninf = whnf(Sigma, Delta, inferred);
-        log_err("in context %W\n%W expected to have type %W but has type %W", Gamma, print_telescope, t, print_term, nty, print_term, ninf, print_term);
+        log_err("%W expected to have type %W but has type %W", t, print_term, nty, print_term, ninf, print_term);
         free_term(nty);
         free_term(ninf);
       }
@@ -151,7 +151,7 @@ term* typecheck_infer(telescope* Gamma, context *Sigma, typing_context* Delta, t
   case VAR:
     {
       term* ty = telescope_lookup(t->var, Gamma);
-      check(ty != NULL, "variable %s unbound in context %W", t->var->name, Gamma, print_telescope);
+      check(ty != NULL, "variable %s unbound", t->var->name);
       return term_dup(ty);
     }
   case LAM:
