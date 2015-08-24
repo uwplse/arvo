@@ -460,6 +460,13 @@ void free_term(term* t) {
   free(t->args);
   t->args = NULL;
 
+  for (i = 0; i < t->num_params; i++) {
+    free_term(t->params[i]);
+    t->params[i] = NULL;
+  }
+  free(t->params);
+  t->params = NULL;
+
   free(t);
 }
 
