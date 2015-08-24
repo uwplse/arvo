@@ -288,6 +288,9 @@ parsing_context* parse(char* filename) {
 
 command *next_command(parsing_context* pc) {
   mpc_ast_t *ast = pc->result.output;
+  while (pc->command_index < ast->children_num && strstr(ast->children[pc->command_index]->tag, "comment")) {
+    pc->command_index++;
+  }
   if (pc->command_index >= ast->children_num-1) {
     return NULL;
   }
