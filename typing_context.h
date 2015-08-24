@@ -6,13 +6,21 @@
 
 typedef struct {
   variable* name;
+  int num_params;
+  variable** param_names;
+  term** param_types;
+
+  term* kind;  // the type of the type constructor. eg, for lists: Type -> Type.
+  term* type_constructor;  // the lambda wrapped type constructor. eg, \A : Type. list(A), where list(.) is the raw datatype term
+  term* applied_type;  // the fully applied type constructor to the declared params. eg, (list A), where list is just a variable.
+
   int num_intros;
   term** intros;
   term* elim;
   int *inductive_args;
 } datatype;
 
-datatype* make_datatype(variable* name, int num_intros);
+datatype* make_datatype(variable* name, int num_intros, int num_params);
 
 int datatype_intro_index(variable* needle, datatype* T);
 

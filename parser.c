@@ -150,26 +150,34 @@ command *ast_to_command(mpc_ast_t *ast) {
     return make_simpl(ast_to_term(ast->children[1]));
   }
   else if (prefix("data", ast->tag)) {
-    int i, j, num_constructors=0;
+    int i, ic, ip, num_constructors=0, num_params=0;
     command *data;
     for (i=0; i < ast->children_num; i++) {
       if (prefix("constructor", ast->children[i]->tag)) {
         num_constructors++;
+      } else if (prefix("param", ast->children[i]->tag)) {
+        num_params++;
       }
     }
-    data = make_data(make_variable(strdup(ast->children[1]->contents)), num_constructors);
-    j = 0;
+    data = make_data(make_variable(strdup(ast->children[1]->contents)), num_constructors, num_params);
+    ic = 0; ip = 0;
     for (i = 0; i < ast->children_num; i++) {
       if (prefix("constructor", ast->children[i]->tag)) {
         if (ast->children[i]->children_num == 0) {
-          data->args[j++] = make_var(make_variable(strdup(ast->children[i]->contents)));
+          check(num_params == 0, "parametrized data types require explicit return types on all constructors");
+          data->args[ic++] = make_var(make_variable(strdup(ast->children[i]->contents)));
         }
         else {
           check(ast->children[i]->children_num == 3, "malformed constructor");
           term *c = make_var(make_variable(strdup(ast->children[i]->children[0]->contents)));
           c->left = ast_to_term(ast->children[i]->children[2]);
-          data->args[j++] = c;
+          data->args[ic++] = c;
         }
+      } else if (prefix("param", ast->children[i]->tag)) {
+        check(ast->children[i]->children_num == 5, "malformed parameter");
+        data->param_names[ip] = make_variable(strdup(ast->children[i]->children[1]->contents));
+        data->param_types[ip] = ast_to_term(ast->children[i]->children[3]);
+        ip++;
       }
     }
     return data;
@@ -196,6 +204,7 @@ static mpc_parser_t* pPrint;
 static mpc_parser_t* pCheck;
 static mpc_parser_t* pSimpl;
 static mpc_parser_t* pConstructor;
+static mpc_parser_t* pParam;
 static mpc_parser_t* pData;
 static mpc_parser_t* pProgram;
 
@@ -218,6 +227,7 @@ parsing_context* parse(char* filename) {
   pCheck = mpc_new("check");
   pSimpl = mpc_new("simpl");
   pConstructor = mpc_new("constructor");
+  pParam = mpc_new("param");
   pData = mpc_new("data");
   pProgram = mpc_new("program");
 
@@ -241,12 +251,13 @@ parsing_context* parse(char* filename) {
               " check   : \"check\" <term> (':' <term>)? '.' ;\n"
               " simpl   : \"simpl\" <term> '.' ;\n"
               " constructor : <var> (':' <term>)? ;\n"
-              " data    : \"data\" <var> \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"
+              " param  : '(' <var> ':' <term> ')' ;\n"
+              " data    : \"data\" <var> <param>* \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"
               " command : <def> | <print> | <check> | <simpl> | <data> | <axiom> | <import> | <comment>;\n"
               " program  : /^/ <command> * /$/ ;\n",
               pComment, pVar, pHole, pBound, pLambda, pPi, pBase, pApp, pType,
               pTerm,
-              pDef, pAxiom, pImport, pPrint, pCheck, pSimpl, pConstructor, pData, pCommand, pProgram, NULL);
+              pDef, pAxiom, pImport, pPrint, pCheck, pSimpl, pConstructor, pParam, pData, pCommand, pProgram, NULL);
 
   if (err != NULL) {
     mpc_err_print(err);
@@ -262,16 +273,16 @@ parsing_context* parse(char* filename) {
     mpc_err_delete(ans->result.error);
     goto error;
   }
-  mpc_cleanup(20, pComment, pVar, pHole, pBound, pLambda, pPi, pApp, pBase, pType,
+  mpc_cleanup(21, pComment, pVar, pHole, pBound, pLambda, pPi, pApp, pBase, pType,
               pTerm, pCommand, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl,
-              pConstructor, pData, pProgram);
+              pConstructor, pParam, pData, pProgram);
   //mpc_ast_print(ans->result.output);
   ans->command_index = 1;
   return ans;
  error:
-  mpc_cleanup(20, pComment, pVar, pHole, pBound, pLambda, pPi, pApp, pBase, pType,
+  mpc_cleanup(21, pComment, pVar, pHole, pBound, pLambda, pPi, pApp, pBase, pType,
               pTerm, pCommand, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl,
-              pConstructor, pData, pProgram);
+              pConstructor, pParam, pData, pProgram);
   return NULL;
 }
 

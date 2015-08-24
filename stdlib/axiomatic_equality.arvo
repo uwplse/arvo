@@ -42,6 +42,18 @@ def rewrite : (A : Type) -> (P : A -> Type) -> (a : A) -> P a -> (b : A) ->
   \A. \P. \a. \pa. \b. \Heq.
     subst A P a pa b (eq_sym A b a Heq).
 
+def fun_cong : (A B : Type) ->
+               (f g : A -> B) -> eq (A -> B) f g ->
+               (x y : A) -> eq A x y ->
+               eq B (f x) (g y) :=
+  \A. \B. \f. \g. \Hfg. \x. \y. \Hxy.
+    rewrite (A -> B)
+            (\z. eq B (z x) (g y))
+            g
+            (f_equal A B g x y Hxy)
+            f
+            Hfg.
+
 def f_equal2 : (A B C : Type) ->
                (f : A -> B -> C) ->
                (a1 a2 : A) -> eq A a1 a2 ->
@@ -49,12 +61,23 @@ def f_equal2 : (A B C : Type) ->
                eq C (f a1 b1) (f a2 b2) :=
   \A. \B. \C.
   \f.
-  \a1. \a2. \pfa.
-  \b1. \b2. \pfb.
-    rewrite A
-            (\z. eq C (f z b1) (f a2 b2))
-            a2
-            (f_equal B C (f a2) b1 b2 pfb)
-            a1
-            pfa.
+  \a1. \a2. \Ha.
+  \b1. \b2. \Hb.
+    fun_cong B C
+      (f a1) (f a2) (f_equal A (B -> C) f a1 a2 Ha)
+      b1 b2 Hb.
 
+def f_equal3 : (A B C D : Type) -> (f : A -> B -> C -> D) ->
+               (a1 a2 : A) -> eq A a1 a2 ->
+               (b1 b2 : B) -> eq B b1 b2 ->
+               (c1 c2 : C) -> eq C c1 c2 ->
+               eq D (f a1 b1 c1) (f a2 b2 c2) :=
+
+  \A. \B. \C. \D.
+  \f.
+  \a1. \a2. \Ha.
+  \b1. \b2. \Hb.
+  \c1. \c2. \Hc.
+    fun_cong C D
+      (f a1 b1) (f a2 b2) (f_equal2 A B (C -> D) f a1 a2 Ha b1 b2 Hb)
+      c1 c2 Hc.
