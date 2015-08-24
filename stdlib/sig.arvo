@@ -1,10 +1,8 @@
-import axiomatic_equality.
+data sigT (A : Type) (B : A -> Type) :=
+  existT : (a : A) -> B a -> sigT A B.
 
-axiom sigT : (A : Type) -> (A -> Type) -> Type.
+def projT1 : (A : Type) -> (B : A -> Type) -> sigT A B -> A :=
+  \A. \B. sigT_elim A B (\z. A) (\a. \_. a).
 
-axiom existT : (A : Type) -> (B : A -> Type) -> (a : A) -> B a -> sigT A B.
-
-axiom projT1 : (A : Type) -> (B : A -> Type) -> sigT A B -> A.
-
-axiom projT2 : (A : Type) -> (B : A -> Type) -> (s : sigT A B) -> B (projT1 A B s).
-
+def projT2 : (A : Type) -> (B : A -> Type) -> (s : sigT A B) -> B (projT1 A B s) :=
+  \A. \B. sigT_elim A B (\z. B (projT1 A B z)) (\a. \b. b).

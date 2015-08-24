@@ -1,5 +1,6 @@
 import prelude.
 import nat.
+import sig.
 
 def rel : Type -> Type := \A. A -> A -> Type.
 
@@ -114,15 +115,6 @@ def orderingLe_trans : (o1 o2 o3 : ordering) ->
 
 def orderingOfOrderings : ordering :=
   mkOrdering ordering orderingLe orderingLe_trans orderingLe_noChains.
-
-data sigT (A : Type) (B : A -> Type) :=
-  existT : (a : A) -> B a -> sigT A B.
-
-def projT1 : (A : Type) -> (B : A -> Type) -> sigT A B -> A :=
-  \A. \B. sigT_elim A B (\z. A) (\a. \_. a).
-
-def projT2 : (A : Type) -> (B : A -> Type) -> (s : sigT A B) -> B (projT1 A B s) :=
-  \A. \B. sigT_elim A B (\z. B (projT1 A B z)) (\a. \b. b).
 
 def subOrdering_carrier : (o : ordering) -> carrier o -> Type :=
   \o. \a. (sigT (carrier o) (\x. lt o x a)).
