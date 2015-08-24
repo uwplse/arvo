@@ -83,7 +83,6 @@ static int check_datatype(command *c, term** out_kind, term** out_type_construct
   int res = 0;
   term* type = make_type();
   telescope *Gamma_prime = Gamma;
-  context* Sigma_prime = Sigma;
   term* type_constructor = make_datatype_term(variable_dup(c->var), c->num_params);
   term* kind = make_type();
   term* A = NULL;
@@ -122,7 +121,7 @@ static int check_datatype(command *c, term** out_kind, term** out_type_construct
 
   Gamma_prime = telescope_add(variable_dup(c->var), term_dup(kind), Gamma_prime);
 
-  context_add(variable_dup(c->var), term_dup(type_constructor), Sigma);
+  context* Sigma_prime = context_add(variable_dup(c->var), term_dup(type_constructor), Sigma);
 
   A = make_var(variable_dup(c->var));
   for (i = 0; i < c->num_params; i++) {
@@ -160,6 +159,9 @@ static int check_datatype(command *c, term** out_kind, term** out_type_construct
     Gamma_prime = telescope_pop(Gamma_prime);
   }
   Gamma_prime = NULL;
+
+  Sigma_prime = context_pop(Sigma_prime);
+  Sigma_prime = NULL;
 
   free_term(type);
   type = NULL;
