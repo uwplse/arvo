@@ -69,4 +69,21 @@
   (set (make-local-variable 'font-lock-defaults) '(arvo-font-lock-keywords))
   (font-lock-fontify-buffer))
 
+(defun arvo-get-type-of-hole ()
+  (interactive)
+  (call-process (concat (getenv "ARVO_HOME") "/get-type-of-hole.sh")
+                (buffer-file-name)
+                t))
+
+(defun arvo-insert-admit-for-hole-at-point ()
+  (interactive)
+  (if (not (eq (char-after (point)) ??))
+      (error "Point is not on hole.")
+    (progn
+      (delete-char 1)
+      (insert "(admit (")
+      (arvo-get-type-of-hole)
+      (insert "))"))))
+
+
 (provide 'arvo-mode)
