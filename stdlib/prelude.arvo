@@ -12,3 +12,5 @@ data prod (A : Type) (B : Type) :=
 data sum (A : Type) (B : Type) :=
   inj_l : A -> sum A B
 | inj_r : B -> sum A B.
+
+axiom admit : (A : Type) -> A.
