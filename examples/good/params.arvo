@@ -1,0 +1,6 @@
+data list (A : Type) := nil : list A | cons : A -> list A -> list A.
+
+check list.
+check nil.
+check cons.
+check list_elim.
