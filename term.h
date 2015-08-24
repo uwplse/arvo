@@ -45,6 +45,9 @@ typedef struct term {
 
   int num_args;        // Valid for NAT_IND only
   struct term** args;  // Valid for NAT_IND only
+
+  int num_params;
+  struct term** params;
 } term;
 
 int term_locally_well_formed(term* t);
@@ -70,9 +73,9 @@ term* make_type();
 term* make_hole();
 term* make_implicit();
 
-term* make_intro(variable* name, term *type, int num_args);
-term* make_elim(variable* name, int num_args);
-term* make_datatype_term(variable* name);
+term* make_intro(variable* name, term *type, int num_args, int num_params);
+term* make_elim(variable* name, int num_args, int num_params);
+term* make_datatype_term(variable* name, int num_args);
 
 void free_variable(variable* v);
 

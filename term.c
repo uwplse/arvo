@@ -33,6 +33,8 @@ static term* make_term() {
   ans->right = NULL;
   ans->num_args = 0;
   ans->args = NULL;
+  ans->num_params = 0;
+  ans->params = NULL;
 
   return ans;
 }
@@ -164,7 +166,18 @@ int syntactically_identical(term* a, term* b) {
       syntactically_identical(a->left, b->left) &&
       syntactically_identical(a->right, b->right);
   case DATATYPE:
-    return variable_equal(a->var, b->var);
+    {
+      if (!variable_equal(a->var, b->var)) {
+        return 0;
+      }
+      int i;
+      for (i = 0; i < a->num_args; i++) {
+        if (!syntactically_identical(a->args[i], b->args[i])) {
+          return 0;
+        }
+      }
+      return 1;
+    }
   case INTRO:
     {
       int i;
@@ -232,7 +245,18 @@ int is_free(variable *var, term *haystack) {
   case APP:
     return is_free(var, haystack->left) || is_free(var, haystack->right);
   case DATATYPE:
-    return variable_equal(var, haystack->var);
+    {
+      if (variable_equal(var, haystack->var)) {
+        return 1;
+      }
+      int i;
+      for (i = 0; i < haystack->num_args; i++) {
+        if (is_free(var, haystack->args[i])) {
+          return 1;
+        }
+      }
+      return 0;
+    }
   case INTRO:
     {
       int i;
@@ -335,12 +359,25 @@ term* substitute(variable* from, term* to, term* haystack) {
     return make_app(substitute(from, to, haystack->left),
                     substitute(from, to, haystack->right));
   case TYPE:
-  case DATATYPE:
     return term_dup(haystack);
+  case DATATYPE:
+    {
+      term* ans = make_datatype_term(variable_dup(haystack->var),
+                                     haystack->num_args);
+      int i;
+      for (i = 0; i < haystack->num_args; i++) {
+        ans->args[i] = substitute(from, to, haystack->args[i]);
+      }
+      return ans;
+    }
+
   case INTRO:
     {
-      term* ans = make_intro(variable_dup(haystack->var), term_dup(haystack->left), haystack->num_args);
+      term* ans = make_intro(variable_dup(haystack->var), term_dup(haystack->left), haystack->num_args, haystack->num_params);
       int i;
+      for (i = 0; i < haystack->num_params; i++) {
+        ans->params[i] = substitute(from, to, haystack->params[i]);
+      }
       for (i = 0; i < haystack->num_args; i++) {
         ans->args[i] = substitute(from, to, haystack->args[i]);
       }
@@ -348,8 +385,11 @@ term* substitute(variable* from, term* to, term* haystack) {
     }
   case ELIM:
     {
-      term* ans = make_elim(variable_dup(haystack->var), haystack->num_args);
+      term* ans = make_elim(variable_dup(haystack->var), haystack->num_args, haystack->num_params);
       int i;
+      for (i = 0; i < haystack->num_params; i++) {
+        ans->params[i] = substitute(from, to, haystack->params[i]);
+      }
       for (i = 0; i < haystack->num_args; i++) {
         ans->args[i] = substitute(from, to, haystack->args[i]);
       }
@@ -450,29 +490,35 @@ term* term_dup(term* t) {
   return ans;
 }
 
-term* make_intro(variable* name, term *type, int num_args) {
+term* make_intro(variable* name, term *type, int num_args, int num_params) {
   term* ans = make_term();
   ans->tag = INTRO;
   ans->var = name;
   ans->left = type;
   ans->num_args = num_args;
   ans->args = calloc(num_args, sizeof(term*));
+  ans->num_params = num_params;
+  ans->params = calloc(num_params, sizeof(term*));
   return ans;
 }
 
-term* make_elim(variable* name, int num_args) {
+term* make_elim(variable* name, int num_args, int num_params) {
   term* ans = make_term();
   ans->tag = ELIM;
   ans->var = name;
   ans->num_args = num_args;
   ans->args = calloc(num_args, sizeof(term*));
+  ans->num_params = num_params;
+  ans->params = calloc(num_params, sizeof(term*));
   return ans;
 }
 
-term* make_datatype_term(variable* name) {
+term* make_datatype_term(variable* name, int num_args) {
   term* ans = make_term();
   ans->tag = DATATYPE;
   ans->var = name;
+  ans->num_args = num_args;
+  ans->args = calloc(num_args, sizeof(term*));
   return ans;
 }
 
