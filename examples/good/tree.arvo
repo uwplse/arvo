@@ -1,0 +1,5 @@
+data Tree := Leaf | Branch : Tree -> Tree -> Tree.
+check Tree.
+check Leaf.
+check Branch.
+check Tree_elim.
