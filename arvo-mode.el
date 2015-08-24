@@ -72,8 +72,10 @@
 (defun arvo-get-type-of-hole ()
   (interactive)
   (call-process (concat (getenv "ARVO_HOME") "/get-type-of-hole.sh")
-                (buffer-file-name)
-                t))
+                nil
+                t
+                nil
+                (buffer-file-name)))
 
 (defun arvo-insert-admit-for-hole-at-point ()
   (interactive)
