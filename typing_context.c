@@ -2,10 +2,14 @@
 
 #include <stdlib.h>
 
-datatype* make_datatype(variable* name, int num_intros) {
+datatype* make_datatype(variable* name, int num_intros, int num_params) {
   datatype* ans = malloc(sizeof(datatype));
   ans->name = name;
+  ans->kind = NULL;
+  ans->type_constructor = NULL;
+  ans->applied_type = NULL;
   ans->num_intros = num_intros;
+  ans->num_params = num_params;
   return ans;
 }
 
