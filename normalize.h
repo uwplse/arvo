@@ -5,6 +5,8 @@
 #include "context.h"
 #include "typing_context.h"
 
+term* whnf_no_unfold_and_free(context *Sigma, typing_context* Delta, term* t);
+term* whnf_no_unfold(context *Sigma, typing_context* Delta, term* t);
 term* whnf(context *Sigma, typing_context* Delta, term* t);
 term* whnf_and_free(context *Sigma, typing_context* Delta, term* t);
 term* normalize_no_unfold(typing_context* Delta, term* t);

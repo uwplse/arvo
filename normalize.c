@@ -6,6 +6,58 @@
 
 static term* elim_over_intro(typing_context* Delta, term* t);
 
+term* whnf_no_unfold(context *Sigma, typing_context* Delta, term* t);
+
+term* whnf_no_unfold_and_free(context *Sigma, typing_context* Delta, term* t) {
+  term* ans = whnf_no_unfold(Sigma, Delta, t);
+  free_term(t);
+  return ans;
+}
+
+term* whnf_no_unfold(context *Sigma, typing_context* Delta, term* t) {
+  if (t == NULL) return NULL;
+
+  switch (t->tag) {
+  case VAR:
+    {
+      return term_dup(t);
+    }
+  case APP:
+    {
+      term* l = whnf_no_unfold(Sigma, Delta, t->left);
+      if (l->tag == LAM) {
+        term* subs = substitute(l->var, t->right, l->right);
+        free_term(l);
+        return whnf_no_unfold_and_free(Sigma, Delta, subs);
+      }
+      return make_app(l, term_dup(t->right));
+    }
+  case ELIM:
+    {
+      term* last = t->args[t->num_args - 1];
+      term* nlast = whnf_no_unfold(Sigma, Delta, last);
+      term* c = term_dup(t);
+      free_term(c->args[c->num_args - 1]);
+      c->args[c->num_args - 1] = nlast;
+      if (nlast->tag == INTRO) {
+        return elim_over_intro(Delta, c);
+      } else {
+        return c;
+      }
+    }
+  case HOLE:
+  case DATATYPE:
+  case TYPE:
+  case LAM:
+  case INTRO:
+  case PI:
+  case IMPLICIT:
+    return term_dup(t);
+  }
+}
+
+
+
 term* whnf_and_free(context *Sigma, typing_context* Delta, term* t) {
   term* ans = whnf(Sigma, Delta, t);
   free_term(t);
