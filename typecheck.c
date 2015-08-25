@@ -90,7 +90,7 @@ int typecheck_check(telescope* Gamma, context *Sigma, typing_context* Delta, ter
   switch (t->tag) {
   case HOLE:
     {
-      term* nty = whnf(Sigma, Delta, ty);
+      term* nty = whnf_no_unfold(Sigma, Delta, ty);
       log_info("Hole has type %W", nty, print_term);
       free_term(nty);
       return 1;
