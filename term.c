@@ -171,6 +171,9 @@ int syntactically_identical(term* a, term* b) {
         return 0;
       }
       int i;
+      if (a->num_args != b->num_args) {
+        return 0;
+      }
       for (i = 0; i < a->num_args; i++) {
         if (!syntactically_identical(a->args[i], b->args[i])) {
           return 0;
@@ -184,6 +187,17 @@ int syntactically_identical(term* a, term* b) {
       if (!variable_equal(a->var, b->var)) {
         return 0;
       }
+      if (a->num_params != b->num_params) {
+        return 0;
+      }
+      for (i = 0; i < a->num_params; i++) {
+        if (!syntactically_identical(a->params[i], b->params[i])) {
+          return 0;
+        }
+      }
+      if (a->num_args != b->num_args) {
+        return 0;
+      }
       for (i = 0; i < a->num_args; i++) {
         if (!syntactically_identical(a->args[i], b->args[i])) {
           return 0;
@@ -195,6 +209,17 @@ int syntactically_identical(term* a, term* b) {
     {
       int i;
       if (!variable_equal(a->var, b->var)) {
+        return 0;
+      }
+      if (a->num_params != b->num_params) {
+        return 0;
+      }
+      for (i = 0; i < a->num_params; i++) {
+        if (!syntactically_identical(a->params[i], b->params[i])) {
+          return 0;
+        }
+      }
+      if (a->num_args != b->num_args) {
         return 0;
       }
       for (i = 0; i < a->num_args; i++) {
@@ -491,6 +516,15 @@ term* term_dup(term* t) {
     int i;
     for (i = 0; i < ans->num_args; i++) {
       ans->args[i] = term_dup(t->args[i]);
+    }
+  }
+  ans->num_params = t->num_params;
+  ans->params = NULL;
+  if (ans->num_params > 0) {
+    ans->params = malloc((ans->num_params) * sizeof(struct term*));
+    int i;
+    for (i = 0; i < ans->num_params; i++) {
+      ans->params[i] = term_dup(t->params[i]);
     }
   }
 
