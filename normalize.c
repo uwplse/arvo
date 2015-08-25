@@ -228,6 +228,16 @@ term* normalize_fuel_intro(context *Sigma, typing_context* Delta, term* t, int f
   return NULL;
 }
 
+term* normalize_fuel_datatype(context *Sigma, typing_context* Delta, term* t, int fuel) {
+  term* ans = make_datatype_term(variable_dup(t->var), t->num_args);
+  int i;
+  for (i = 0; i < t->num_args; i++) {
+    ans->args[i] = normalize_fuel(Sigma, Delta, t->args[i], fuel-1);
+  }
+  return ans;
+}
+
+
 term* normalize_fuel_var(context *Sigma, typing_context* Delta, term* t, int fuel) {
   term* defn = context_lookup(t->var, Sigma);
   if (defn == NULL) {
@@ -254,6 +264,8 @@ term* normalize_fuel(context *Sigma, typing_context* Delta, term* t, int fuel) {
     return normalize_fuel_elim(Sigma, Delta, t, fuel);
   case INTRO:
     return normalize_fuel_intro(Sigma, Delta, t, fuel);
+  case DATATYPE:
+    return normalize_fuel_datatype(Sigma, Delta, t, fuel);
   default:
     return term_dup(t);
   }
