@@ -1,0 +1,23 @@
+import prelude.
+
+data mu (F : Type -> Type) := in : F (mu F) -> mu F.
+
+def out : (F : Type -> Type) -> mu F -> F (mu F) :=
+  \F.
+    mu_elim F (\_. F (mu F))
+      (\x. x)
+  .
+
+def any : Type -> Type := \A. mu (\x. x -> A).
+
+def any_out : (A : Type) -> any A -> (any A -> A) :=
+  \A. out (\x. x -> A).
+
+def any_in : (A : Type) -> (any A -> A) -> any A :=
+  \A. in (\x. x -> A).
+
+def Y : (A : Type) -> (A -> A) -> A :=
+  \A. \f : A -> A.
+    (\x : any A. f (any_out A x x)) (any_in A (\x : any A. f (any_out A x x))).
+
+def false : False := Y False (\x. x).
