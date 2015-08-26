@@ -65,28 +65,36 @@ term* ast_to_term(mpc_ast_t* ast) {
                          ast_to_term(ast->children[3]),
                          ast_to_term(ast->children[5]));
     }
-  } else if (prefix("pi", ast->tag)) {
-    if (ast->children[0]->contents[0] == '(') {
-      check(ast->children_num >= 7, "malformed pi node");
-      int n = ast->children_num;
-      term* ty = ast_to_term(ast->children[n-4]);
-      term* ans = make_pi(make_variable(strdup(ast->children[n-6]->contents)),
-                          ty,
-                          ast_to_term(ast->children[n-1]));
-
-      int i;
-      for (i = n-7; i > 0; i--) {
-        ans = make_pi(make_variable(strdup(ast->children[i]->contents)),
-                      term_dup(ty),
-                      ans);
-      }
-      return ans;
-    } else {
-      check(ast->children_num == 3, "malformed pi node");
-      return make_pi(variable_dup(&ignore),
-                     ast_to_term(ast->children[0]),
-                     ast_to_term(ast->children[2]));
+  } else if (prefix("factor", ast->tag)) {
+    check(ast->children_num != 0, "malformed factor: zero children");
+    if (ast->children_num == 1) {
+      return ast_to_term(ast->children[0]);
     }
+    check(ast->children_num % 2 == 1, "malformed factor: even number of children");
+    term* ans = ast_to_term(ast->children[ast->children_num - 1]);
+    int i;
+    for (i = ast->children_num - 3; i >= 0; i -= 2) {
+      mpc_ast_t* child = ast->children[i];
+      if (prefix("expr", child->tag) && child->children_num >= 5) {
+        check(child->children[child->children_num - 3]->contents[0] == ':', "malformed pi");
+        term* ty = ast_to_term(child->children[child->children_num - 2]);
+        int j;
+        for (j = child->children_num - 4; j > 0; j--) {
+          ans = make_pi(make_variable(strdup(child->children[j]->contents)),
+                        term_dup(ty),
+                        ans);
+        }
+        free_term(ty); ty = NULL;
+      } else if ((prefix("expr", child->tag) && child->children_num == 0) || prefix("app", child->tag) || prefix("base", child->tag)) {
+        ans = make_pi(variable_dup(&ignore),
+                      ast_to_term(child),
+                      ans);
+      } else {
+        mpc_ast_print_to(child, stderr);
+        sentinel("malformed factor: unknown child tag %s with %d children", child->tag, child->children_num);
+      }
+    }
+    return ans;
   } else if (prefix("app", ast->tag)) {
     check(ast->children_num > 0, "malformed app node");
     term *ans = ast_to_term(ast->children[0]);
@@ -190,13 +198,13 @@ static mpc_parser_t* pComment;
 static mpc_parser_t* pVar;
 static mpc_parser_t* pHole;
 static mpc_parser_t* pBound;
-static mpc_parser_t* pLambda;
-static mpc_parser_t* pPi;
-static mpc_parser_t* pApp;
-static mpc_parser_t* pBase;
 static mpc_parser_t* pType;
+static mpc_parser_t* pBase;
+static mpc_parser_t* pApp;
+static mpc_parser_t* pExpr;
+static mpc_parser_t* pFactor;
+static mpc_parser_t* pLambda;
 static mpc_parser_t* pTerm;
-static mpc_parser_t* pCommand;
 static mpc_parser_t* pDef;
 static mpc_parser_t* pAxiom;
 static mpc_parser_t* pImport;
@@ -206,30 +214,36 @@ static mpc_parser_t* pSimpl;
 static mpc_parser_t* pConstructor;
 static mpc_parser_t* pParam;
 static mpc_parser_t* pData;
+static mpc_parser_t* pCommand;
 static mpc_parser_t* pProgram;
 
 parsing_context* parse(char* filename) {
-  pComment = mpc_new("comment");
-  pVar = mpc_new("var");
-  pHole = mpc_new("hole");
-  pBound = mpc_new("bound");
-  pLambda = mpc_new("lambda");
-  pPi = mpc_new("pi");
-  pApp = mpc_new("app");
-  pBase = mpc_new("base");
-  pType = mpc_new("type");
-  pTerm = mpc_new("term");
-  pCommand = mpc_new("command");
-  pDef = mpc_new("def");
-  pAxiom = mpc_new("axiom");
-  pImport = mpc_new("import");
-  pPrint = mpc_new("print");
-  pCheck = mpc_new("check");
-  pSimpl = mpc_new("simpl");
+  pComment     = mpc_new("comment");
+  pVar         = mpc_new("var");
+  pHole        = mpc_new("hole");
+  pBound       = mpc_new("bound");
+  pType        = mpc_new("type");
+  pBase        = mpc_new("base");
+  pApp         = mpc_new("app");
+  pExpr        = mpc_new("expr");
+  pFactor      = mpc_new("factor");
+  pLambda      = mpc_new("lambda");
+  pTerm        = mpc_new("term");
+  pDef         = mpc_new("def");
+  pAxiom       = mpc_new("axiom");
+  pImport      = mpc_new("import");
+  pPrint       = mpc_new("print");
+  pCheck       = mpc_new("check");
+  pSimpl       = mpc_new("simpl");
   pConstructor = mpc_new("constructor");
-  pParam = mpc_new("param");
-  pData = mpc_new("data");
-  pProgram = mpc_new("program");
+  pParam       = mpc_new("param");
+  pData        = mpc_new("data");
+  pCommand     = mpc_new("command");
+  pProgram     = mpc_new("program");
+
+#define PARSERS pComment, pVar, pHole, pBound, pType, pBase, pApp, pExpr, pFactor, \
+                pLambda, pTerm, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl, \
+                pConstructor, pParam, pData, pCommand, pProgram
 
   mpc_err_t* err =
     mpca_lang(MPCA_LANG_DEFAULT,
@@ -237,13 +251,14 @@ parsing_context* parse(char* filename) {
               " var     : /[a-zA-Z][a-zA-Z0-9_]*/ ;                \n"
               " hole    : \"\?\" ; \n"
               " bound   : \"_\" | <var> ;                          \n"
-              " lambda  : \"\\\\\" <bound> (':' <term>)? '.' <term> ; \n"
-              " pi      : '(' <bound>* ':' <term> ')' \"->\" <term> \n"
-              "         |  <app> \"->\" <term> ; \n"
+              " type    : \"Type\" ;\n"
               " base    : <type> | <hole> | <var> | '(' <term> ')' ; \n"
               " app     : <base> <base>* ;\n"
-              " type    : \"Type\" ;\n"
-              " term    : <lambda> | <pi> | <app>;\n"
+              " expr    : '(' <bound>* ':' <term> ')' \n"
+              "         | <app> ; \n "
+              " factor  : <expr> ( \"->\" <expr> )* ; \n"
+              " lambda  : \"\\\\\" <bound> (':' <term>)? '.' <term> ; \n"
+              " term    : <lambda> | <factor> ;\n"
               " def     : \"def\" <var> ':' <term> \":=\" <term> '.' ;\n"
               " axiom   : \"axiom\" <var> ':' <term> '.' ;\n"
               " import  : \"import\" <var> '.' ;\n"
@@ -255,9 +270,7 @@ parsing_context* parse(char* filename) {
               " data    : \"data\" <var> <param>* \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"
               " command : <def> | <print> | <check> | <simpl> | <data> | <axiom> | <import> | <comment>;\n"
               " program  : /^/ <command> * /$/ ;\n",
-              pComment, pVar, pHole, pBound, pLambda, pPi, pBase, pApp, pType,
-              pTerm,
-              pDef, pAxiom, pImport, pPrint, pCheck, pSimpl, pConstructor, pParam, pData, pCommand, pProgram, NULL);
+              PARSERS, NULL);
 
   if (err != NULL) {
     mpc_err_print(err);
@@ -273,16 +286,17 @@ parsing_context* parse(char* filename) {
     mpc_err_delete(ans->result.error);
     goto error;
   }
-  mpc_cleanup(21, pComment, pVar, pHole, pBound, pLambda, pPi, pApp, pBase, pType,
-              pTerm, pCommand, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl,
-              pConstructor, pParam, pData, pProgram);
+
+
+
+#define CLEANUP() do { mpc_cleanup(21, PARSERS); } while (0)
+
+  CLEANUP();
   //mpc_ast_print(ans->result.output);
   ans->command_index = 1;
   return ans;
  error:
-  mpc_cleanup(21, pComment, pVar, pHole, pBound, pLambda, pPi, pApp, pBase, pType,
-              pTerm, pCommand, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl,
-              pConstructor, pParam, pData, pProgram);
+  CLEANUP();
   return NULL;
 }
 
