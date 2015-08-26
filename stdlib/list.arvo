@@ -509,3 +509,156 @@ def subset_nil : (A : Type) -> (xs : list A) -> subset A (nil A) xs :=
         (list_to_from_superset A xs)
         (list_to_from_subset A xs))
   .
+
+def insert : (A : Type) -> (A -> A -> bool) -> A -> list A -> list A :=
+  \A. \lt. \x.
+    list_elim A (\_. list A)
+      (cons A x (nil A))
+      (\h. \t. \rec.
+        if (list A) (lt x h)
+           (cons A x (cons A h t))
+           (cons A h rec))
+  .
+
+def sort : (A : Type) -> (A -> A -> bool) -> list A -> list A :=
+  \A. \lt.
+    list_elim A (\_. list A)
+      (nil A)
+      (\h. \_. \rec. insert A lt h rec)
+  .
+
+def all : (A : Type) -> (A -> Type) -> list A -> Type :=
+  \A . \P.
+    list_elim A (\_. Type)
+      True
+      (\h. \_. \rec. prod (P h) rec)
+  .
+
+def is_true : bool -> Type := \x. eq bool x true.
+
+def sorted : (A : Type) -> (A -> A -> bool) -> list A -> Type :=
+  \A. \le.
+    list_elim A (\_. Type)
+      True
+      (\h. \t. \rec.
+        prod (all A (\x. is_true (le h x)) t) rec)
+  .
+
+def sorted_cons_intro :
+    (A : Type) ->
+    (le : A -> A -> bool) ->
+    (h : A) ->
+    (t : list A) ->
+    sorted A le t ->
+    all A (\x. is_true (le h x)) t ->
+    sorted A le (cons A h t) :=
+  \A. \le. \h. \t. \Hsorted. \Hall.
+    prod_intro (all A (\x. is_true (le h x)) t) (sorted A le t)
+      Hall Hsorted
+  .
+
+def transitive : (A : Type) -> (A -> A -> bool) -> Type :=
+  \A. \le.
+    (x y z : A) ->
+    is_true (le x y) ->
+    is_true (le y z) ->
+    is_true (le x z).
+
+def implies_all : (A : Type) -> (P Q : A -> Type) ->
+                  ((x : A) -> P x -> Q x) ->
+                  (l : list A) ->
+                  all A P l ->
+                  all A Q l :=
+  \A. \P. \Q. \HPQ.
+    list_elim A (\z. all A P z -> all A Q z)
+      (\HP. I)
+      (\h. \t. \IHt. \HP.
+        prod_intro (Q h) (all A Q t)
+          (HPQ h (fst (P h) (all A P t) HP))
+          (IHt (snd (P h) (all A P t) HP)))
+  .
+
+def all_le_cons_intro :
+    (A : Type) ->
+    (le : A -> A -> bool) ->
+    transitive A le ->
+    (x h : A) ->
+    (t : list A) ->
+    all A (\y. is_true (le h y)) t ->
+    is_true (le x h) ->
+    all A (\y. is_true (le x y)) (cons A h t) :=
+  \A. \le. \Htrans. \x. \h. \t. \Hall. \Hxh.
+    prod_intro (is_true (le x h)) (all A (\y. is_true (le x y)) t)
+      Hxh
+      (implies_all A (\y. is_true (le h y)) (\y. is_true (le x y))
+         (\a. \Ha : is_true (le h a). Htrans x h a Hxh Ha) t
+         Hall)
+  .
+
+def all_le_insert_intro :
+    (A : Type) ->
+    (le : A -> A -> bool) ->
+    (x i : A) ->
+    is_true (le x i) ->
+    (l : list A) ->
+    all A (\y. is_true (le x y)) l ->
+    all A (\y. is_true (le x y)) (insert A le i l) :=
+  \A. \le. \x. \i. \Hxi.
+    list_elim A (\z. all A (\y. is_true (le x y)) z -> all A (\y. is_true (le x y)) (insert A le i z))
+      (\_. prod_intro (is_true (le x i)) True Hxi I)
+      (\h. \t. \IHt. \Ht : all A (\y. is_true (le x y)) (cons A h t).
+        bool_elim (\z. eq bool (le i h) z -> all A (\y. is_true (le x y)) (if (list A) z (cons A i (cons A h t)) (cons A h (insert A le i t))))
+          (\Heq : is_true (le i h).
+            prod_intro (is_true (le x i)) (all A (\y. is_true (le x y)) (cons A h t))
+              Hxi
+              (prod_intro (is_true (le x h)) (all A (\y. is_true (le x y)) t)
+                (fst (is_true (le x h)) (all A (\y. is_true (le x y)) t) Ht)
+                (snd (is_true (le x h)) (all A (\y. is_true (le x y)) t) Ht)))
+          (\Heq.
+            prod_intro (is_true (le x h)) (all A (\y. is_true (le x y)) (insert A le i t))
+              (fst (is_true (le x h)) (all A (\y. is_true (le x y)) t) Ht)
+              (IHt (snd (is_true (le x h)) (all A (\y. is_true (le x y)) t) Ht)))
+          (le i h)
+          (refl bool (le i h)))
+  .
+
+
+def asym : (A : Type) -> (A -> A -> bool) -> Type :=
+  \A. \le.
+    (x y : A) ->
+    eq bool (le x y) false ->
+    eq bool (le y x) true.
+
+def insert_preserves_sorted :
+    (A : Type) -> (le : A -> A -> bool) ->
+    transitive A le ->
+    asym A le ->
+    (l : list A) ->
+    sorted A le l ->
+    (x : A) ->
+    sorted A le (insert A le x l) :=
+  \A. \le. \Htrans. \Hasym.
+    list_elim A (\z. sorted A le z -> (x : A) -> sorted A le (insert A le x z))
+      (\Hsort. \x. sorted_cons_intro A le x (nil A) Hsort I)
+      (\h. \t. \IHt. \Hsort : sorted A le (cons A h t). \x.
+        bool_elim (\z. eq bool (le x h) z -> sorted A le (if (list A) z (cons A x (cons A h t)) (cons A h (insert A le x t))))
+          (\Heq : is_true (le x h). sorted_cons_intro A le x (cons A h t) Hsort (all_le_cons_intro A le Htrans x h t (fst (all A (\y. is_true (le h y)) t) (sorted A le t) Hsort) Heq))
+          (\Heq. prod_intro (all A (\y. is_true (le h y)) (insert A le x t)) (sorted A le (insert A le x t))
+                   (all_le_insert_intro A le h x (Hasym x h Heq) t (fst (all A (\x. is_true (le h x)) t) (sorted A le t) Hsort))
+                   (IHt (snd (all A (\x. is_true (le h x)) t) (sorted A le t) Hsort) x))
+          (le x h)
+          (refl bool (le x h)))
+  .
+
+def sort_sorted :
+    (A : Type) -> (le : A -> A -> bool) ->
+    transitive A le ->
+    asym A le ->
+    (l : list A) ->
+    sorted A le (sort A le l) :=
+  \A. \le. \Htrans. \Hasym.
+    list_elim A (\z. sorted A le (sort A le z))
+      I
+      (\h. \t. \IHt.
+        insert_preserves_sorted A le Htrans Hasym (sort A le t) IHt h)
+  .
