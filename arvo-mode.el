@@ -49,9 +49,12 @@
                                   (or (position-of-string ":")
                                       (position-of-string ".")))
                            nil)
- nil (0 font-lock-variable-name-face))
-    ("([^:()]+:" "[^:]\\(\\<\\w+\\>\\)" (progn (search-backward "(") (+ 1 (position-of-string ":"))) nil (1 font-lock-variable-name-face))
-))
+     nil (0 font-lock-variable-name-face))
+    ("([^:()]+:" "[^:]\\(\\<\\w+\\>\\)"
+     (let ((p (point)))
+       (search-backward "(")
+       (+ 1 p))
+     nil (1 font-lock-variable-name-face))))
 
 (defconst arvo-pretty-symbols
   '(("->" . ?→) ("\\" . "λ") (":=" . "≜")))
