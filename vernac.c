@@ -31,6 +31,10 @@ int print_command(FILE* stream, command* c) {
                    c->var, print_variable,
                    c->left, print_term,
                    c->right, print_term);
+  case SIMPL:
+    return fprintf(stream, "simpl %W.", c->left, print_term);
+  case AXIOM:
+    return fprintf(stream, "axiom %W : %W.", c->var, print_variable, c->left, print_term);
   case DATA: {
     int ans = fprintf(stream, "data %W ", c->var, print_variable);
     int i;
