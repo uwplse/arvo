@@ -9,6 +9,17 @@ def id : (A : Type) -> A -> A := \_.\a. a.
 data prod (A : Type) (B : Type) :=
   prod_intro : A -> B -> prod A B.
 
+def fst : (A B : Type) -> prod A B -> A :=
+  \A. \B.
+    prod_elim A B (\_. A) (\x. \_. x)
+  .
+
+def snd : (A B : Type) -> prod A B -> B :=
+  \A. \B.
+    prod_elim A B (\_. B) (\_. \y. y)
+  .
+
+
 data sum (A : Type) (B : Type) :=
   inj_l : A -> sum A B
 | inj_r : B -> sum A B.
