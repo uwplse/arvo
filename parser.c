@@ -322,7 +322,7 @@ command *next_command(parsing_context* pc) {
       return NULL;
     }
     ast = (mpc_ast_t *)(pc->result.output);
-  } while (strstr(ast->tag, "comment"));
+  } while (strstr(ast->children[1]->tag, "comment"));
 
   pc->expect_sep = 1;
 
