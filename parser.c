@@ -27,17 +27,18 @@ static int prefix(char* s, char* t) {
 
 struct parsing_context {
   mpc_result_t result;
-  int command_index;
+  char* filename;
+  FILE* stream;
 };
 
-static parsing_context* make_parsing_context() {
+parsing_context* make_parsing_context(char* filename, FILE* stream) {
   parsing_context* ans = malloc(sizeof(parsing_context));
-  ans->command_index = 0;
+  ans->filename = filename;
+  ans->stream = stream;
   return ans;
 }
 
 void free_parsing_context(parsing_context* pc) {
-  mpc_ast_delete(pc->result.output);
   pc->result.output = NULL;
   free(pc);
 }
@@ -216,8 +217,11 @@ static mpc_parser_t* pParam;
 static mpc_parser_t* pData;
 static mpc_parser_t* pCommand;
 static mpc_parser_t* pProgram;
+static int initialized = 0;
 
-parsing_context* parse(char* filename) {
+void initialize_arvo_parsers() {
+  if (initialized) return;
+  initialized = 1;
   pComment     = mpc_new("comment");
   pVar         = mpc_new("var");
   pHole        = mpc_new("hole");
@@ -278,38 +282,36 @@ parsing_context* parse(char* filename) {
     goto error;
   }
 
-  parsing_context* ans = make_parsing_context();
-
-  if (!mpc_parse_contents(filename, pProgram, &ans->result)) {
-    printf ("error: \n");
-    mpc_err_print(ans->result.error);
-    mpc_err_delete(ans->result.error);
-    goto error;
-  }
-
-
-
-#define CLEANUP() do { mpc_cleanup(21, PARSERS); } while (0)
-
-  CLEANUP();
-  //mpc_ast_print(ans->result.output);
-  ans->command_index = 1;
-  return ans;
- error:
-  CLEANUP();
-  return NULL;
+void cleanup_arvo_parsers() {
+  if (!initialized) return;
+  initialized = 0;
+  mpc_cleanup(22, PARSERS);
 }
+
 
 command *next_command(parsing_context* pc) {
-  mpc_ast_t *ast = pc->result.output;
-  while (pc->command_index < ast->children_num && strstr(ast->children[pc->command_index]->tag, "comment")) {
-    pc->command_index++;
-  }
-  if (pc->command_index >= ast->children_num-1) {
-    return NULL;
-  }
-  return ast_to_command(ast->children[pc->command_index++]);
+  check(initialized, "parsers should be initialized first!");
+
+  mpc_ast_t* ast = NULL;
+
+
+  if (feof(pc->stream)) return NULL;
+
+  do {
+    if (!mpc_parse_pipe(pc->filename, pc->stream, pCommand, &pc->result)) {
+      printf ("error: \n");
+      mpc_err_print(pc->result.error);
+      mpc_err_delete(pc->result.error);
+      return NULL;
+    }
+    ast = (mpc_ast_t *)(pc->result.output);
+  } while (strstr(ast->tag, "comment"));
+
+  check(strcmp(ast->tag, ">") == 0 && ast->children_num == 2, "malformed command node with tag %s and %d children", ast->tag, ast->children_num);
+
+  //mpc_ast_print(ast);
+
+  return ast_to_command(ast->children[1]);
+ error:
+  return NULL;
 }
-
-
-
