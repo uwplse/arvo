@@ -525,13 +525,13 @@ command *make_import(variable* name) {
   return ans;
 }
 
-int process_file(char* filename) {
+
+int process_stream(char* filename, FILE* stream) {
   command *c;
 
-  parsing_context* pc = parse(filename);
-  check(pc, "Parse error");
+  parsing_context* pc = make_parsing_context(filename, stream);
 
-  while((c = next_command(pc))) {
+  while(!feof(stream) && (c = next_command(pc))) {
     vernac_run(c);
     free_command(c);
   }
@@ -539,8 +539,11 @@ int process_file(char* filename) {
   free_parsing_context(pc);
 
   return 0;
-
- error:
-  return 1;
 }
 
+int process_file(char* filename) {
+  FILE* stream = fopen(filename, "r");
+  int ans = process_stream(filename, stream);
+  fclose(stream);
+  return ans;
+}
