@@ -12,17 +12,23 @@
 
 int main(int argc, char **argv) {
   setup_printing();
+  initialize_arvo_parsers();
 
-  check(argc > 1, "Need a filename.");
+  int ans = 0;
 
-  char* filename = strdup(argv[1]);
-  vernac_init(dirname(filename));
-  free(filename);
-  filename = NULL;
+  if (argc > 1) {
+    char* filename = strdup(argv[1]);
+    vernac_init(dirname(filename));
+    free(filename);
+    filename = NULL;
 
-  int ans = process_file(argv[1]);
+    ans = process_file(argv[1]);
+  } else {
+    vernac_init(".");
+    ans = process_stream("standard input", stdin);
+  }
+
+  cleanup_arvo_parsers();
 
   return ans;
- error:
-  return 1;
 }
