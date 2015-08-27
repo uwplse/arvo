@@ -310,6 +310,7 @@ command *next_command(parsing_context* pc) {
       mpc_err_delete(pc->result.error);
       return NULL;
     }
+    mpc_ast_delete(pc->result.output);
   }
 
   if (feof(pc->stream)) return NULL;
@@ -330,7 +331,9 @@ command *next_command(parsing_context* pc) {
 
   //mpc_ast_print(ast);
 
-  return ast_to_command(ast->children[1]);
+  command* ans = ast_to_command(ast->children[1]);
+  mpc_ast_delete(ast);
+  return ans;
  error:
   return NULL;
 }
