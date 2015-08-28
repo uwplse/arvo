@@ -25,12 +25,24 @@
 
 ;;; Commentary:
 
+(defgroup arvo nil
+  "The Arvo theorem prover"
+  :prefix "arvo-"
+  :group 'languages)
+
+(defcustom arvo-program "/usr/bin/arvo"
+  "The path to the arvo executable"
+  :group 'arvo
+  :type 'string)
+
+
 (defvar arvo-mode-hook
   '(prettify-symbols-mode))
 
+
 (defvar arvo-mode-map
-  (let ((map (make-keymap)))
-    ;;(define-key map "\C-j" 'newline-and-typecheck)
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-c") 'arvo-send-command-under-point)
     map)
   "Keymap for Arvo major mode")
 
@@ -44,11 +56,10 @@
   '(("\\<\\(def\\|axiom\\|import\\|print\\|check\\|simpl\\|data\\)\\>" . font-lock-keyword-face)
     ("\\<Type\\>" . font-lock-type-face)
     ("\\<def\\>" "\\<\\(\\w+\\)\\>" (position-of-string ":") nil (1 font-lock-function-name-face))
-    ("\\\\" "\\<\\w+\\>" (if (position-of-string ".")
-                             (min (position-of-string ".")
-                                  (or (position-of-string ":")
-                                      (position-of-string ".")))
-                           nil)
+    ("\\\\" "\\<\\w+\\>" (let ((pd (position-of-string ".")))
+                           (if pd
+                               (min pd (or (position-of-string ":") pd))
+                             nil))
      nil (0 font-lock-variable-name-face))
     ("([^:()]+:" "[^:]\\(\\<\\w+\\>\\)"
      (let ((p (point)))
@@ -72,23 +83,63 @@
   (set (make-local-variable 'font-lock-defaults) '(arvo-font-lock-keywords))
   (font-lock-fontify-buffer))
 
-(defun arvo-get-type-of-hole ()
-  (interactive)
-  (call-process (concat (getenv "ARVO_HOME") "/get-type-of-hole.sh")
-                nil
-                t
-                nil
-                (buffer-file-name)))
+(defvar arvo-process nil)
+(defvar arvo-process-buffer nil)
+(defvar arvo-window nil)
 
-(defun arvo-insert-admit-for-hole-at-point ()
+(defun arvo-insertion-filter (proc string)
+  (when (buffer-live-p (process-buffer proc))
+    (with-current-buffer (process-buffer proc)
+      ;; Insert the text, advancing the process marker.
+      (goto-char (process-mark proc))
+      (insert string)
+      (set-marker (process-mark proc) (point))
+      (set-window-point arvo-window (point)))))
+
+(defun arvo-start-process (buffer)
+  (if (and (equal buffer arvo-process-buffer)
+           (eq (process-status arvo-process) 'run))
+      arvo-process
+    (let* ((pbuffer (get-buffer-create "*arvo*"))
+           (process (start-file-process "arvo" pbuffer arvo-program))
+           (window (progn (delete-other-windows) (split-window-right))))
+      (setf arvo-process process
+            arvo-process-buffer buffer
+            arvo-window window)
+      (set-process-filter process 'arvo-insertion-filter)
+      (set-window-buffer window pbuffer)
+      process)))
+
+; (defun arvo-parse-output (output) output)
+
+(defun arvo-send-string (s)
+  (let ((process (arvo-start-process (current-buffer))) out)
+    ;(set-process-filter process (lambda (process output) (setf out (arvo-parse-output output))))
+    (process-send-string process (concat s "\n"))
+    (accept-process-output process 0.01)
+    out))
+
+(defun arvo-send-range (beginning end)
+  (arvo-send-string (buffer-substring-no-properties beginning end)))
+
+(defun arvo-send-region ()
   (interactive)
-  (if (not (eq (char-after (point)) ??))
-      (error "Point is not on hole.")
-    (progn
-      (delete-char 1)
-      (insert "(admit (")
-      (arvo-get-type-of-hole)
-      (insert "))"))))
+  (arvo-send-range (region-beginning) (region-end)))
+
+
+(defun arvo-send-command-under-point ()
+  (interactive)
+  (save-excursion
+    (let ((start (search-backward "def"))
+          (end (cl-do ((i (point) (+ i 1))
+                       (opens 0 (cond ((equal (char-after i) ?.) (- opens 1))
+                                      ((equal (char-after i) ?\\) (+ opens 1))
+                                      (t opens))))
+                   ((and (equal (char-after i) ?.)
+                         (equal opens 0))
+                    (+ i 1)))))
+      (arvo-send-range start end))))
+
 
 
 (provide 'arvo-mode)
