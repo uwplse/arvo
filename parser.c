@@ -27,17 +27,20 @@ static int prefix(char* s, char* t) {
 
 struct parsing_context {
   mpc_result_t result;
-  int command_index;
+  char* filename;
+  FILE* stream;
+  int expect_sep;
 };
 
-static parsing_context* make_parsing_context() {
+parsing_context* make_parsing_context(char* filename, FILE* stream) {
   parsing_context* ans = malloc(sizeof(parsing_context));
-  ans->command_index = 0;
+  ans->filename = filename;
+  ans->stream = stream;
+  ans->expect_sep = 0;
   return ans;
 }
 
 void free_parsing_context(parsing_context* pc) {
-  mpc_ast_delete(pc->result.output);
   pc->result.output = NULL;
   free(pc);
 }
@@ -121,39 +124,39 @@ term* ast_to_term(mpc_ast_t* ast) {
 command *ast_to_command(mpc_ast_t *ast) {
   check(ast, "cannot convert NULL to command");
   if (prefix("def", ast->tag)) {
-    check(ast->children_num == 7, "malformed def");
+    check(ast->children_num == 6, "malformed def");
 
     return make_def(make_variable(strdup(ast->children[1]->contents)),
                     ast_to_term(ast->children[3]),
                     ast_to_term(ast->children[5]));
   }
   else if (prefix("axiom", ast->tag)) {
-    check(ast->children_num == 5, "malformed def");
+    check(ast->children_num == 4, "malformed def");
 
     return make_axiom(make_variable(strdup(ast->children[1]->contents)),
                       ast_to_term(ast->children[3]));
   }
   else if (prefix("import", ast->tag)) {
-    check(ast->children_num == 3, "malformed import");
+    check(ast->children_num == 2, "malformed import");
     return make_import(make_variable(strdup(ast->children[1]->contents)));
   }
   else if (prefix("print", ast->tag)) {
-    check(ast->children_num == 3, "malformed print");
+    check(ast->children_num == 2, "malformed print");
 
     return make_print(make_variable(strdup(ast->children[1]->contents)));
   }
   else if (prefix("check", ast->tag)) {
-    if (ast->children_num == 3) {
+    if (ast->children_num == 2) {
       return make_check(ast_to_term(ast->children[1]));
     } else {
-      check(ast->children_num == 5, "malformed check");
+      check(ast->children_num == 4, "malformed check");
       command* ans = make_check(ast_to_term(ast->children[1]));
       ans->right = ast_to_term(ast->children[3]);
       return ans;
     }
   }
   else if (prefix("simpl", ast->tag)) {
-    check(ast->children_num == 3, "malformed simpl");
+    check(ast->children_num == 2, "malformed simpl");
 
     return make_simpl(ast_to_term(ast->children[1]));
   }
@@ -189,6 +192,8 @@ command *ast_to_command(mpc_ast_t *ast) {
       }
     }
     return data;
+  } else {
+    sentinel("unknown tag %s", ast->tag);
   }
  error:
   return NULL;
@@ -215,9 +220,13 @@ static mpc_parser_t* pConstructor;
 static mpc_parser_t* pParam;
 static mpc_parser_t* pData;
 static mpc_parser_t* pCommand;
+static mpc_parser_t* pSep;
 static mpc_parser_t* pProgram;
+static int initialized = 0;
 
-parsing_context* parse(char* filename) {
+void initialize_arvo_parsers() {
+  if (initialized) return;
+  initialized = 1;
   pComment     = mpc_new("comment");
   pVar         = mpc_new("var");
   pHole        = mpc_new("hole");
@@ -240,10 +249,11 @@ parsing_context* parse(char* filename) {
   pData        = mpc_new("data");
   pCommand     = mpc_new("command");
   pProgram     = mpc_new("program");
+  pSep         = mpc_new("sep");
 
 #define PARSERS pComment, pVar, pHole, pBound, pType, pBase, pApp, pExpr, pFactor, \
                 pLambda, pTerm, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl, \
-                pConstructor, pParam, pData, pCommand, pProgram
+                pConstructor, pParam, pData, pCommand, pProgram, pSep
 
   mpc_err_t* err =
     mpca_lang(MPCA_LANG_DEFAULT,
@@ -259,57 +269,71 @@ parsing_context* parse(char* filename) {
               " factor  : <expr> ( \"->\" <expr> )* ; \n"
               " lambda  : \"\\\\\" <bound> (':' <term>)? '.' <term> ; \n"
               " term    : <lambda> | <factor> ;\n"
-              " def     : \"def\" <var> ':' <term> \":=\" <term> '.' ;\n"
-              " axiom   : \"axiom\" <var> ':' <term> '.' ;\n"
-              " import  : \"import\" <var> '.' ;\n"
-              " print   : \"print\" <var> '.' ;\n"
-              " check   : \"check\" <term> (':' <term>)? '.' ;\n"
-              " simpl   : \"simpl\" <term> '.' ;\n"
+              " def     : \"def\" <var> ':' <term> \":=\" <term> ;\n"
+              " axiom   : \"axiom\" <var> ':' <term> ;\n"
+              " import  : \"import\" <var>  ;\n"
+              " print   : \"print\" <var>  ;\n"
+              " check   : \"check\" <term> (':' <term>)?  ;\n"
+              " simpl   : \"simpl\" <term>  ;\n"
               " constructor : <var> (':' <term>)? ;\n"
               " param  : '(' <var> ':' <term> ')' ;\n"
-              " data    : \"data\" <var> <param>* \":=\" <constructor>? ('|' <constructor>)* '.' ;\n"
-              " command : <def> | <print> | <check> | <simpl> | <data> | <axiom> | <import> | <comment>;\n"
+              " data    : \"data\" <var> <param>* \":=\" <constructor>? ('|' <constructor>)*  ;\n"
+              " command : /^/ (<def> | <print> | <check> | <simpl> | <data> | <axiom> | <import> | <comment>) ;\n"
+              " sep     : '.' ; \n"
               " program  : /^/ <command> * /$/ ;\n",
               PARSERS, NULL);
 
   if (err != NULL) {
     mpc_err_print(err);
     mpc_err_delete(err);
-    goto error;
+    exit(1);
   }
-
-  parsing_context* ans = make_parsing_context();
-
-  if (!mpc_parse_contents(filename, pProgram, &ans->result)) {
-    printf ("error: \n");
-    mpc_err_print(ans->result.error);
-    mpc_err_delete(ans->result.error);
-    goto error;
-  }
-
-
-
-#define CLEANUP() do { mpc_cleanup(21, PARSERS); } while (0)
-
-  CLEANUP();
-  //mpc_ast_print(ans->result.output);
-  ans->command_index = 1;
-  return ans;
- error:
-  CLEANUP();
-  return NULL;
 }
+
+void cleanup_arvo_parsers() {
+  if (!initialized) return;
+  initialized = 0;
+  mpc_cleanup(22, PARSERS);
+}
+
 
 command *next_command(parsing_context* pc) {
-  mpc_ast_t *ast = pc->result.output;
-  while (pc->command_index < ast->children_num && strstr(ast->children[pc->command_index]->tag, "comment")) {
-    pc->command_index++;
+  check(initialized, "parsers should be initialized first!");
+
+  mpc_ast_t* ast = NULL;
+
+  if (pc->expect_sep) {
+    pc->expect_sep = 0;
+    if (!mpc_parse_pipe(pc->filename, pc->stream, pSep, &pc->result)) {
+      printf ("error: \n");
+      mpc_err_print(pc->result.error);
+      mpc_err_delete(pc->result.error);
+      return NULL;
+    }
+    mpc_ast_delete(pc->result.output);
   }
-  if (pc->command_index >= ast->children_num-1) {
-    return NULL;
-  }
-  return ast_to_command(ast->children[pc->command_index++]);
+
+  if (feof(pc->stream)) return NULL;
+
+  do {
+    if (!mpc_parse_pipe(pc->filename, pc->stream, pCommand, &pc->result)) {
+      printf ("error: \n");
+      mpc_err_print(pc->result.error);
+      mpc_err_delete(pc->result.error);
+      return NULL;
+    }
+    ast = (mpc_ast_t *)(pc->result.output);
+  } while (strstr(ast->children[1]->tag, "comment"));
+
+  pc->expect_sep = 1;
+
+  check(strcmp(ast->tag, ">") == 0 && ast->children_num == 2, "malformed command node with tag %s and %d children", ast->tag, ast->children_num);
+
+  //mpc_ast_print(ast);
+
+  command* ans = ast_to_command(ast->children[1]);
+  mpc_ast_delete(ast);
+  return ans;
+ error:
+  return NULL;
 }
-
-
-

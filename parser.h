@@ -6,9 +6,12 @@
 
 typedef struct parsing_context parsing_context;
 
-parsing_context* parse(char* filename);
+void initialize_arvo_parsers();
+void cleanup_arvo_parsers();
+
+parsing_context* make_parsing_context(char* filename, FILE* stream);
+void free_parsing_context(parsing_context* pc);
 
 command *next_command(parsing_context* pc);
-void free_parsing_context(parsing_context* pc);
 
 #endif  // PARSER_H
