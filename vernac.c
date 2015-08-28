@@ -59,10 +59,13 @@ static void vernac_run_def(command* c) {
         c->right, print_term,
         c->right, print_term);
 
-
-  Gamma = telescope_add(variable_dup(c->var), term_dup(c->left), Gamma);
-  Sigma = context_add(variable_dup(c->var), term_dup(c->right), Sigma);
-  printf("%W defined\n", c->var, print_variable);
+  if (!has_holes(c->right)) {
+    Gamma = telescope_add(variable_dup(c->var), term_dup(c->left), Gamma);
+    Sigma = context_add(variable_dup(c->var), term_dup(c->right), Sigma);
+    printf("%W defined\n", c->var, print_variable);
+  } else {
+    printf("%W not defined because of remaining holes\n", c->var, print_variable);
+  }
   return;
  error:
   free_term(Type);
