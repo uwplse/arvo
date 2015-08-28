@@ -4,7 +4,7 @@ def exfalso : False -> (A : Type) -> A :=
 
 data True := I.
 
-def id : (A : Type) -> A -> A := \_.\a. a.
+def id : (A : Type) -> A -> A := \_. \a. a.
 
 data prod (A : Type) (B : Type) :=
   prod_intro : A -> B -> prod A B.
