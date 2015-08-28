@@ -241,6 +241,24 @@ int syntactically_identical(term* a, term* b) {
   return 0;
 }
 
+int has_holes(term* t) {
+  if (t == NULL) return 0;
+  if (t->tag == HOLE) return 1;
+
+  if (has_holes(t->left)) return 1;
+  if (has_holes(t->right)) return 1;
+
+  int i;
+  for (i = 0; i < t->num_args; i++) {
+    if (has_holes(t->args[i])) return 1;
+  }
+  for (i = 0; i < t->num_params; i++) {
+    if (has_holes(t->params[i])) return 1;
+  }
+
+  return 0;
+}
+
 static int counter = 0;
 variable *gensym(char *name) {
   char *new;

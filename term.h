@@ -92,4 +92,6 @@ variable* fresh(char* prefix);
 
 int is_free(variable *var, term *haystack);
 
+int has_holes(term* t);
+
 #endif  // TERM_H
