@@ -43,6 +43,9 @@
 (defvar arvo-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-c") 'arvo-send-command-under-point)
+    (define-key map (kbd "C-c RET") 'arvo-send-buffer-up-to-point)
+    (define-key map (kbd "C-c C-t") 'arvo-type-of-term)
+    (define-key map (kbd "C-c C-n") 'arvo-normalize-term)
     map)
   "Keymap for Arvo major mode")
 
@@ -56,10 +59,12 @@
   '(("\\<\\(def\\|axiom\\|import\\|print\\|check\\|simpl\\|data\\)\\>" . font-lock-keyword-face)
     ("\\<Type\\>" . font-lock-type-face)
     ("\\<def\\>" "\\<\\(\\w+\\)\\>" (position-of-string ":") nil (1 font-lock-function-name-face))
-    ("\\\\" "\\<\\w+\\>" (let ((pd (position-of-string ".")))
+    ("\\\\" "\\<\\w+\\>" (let ((pd (position-of-string "."))
+                               (c (position-of-string ":")))
                            (if pd
-                               (min pd (or (position-of-string ":") pd))
-                             nil))
+                               (if c (min pd c)
+                                 pd)
+                             c))
      nil (0 font-lock-variable-name-face))
     ("([^:()]+:" "[^:]\\(\\<\\w+\\>\\)"
      (let ((p (point)))
@@ -113,11 +118,36 @@
 ; (defun arvo-parse-output (output) output)
 
 (defun arvo-send-string (s)
+  (let ((process (arvo-start-process (current-buffer))))
+    (process-send-string process (concat s "\n"))
+    (accept-process-output process 0.01)))
+
+(defun arvo-send-string-and-capture-output (s)
   (let ((process (arvo-start-process (current-buffer))) out)
-    ;(set-process-filter process (lambda (process output) (setf out (arvo-parse-output output))))
+    (set-process-filter process (lambda (process output)
+                                  (setf out output)
+                                  (arvo-insertion-filter process output)))
     (process-send-string process (concat s "\n"))
     (accept-process-output process 0.01)
+    (set-process-filter process 'arvo-insertion-filter)
     out))
+
+(defun arvo-send-command-and-message (command arg)
+  (message (arvo-send-string-and-capture-output (concat command " " s "."))))
+
+(require 'thingatpt)
+
+(defun arvo-type-of-term (s)
+  (interactive
+   (let ((w (thing-at-point 'word t)))
+     (list (read-string (format "Term (default %s): " w) nil nil w))))
+  (arvo-send-command-and-message "check" s))
+
+(defun arvo-normalize-term (s)
+  (interactive
+   (let ((w (thing-at-point 'word t)))
+     (list (read-string (format "Term (default %s): " w) nil nil w))))
+  (arvo-send-command-and-message "simpl" s))
 
 (defun arvo-send-range (beginning end)
   (arvo-send-string (buffer-substring-no-properties beginning end)))
@@ -126,11 +156,22 @@
   (interactive)
   (arvo-send-range (region-beginning) (region-end)))
 
+(defun arvo-send-buffer ()
+  (interactive)
+  (arvo-send-range (point-min) (point-max)))
+
+(defun arvo-send-buffer-up-to-point ()
+  (interactive)
+  (arvo-send-range (point-min) (point)))
+
+(defun re-search-forward-backward (re)
+  (re-search-forward re (point-max) 'no-error)
+  (re-search-backward re))
 
 (defun arvo-send-command-under-point ()
   (interactive)
   (save-excursion
-    (let ((start (search-backward "def"))
+    (let ((start (re-search-forward-backward "\\<\\(?:def\\|print\\|check\\|simpl\\|data\\|axiom\\|import\\)\\>"))
           (end (cl-do ((i (point) (+ i 1))
                        (opens 0 (cond ((equal (char-after i) ?.) (- opens 1))
                                       ((equal (char-after i) ?\\) (+ opens 1))
