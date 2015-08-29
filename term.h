@@ -75,7 +75,7 @@ term* make_implicit();
 
 term* make_intro(variable* name, term *type, int num_args, int num_params);
 term* make_elim(variable* name, int num_args, int num_params);
-term* make_datatype_term(variable* name, int num_args);
+term* make_datatype_term(variable* name, int num_params);
 
 void free_variable(variable* v);
 

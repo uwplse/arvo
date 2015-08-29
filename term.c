@@ -406,11 +406,16 @@ term* substitute(variable* from, term* to, term* haystack) {
   case DATATYPE:
     {
       term* ans = make_datatype_term(variable_dup(haystack->var),
-                                     haystack->num_args);
-      int i;
-      for (i = 0; i < haystack->num_args; i++) {
-        ans->args[i] = substitute(from, to, haystack->args[i]);
-      }
+                                     haystack->num_params);
+#define SUB_VEC(dst, src, n) do {                       \
+        int __i;                                        \
+        for (__i = 0; __i < n; __i++) {                 \
+          dst[__i] = substitute(from, to, src[__i]);     \
+        }                                               \
+      } while(0)
+
+      SUB_VEC(ans->params, haystack->params, haystack->num_params);
+
       return ans;
     }
 
@@ -572,12 +577,12 @@ term* make_elim(variable* name, int num_args, int num_params) {
   return ans;
 }
 
-term* make_datatype_term(variable* name, int num_args) {
+term* make_datatype_term(variable* name, int num_params) {
   term* ans = make_term();
   ans->tag = DATATYPE;
   ans->var = name;
-  ans->num_args = num_args;
-  ans->args = calloc(num_args, sizeof(term*));
+  ans->num_params = num_params;
+  ans->params = calloc(num_params, sizeof(term*));
   return ans;
 }
 

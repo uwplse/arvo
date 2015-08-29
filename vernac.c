@@ -103,7 +103,7 @@ static int check_datatype(command *c, term** out_kind, term** out_type_construct
           c->param_names[i], c->param_types[i]);
     variable* x = c->param_names[i];
     term* ty = c->param_types[i];
-    type_constructor->args[i] = make_var(variable_dup(x));
+    type_constructor->params[i] = make_var(variable_dup(x));
     term* new_kind = make_pi(variable_dup(x), term_dup(ty), NULL);
     term* new_tyC = make_lambda(variable_dup(x), term_dup(ty), NULL);
     if (pk == NULL) {
