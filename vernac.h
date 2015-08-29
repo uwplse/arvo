@@ -37,6 +37,11 @@ command *make_data(variable* name, int num_constructors, int num_params);
 command *make_axiom(variable* name, term* ty);
 command *make_import(variable* name);
 
+// A helper that makes dealing with input streams easier from Rust.
+int process_stream_with_stdin() {
+    return process_stream("standard input", stdin);
+}
+
 int process_stream(char* filename, FILE* stream);
 int process_file(char* filename);
 
