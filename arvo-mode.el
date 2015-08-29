@@ -165,7 +165,8 @@
   (arvo-send-range (point-min) (point)))
 
 (defun re-search-forward-backward (re)
-  (re-search-forward re (point-max) 'no-error)
+  (when (re-search-forward re (point-max) 'no-error)
+    (goto-char (match-beginning 0)))
   (re-search-backward re))
 
 (defun arvo-send-command-under-point ()
