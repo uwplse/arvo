@@ -2,8 +2,21 @@
 name = "arvo"
 version = "0.1.0"
 authors = ["jrw"]
+build = "build.rs"
+
+[build-dependencies]
+gcc = "*"
+
 [dependencies]
 libc = "*"
+
 [lib]
 name = "arvo"
-crate-type = ["staticlib"]
+path = "src/arvo/lib.rs"
+crate-type = ["staticlib", "rlib"]
+
+[[bin]]
+name = "arvo"
+path = "src/bin/arvo.rs"
+test = false
+doc  = false
