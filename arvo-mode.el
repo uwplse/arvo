@@ -128,7 +128,7 @@
                                   (setf out output)
                                   (arvo-insertion-filter process output)))
     (process-send-string process (concat s "\n"))
-    (accept-process-output process 0.01)
+    (accept-process-output process 1)
     (set-process-filter process 'arvo-insertion-filter)
     out))
 
