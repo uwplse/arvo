@@ -169,18 +169,37 @@
     (goto-char (match-beginning 0)))
   (re-search-backward re))
 
+(defun arvo-find-command-under-point ()
+  (let ((start (re-search-forward-backward "\\<\\(?:def\\|print\\|check\\|simpl\\|data\\|axiom\\|import\\)\\>"))
+        (end (cl-do ((i (point) (+ i 1))
+                     (opens 0 (cond ((equal (char-after i) ?.) (- opens 1))
+                                    ((equal (char-after i) ?\\) (+ opens 1))
+                                    (t opens))))
+                 ((and (equal (char-after i) ?.)
+                       (equal opens 0))
+                  (+ i 1)))))
+    (list start end)))
+
+(defun arvo-parse-hole-type (string)
+  (cl-loop for line in (split-string string "\n" t)
+           until (string-match "Hole has type \\(.*\\)$" line)
+           finally return (match-string 1 line)))
+
+(defun arvo-get-type-of-first-hole-in-thing-under-point ()
+  (interactive)
+  (save-excursion
+    (let* ((range (arvo-find-command-under-point))
+           (out (arvo-send-string-and-capture-output
+                 (buffer-substring (car range) (cadr range))))
+           (ans (arvo-parse-hole-type out)))
+      (kill-new ans)
+      (message ans))))
+
 (defun arvo-send-command-under-point ()
   (interactive)
   (save-excursion
-    (let ((start (re-search-forward-backward "\\<\\(?:def\\|print\\|check\\|simpl\\|data\\|axiom\\|import\\)\\>"))
-          (end (cl-do ((i (point) (+ i 1))
-                       (opens 0 (cond ((equal (char-after i) ?.) (- opens 1))
-                                      ((equal (char-after i) ?\\) (+ opens 1))
-                                      (t opens))))
-                   ((and (equal (char-after i) ?.)
-                         (equal opens 0))
-                    (+ i 1)))))
-      (arvo-send-range start end))))
+    (let ((range (arvo-find-command-under-point)))
+      (arvo-send-range (car range) (cadr range)))))
 
 
 
