@@ -40,6 +40,7 @@ pub enum Tok<'input> {
     ColonColon,
     ColonEquals,
     Comma,
+    Comment(&'input str),
     Dot,
     Equals,
     EqualsEquals,
@@ -48,8 +49,6 @@ pub enum Tok<'input> {
     LeftBracket,
     LeftParen,
     LessThan,
-    Lookahead, // @L
-    Lookbehind, // @R
     Plus,
     Question,
     RightArrow,
@@ -298,21 +297,6 @@ impl<'input> Iterator for Tokenizer<'input> {
                     self.bump();
                     Some(Ok((idx0, LessThan, idx0+1)))
                 }
-                Some((idx0, '@')) => {
-                    match self.bump() {
-                        Some((idx1, '<')) => {
-                            self.bump();
-                            Some(Ok((idx0, Lookahead, idx1+1)))
-                        }
-                        Some((idx1, '>')) => {
-                            self.bump();
-                            Some(Ok((idx0, Lookbehind, idx1+1)))
-                        }
-                        _ => {
-                            Some(Err(UnrecognizedToken(idx0)))
-                        }
-                    }
-                }
                 Some((idx0, '+')) => {
                     self.bump();
                     Some(Ok((idx0, Plus, idx0+1)))
@@ -380,11 +364,12 @@ impl<'input> Iterator for Tokenizer<'input> {
                     Some(self.string_literal(idx0))
                 }
                 // This handles the comments
-                Some((idx0, '/')) => {
-                    match self.bump() {
-                        Some((_, '/')) => {
-                            self.take_until(|c| c == '\n');
-                            continue;
+                Some((idx0, '@')) => {
+                    match self.take_until(|c| c == '@') {
+                        Some(idx1) => {
+                            // eventually be able to slice idx0..idx1
+                            // and preserve the comments
+                            Some(Ok((idx0, Comment(&self.text[idx0..idx1]), idx1)))
                         }
                         _ => {
                             Some(Err(UnrecognizedToken(idx0)))
