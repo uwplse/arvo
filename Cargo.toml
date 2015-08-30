@@ -7,8 +7,14 @@ build = "build.rs"
 [build-dependencies]
 gcc = "*"
 
+[build-dependencies.lalrpop]
+git = "https://github.com/nikomatsakis/lalrpop"
+
 [dependencies]
 libc = "*"
+
+[dependencies.lalrpop-util]
+git = "https://github.com/nikomatsakis/lalrpop"
 
 [lib]
 name = "arvo"

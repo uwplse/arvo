@@ -1,6 +1,8 @@
 extern crate gcc;
+extern crate lalrpop;
 
 fn main() {
+    lalrpop::process_root().unwrap();
     gcc::compile_library("libarvo.a", &[
         "term.c",
         "typecheck.c",
