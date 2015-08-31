@@ -189,7 +189,13 @@ command *ast_to_command(mpc_ast_t *ast) {
         data->param_names[ip] = make_variable(strdup(ast->children[i]->children[1]->contents));
         data->param_types[ip] = ast_to_term(ast->children[i]->children[3]);
         ip++;
+      } else if (prefix("indices", ast->children[i]->tag)) {
+        check(ast->children[i]->children_num == 2, "malformed indices");
+        data->indices = ast_to_term(ast->children[i]->children[1]);
       }
+    }
+    if (data->indices == NULL) {
+      data->indices = make_type();
     }
     return data;
   } else {
@@ -218,6 +224,7 @@ static mpc_parser_t* pCheck;
 static mpc_parser_t* pSimpl;
 static mpc_parser_t* pConstructor;
 static mpc_parser_t* pParam;
+static mpc_parser_t* pIndices;
 static mpc_parser_t* pData;
 static mpc_parser_t* pCommand;
 static mpc_parser_t* pSep;
@@ -246,6 +253,7 @@ void initialize_arvo_parsers() {
   pSimpl       = mpc_new("simpl");
   pConstructor = mpc_new("constructor");
   pParam       = mpc_new("param");
+  pIndices     = mpc_new("indices");
   pData        = mpc_new("data");
   pCommand     = mpc_new("command");
   pProgram     = mpc_new("program");
@@ -253,7 +261,7 @@ void initialize_arvo_parsers() {
 
 #define PARSERS pComment, pVar, pHole, pBound, pType, pBase, pApp, pExpr, pFactor, \
                 pLambda, pTerm, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl, \
-                pConstructor, pParam, pData, pCommand, pProgram, pSep
+                pConstructor, pParam, pIndices, pData, pCommand, pProgram, pSep
 
   mpc_err_t* err =
     mpca_lang(MPCA_LANG_DEFAULT,
@@ -277,7 +285,8 @@ void initialize_arvo_parsers() {
               " simpl   : \"simpl\" <term>  ;\n"
               " constructor : <var> (':' <term>)? ;\n"
               " param  : '(' <var> ':' <term> ')' ;\n"
-              " data    : \"data\" <var> <param>* \":=\" <constructor>? ('|' <constructor>)*  ;\n"
+              " indices : ':' <term> ; \n"
+              " data    : \"data\" <var> <param>* <indices>?  \":=\" <constructor>? ('|' <constructor>)*  ;\n"
               " command : /^/ (<def> | <print> | <check> | <simpl> | <data> | <axiom> | <import> | <comment>) ;\n"
               " sep     : '.' ; \n"
               " program  : /^/ <command> * /$/ ;\n",
@@ -322,6 +331,7 @@ command *next_command(parsing_context* pc) {
       mpc_err_delete(pc->result.error);
       return NULL;
     }
+    mpc_ast_delete(ast);
     ast = (mpc_ast_t *)(pc->result.output);
   } while (strstr(ast->children[1]->tag, "comment"));
 
