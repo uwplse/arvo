@@ -92,7 +92,7 @@ fn go(buf: &mut String, t: &Term, p: Prec, s: Side) {
             go(buf, r, APP, RIGHT);
         }
 
-        Data(ref v, ref params) => {
+        Data(ref v, ref params, ref indices) => {
             buf.push_str(&v.name);
             buf.push_str("(");
             let mut started = false;
@@ -103,10 +103,19 @@ fn go(buf: &mut String, t: &Term, p: Prec, s: Side) {
                 started = true;
                 go(buf, param, TOP, NONE);
             }
+            buf.push_str(")(");
+            started = false;
+            for index in indices {
+                if started {
+                    buf.push_str("; ");
+                }
+                started = true;
+                go(buf, index, TOP, NONE);
+            }
             buf.push_str(")");
         }
-        Intro(ref v, _, ref args, ref params) |
-        Elim (ref v,    ref args, ref params) => {
+        Intro(ref v, _, ref args, ref params, ref indices) |
+        Elim (ref v,    ref args, ref params, ref indices) => {
             buf.push_str(&v.name);
             buf.push_str("(");
             let mut started = false;
@@ -116,6 +125,15 @@ fn go(buf: &mut String, t: &Term, p: Prec, s: Side) {
                 }
                 started = true;
                 go(buf, param, TOP, NONE);
+            }
+            buf.push_str(")(");
+            started = false;
+            for index in indices {
+                if started {
+                    buf.push_str("; ");
+                }
+                started = true;
+                go(buf, index, TOP, NONE);
             }
             buf.push_str(")(");
             started = false;
