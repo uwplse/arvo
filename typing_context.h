@@ -9,6 +9,7 @@ typedef struct {
   int num_params;
   variable** param_names;
   term** param_types;
+  int num_indices;
 
   term* kind;  // the type of the type constructor. eg, for lists: Type -> Type.
   term* type_constructor;  // the lambda wrapped type constructor. eg, \A : Type. list(A), where list(.) is the raw datatype term
@@ -20,7 +21,7 @@ typedef struct {
   int *inductive_args;
 } datatype;
 
-datatype* make_datatype(variable* name, int num_intros, int num_params);
+datatype* make_datatype(variable* name, int num_intros, int num_params, int num_indices);
 
 int datatype_intro_index(variable* needle, datatype* T);
 
