@@ -441,6 +441,7 @@ static command* make_command() {
   ans->num_params = 0;
   ans->param_names = NULL;
   ans->param_types = NULL;
+  ans->indices = NULL;
   return ans;
 }
 
@@ -469,6 +470,8 @@ void free_command(command* c) {
   free(c->param_types);
   c->param_types = NULL;
   free(c->param_names);
+  free_term(c->indices);
+  c->indices = NULL;
   free(c);
 }
 

@@ -24,6 +24,7 @@ typedef struct command {
   int num_params;
   variable** param_names;
   term** param_types;
+  term* indices;  // pi-type returning Type
 } command;
 
 void vernac_init(char* working_directory);
