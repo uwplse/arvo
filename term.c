@@ -35,6 +35,8 @@ static term* make_term() {
   ans->args = NULL;
   ans->num_params = 0;
   ans->params = NULL;
+  ans->num_indices = 0;
+  ans->indices = NULL;
 
   return ans;
 }
@@ -222,6 +224,7 @@ int has_holes(term* t) {
 
   HAS_HOLES_VEC(t->num_args, t->args);
   HAS_HOLES_VEC(t->num_params, t->params);
+  HAS_HOLES_VEC(t->num_indices, t->indices);
 
   return 0;
 }
@@ -277,6 +280,7 @@ int is_free(variable *var, term *haystack) {
       }
       IS_FREE_VEC(haystack->num_args, haystack->args);
       IS_FREE_VEC(haystack->num_params, haystack->params);
+      IS_FREE_VEC(haystack->num_indices, haystack->indices);
       return 0;
     }
   case TYPE:
@@ -359,15 +363,16 @@ term* substitute(variable* from, term* to, term* haystack) {
   case DATATYPE:
     {
       term* ans = make_datatype_term(variable_dup(haystack->var),
-                                     haystack->num_params);
+                                     haystack->num_params, haystack->num_indices);
 #define SUB_VEC(dst, src, n) do {                       \
         int __i;                                        \
         for (__i = 0; __i < n; __i++) {                 \
-          dst[__i] = substitute(from, to, src[__i]);     \
+          dst[__i] = substitute(from, to, src[__i]);    \
         }                                               \
       } while(0)
 
       SUB_VEC(ans->params, haystack->params, haystack->num_params);
+      SUB_VEC(ans->indices, haystack->indices, haystack->num_indices);
 
       return ans;
     }
@@ -378,6 +383,7 @@ term* substitute(variable* from, term* to, term* haystack) {
 
       SUB_VEC(ans->args, haystack->args, haystack->num_args);
       SUB_VEC(ans->params, haystack->params, haystack->num_params);
+      SUB_VEC(ans->indices, haystack->indices, haystack->num_indices);
       return ans;
     }
   case ELIM:
@@ -386,6 +392,8 @@ term* substitute(variable* from, term* to, term* haystack) {
 
       SUB_VEC(ans->args, haystack->args, haystack->num_args);
       SUB_VEC(ans->params, haystack->params, haystack->num_params);
+      SUB_VEC(ans->indices, haystack->indices, haystack->num_indices);
+
       return ans;
     }
   case IMPLICIT:
@@ -457,6 +465,7 @@ void free_term(term* t) {
 
   FREE_VEC(t->num_args, t->args);
   FREE_VEC(t->num_params, t->params);
+  FREE_VEC(t->num_indices, t->indices);
 
   free(t);
 }
@@ -496,11 +505,15 @@ term* term_dup(term* t) {
           t->num_params, t->params,
           term_dup, struct term*);
 
+  DUP_VEC(ans->num_indices, ans->indices,
+          t->num_indices, t->indices,
+          term_dup, struct term*);
+
 
   return ans;
 }
 
-term* make_intro(variable* name, term *type, int num_args, int num_params) {
+term* make_intro(variable* name, term *type, int num_args, int num_params, int num_indices) {
   term* ans = make_term();
   ans->tag = INTRO;
   ans->var = name;
@@ -509,10 +522,12 @@ term* make_intro(variable* name, term *type, int num_args, int num_params) {
   ans->args = calloc(num_args, sizeof(term*));
   ans->num_params = num_params;
   ans->params = calloc(num_params, sizeof(term*));
+  ans->num_indices = num_indices;
+  ans->indices = calloc(num_indices, sizeof(term*));
   return ans;
 }
 
-term* make_elim(variable* name, int num_args, int num_params) {
+term* make_elim(variable* name, int num_args, int num_params, int num_indices) {
   term* ans = make_term();
   ans->tag = ELIM;
   ans->var = name;
@@ -520,15 +535,19 @@ term* make_elim(variable* name, int num_args, int num_params) {
   ans->args = calloc(num_args, sizeof(term*));
   ans->num_params = num_params;
   ans->params = calloc(num_params, sizeof(term*));
+  ans->num_indices = num_indices;
+  ans->indices = calloc(num_indices, sizeof(term*));
   return ans;
 }
 
-term* make_datatype_term(variable* name, int num_params) {
+term* make_datatype_term(variable* name, int num_params, int num_indices) {
   term* ans = make_term();
   ans->tag = DATATYPE;
   ans->var = name;
   ans->num_params = num_params;
   ans->params = calloc(num_params, sizeof(term*));
+  ans->num_indices = num_indices;
+  ans->indices = calloc(num_indices, sizeof(term*));
   return ans;
 }
 
