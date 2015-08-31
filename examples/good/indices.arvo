@@ -1,0 +1,45 @@
+data nat := O | S : nat -> nat.
+
+def plus : nat -> nat -> nat :=
+  \n. \m.
+    nat_elim (\_. nat)
+      m
+      (\_. S)
+    n
+  .
+
+data even : nat -> Type :=
+| even_O : even O
+| even_SS : (n : nat) -> even n -> even (S (S n)).
+
+data vec (A : Type) : nat -> Type :=
+| v_nil : vec A O
+| v_cons : (n : nat) -> (a : A) -> vec A n -> vec A (S n).
+
+check vec_elim.
+
+def vec_append : (A : Type) ->
+                 (n : nat) -> vec A n ->
+                 (m : nat) -> vec A m ->
+                 vec A (plus n m) :=
+  \A. \n. \u. \m. \v.
+    vec_elim A (\z. \_. vec A (plus z m))
+      v
+      (\n. \h. \t. \rec : vec A (plus n m).
+       v_cons A (plus n m) h rec)
+      n
+      u
+  .
+
+data eq (A : Type) (a : A) : A -> Type :=
+| eq_refl : eq A a a.
+
+check eq_elim.
+
+def subst : (A : Type) -> (P : A -> Type) ->
+            (a : A) -> P a ->
+            (b : A) ->
+            eq A a b -> P b :=
+  \A. \P. \a.
+    eq_elim A a (\z. \_. P z)
+  .
