@@ -322,9 +322,9 @@ command *next_command(parsing_context* pc) {
     mpc_ast_delete(pc->result.output);
   }
 
-  if (feof(pc->stream)) return NULL;
-
   do {
+    if (feof(pc->stream)) return NULL;
+
     if (!mpc_parse_pipe(pc->filename, pc->stream, pCommand, &pc->result)) {
       printf ("error: \n");
       mpc_err_print(pc->result.error);
