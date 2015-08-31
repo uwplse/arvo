@@ -1,5 +1,4 @@
-import axiomatic_equality.
-import bool.
+import bool. @implies equality@
 
 data nat := O | S : nat -> nat.
 
