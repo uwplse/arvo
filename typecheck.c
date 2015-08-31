@@ -167,8 +167,14 @@ term* typecheck_infer(telescope* Gamma, context *Sigma, typing_context* Delta, t
     return make_type();
   case INTRO:
     return term_dup(t->left);
-  case ELIM:
-    return make_app(term_dup(t->args[0]), term_dup(t->args[t->num_args-1]));
+  case ELIM: {
+    term* ans = term_dup(t->args[0]);
+    int i;
+    for (i = 0; i < t->num_indices; i++) {
+      ans = make_app(ans, term_dup(t->indices[i]));
+    }
+    return make_app(ans, term_dup(t->args[t->num_args-1]));
+  }
   case IMPLICIT:
     sentinel("Cannot infer type of implicit.");
   case HOLE:
