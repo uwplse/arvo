@@ -51,7 +51,7 @@ static term* typecheck_lam(telescope* Gamma, context* Sigma, typing_context* Del
 
 static term* typecheck_pi(telescope* Gamma, context* Sigma, typing_context* Delta, variable* v, term* A, term* B) {
   term* tyB = NULL;
-  term* tyA = typecheck(Gamma, Sigma, Delta, A);
+  term* tyA = normalize_and_free(Sigma, Delta, typecheck(Gamma, Sigma, Delta, A));
   check(tyA != NULL, "Bad domain %W", A, print_term);
   check(tyA->tag == TYPE, "Domain %W has type %W, but expected to have type Type",
         A, print_term, tyA, print_term);
