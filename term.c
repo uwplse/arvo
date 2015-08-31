@@ -178,7 +178,7 @@ int syntactically_identical(term* a, term* b) {
         }                                                               \
       } while(0)
 
-      EQ_VEC(a->args, a->num_args, b->args, b->num_args);
+      EQ_VEC(a->params, a->num_params, b->params, b->num_params);
 
       return 1;
     }
@@ -266,7 +266,7 @@ int is_free(variable *var, term *haystack) {
         }                                       \
       } while (0)
 
-      IS_FREE_VEC(haystack->num_args, haystack->args);
+      IS_FREE_VEC(haystack->num_params, haystack->params);
       return 0;
     }
   case INTRO:
