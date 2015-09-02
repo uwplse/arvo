@@ -1,0 +1,73 @@
+import nat.
+
+data vec (A : Type) : nat -> Type :=
+| vec_nil : vec A O
+| vec_cons : (n : nat) -> (a : A) -> vec A n -> vec A (S n).
+
+def vec_case : (A : Type) -> (P : (n : nat) -> vec A n -> Type) ->
+               (P O (vec_nil A)) ->
+               ((n : nat) -> (a : A) -> (v : vec A n) -> P (S n) (vec_cons A n a v)) ->
+               (n : nat) -> (v : vec A n) -> P n v :=
+  \A. \P. \pn. \pc.
+    vec_elim A (\z. \w. P z w)
+      pn
+      (\n. \a. \v. \_. pc n a v)
+  .
+
+def vec_case_simple : (A B : Type) -> B -> ((n : nat) -> A -> vec A n -> B) ->
+                      (n : nat) -> vec A n -> B :=
+  \A. \B.
+    vec_case A (\_. \_. B)
+  .
+
+def vec_case_S : (A : Type) ->
+                 (P : (n : nat) -> vec A (S n) -> Type) ->
+                 ((n : nat) -> (a : A) -> (v : vec A n) -> P n (vec_cons A n a v)) ->
+                 (n : nat) -> (v : vec A (S n)) -> P n v  :=
+  \A. \P. \f. \n. \v.
+    vec_elim A (nat_elim (\n. vec A n -> Type) (\_. True) (\k. \_. \w. P k w))
+      I
+      (\m. \a. \w. \_. f m a w)
+      (S n)
+      v
+  .
+
+def vec_case_O : (A : Type) ->
+                 (P : vec A O -> Type) ->
+                 P (vec_nil A) ->
+                 (v : vec A O) -> P v :=
+  \A. \P. \x. \v.
+    vec_case A (nat_elim (\z. vec A z -> Type) P (\_. \_. \_. True))
+      x
+      (\n. \_. \_. I)
+      O
+      v
+  .
+
+def vec_map : (A B : Type) -> (f : A -> B) -> (n : nat) -> vec A n -> vec B n :=
+  \A. \B. \f.
+    vec_elim A (\z. \_. vec B z)
+      (vec_nil B)
+      (\n. \a. \v. \rec. vec_cons B n (f a) rec)
+  .
+
+def vec_head : (A : Type) -> (n : nat) -> vec A (S n) -> A :=
+  \A.
+    vec_case_S A (\_. \_. A)
+      (\_. \a. \_. a)
+  .
+
+def vec_tail : (A : Type) -> (n : nat) -> vec A (S n) -> vec A n :=
+  \A.
+    vec_case_S A (\n. \_. vec A n)
+      (\_. \_. \v. v)
+  .
+
+import fin.
+
+def index : (A : Type) -> (n : nat) -> fin n -> vec A n -> A :=
+  \A.
+    fin_elim (\n. \_. vec A n -> A)
+      (vec_head A)
+      (\n. \x. \rec : vec A n -> A. \v. rec (vec_tail A n v))
+  .

@@ -35,6 +35,8 @@ static term* make_term() {
   ans->args = NULL;
   ans->num_params = 0;
   ans->params = NULL;
+  ans->num_indices = 0;
+  ans->indices = NULL;
 
   return ans;
 }
@@ -170,63 +172,29 @@ int syntactically_identical(term* a, term* b) {
       if (!variable_equal(a->var, b->var)) {
         return 0;
       }
-      int i;
-      if (a->num_args != b->num_args) {
-        return 0;
-      }
-      for (i = 0; i < a->num_args; i++) {
-        if (!syntactically_identical(a->args[i], b->args[i])) {
-          return 0;
-        }
-      }
+#define EQ_VEC(a, an, b, bn) do {                                       \
+        if (an != bn) return 0;                                         \
+        int __i;                                                        \
+        for (__i = 0; __i < an; __i++) {                                \
+          if (!syntactically_identical(a[__i], b[__i])) return 0;       \
+        }                                                               \
+      } while(0)
+
+      EQ_VEC(a->params, a->num_params, b->params, b->num_params);
+      EQ_VEC(a->indices, a->num_indices, b->indices, b->num_indices);
+
       return 1;
     }
   case INTRO:
-    {
-      int i;
-      if (!variable_equal(a->var, b->var)) {
-        return 0;
-      }
-      if (a->num_params != b->num_params) {
-        return 0;
-      }
-      for (i = 0; i < a->num_params; i++) {
-        if (!syntactically_identical(a->params[i], b->params[i])) {
-          return 0;
-        }
-      }
-      if (a->num_args != b->num_args) {
-        return 0;
-      }
-      for (i = 0; i < a->num_args; i++) {
-        if (!syntactically_identical(a->args[i], b->args[i])) {
-          return 0;
-        }
-      }
-      return 1;
-    }
   case ELIM:
     {
-      int i;
       if (!variable_equal(a->var, b->var)) {
         return 0;
       }
-      if (a->num_params != b->num_params) {
-        return 0;
-      }
-      for (i = 0; i < a->num_params; i++) {
-        if (!syntactically_identical(a->params[i], b->params[i])) {
-          return 0;
-        }
-      }
-      if (a->num_args != b->num_args) {
-        return 0;
-      }
-      for (i = 0; i < a->num_args; i++) {
-        if (!syntactically_identical(a->args[i], b->args[i])) {
-          return 0;
-        }
-      }
+
+      EQ_VEC(a->args, a->num_args, b->args, b->num_args);
+      EQ_VEC(a->params, a->num_params, b->params, b->num_params);
+      EQ_VEC(a->indices, a->num_indices, b->indices, b->num_indices);
       return 1;
     }
   case TYPE:
@@ -248,13 +216,16 @@ int has_holes(term* t) {
   if (has_holes(t->left)) return 1;
   if (has_holes(t->right)) return 1;
 
-  int i;
-  for (i = 0; i < t->num_args; i++) {
-    if (has_holes(t->args[i])) return 1;
-  }
-  for (i = 0; i < t->num_params; i++) {
-    if (has_holes(t->params[i])) return 1;
-  }
+#define HAS_HOLES_VEC(n, a) do {                \
+    int __i;                                    \
+    for (__i = 0; __i < n; __i++) {             \
+      if (has_holes(a[__i])) return 1;          \
+    }                                           \
+  } while (0)
+
+  HAS_HOLES_VEC(t->num_args, t->args);
+  HAS_HOLES_VEC(t->num_params, t->params);
+  HAS_HOLES_VEC(t->num_indices, t->indices);
 
   return 0;
 }
@@ -292,38 +263,25 @@ int is_free(variable *var, term *haystack) {
       if (variable_equal(var, haystack->var)) {
         return 1;
       }
-      int i;
-      for (i = 0; i < haystack->num_args; i++) {
-        if (is_free(var, haystack->args[i])) {
-          return 1;
-        }
-      }
+#define IS_FREE_VEC(n, a) do {                  \
+        int __i;                                \
+        for (__i = 0; __i < n; __i++) {         \
+          if (is_free(var, a[__i])) return 1;   \
+        }                                       \
+      } while (0)
+
+      IS_FREE_VEC(haystack->num_params, haystack->params);
       return 0;
     }
   case INTRO:
-    {
-      int i;
-      if (variable_equal(var, haystack->var)) {
-        return 1;
-      }
-      for (i = 0; i < haystack->num_args; i++) {
-        if (is_free(var, haystack->args[i])) {
-          return 1;
-        }
-      }
-      return 0;
-    }
   case ELIM:
     {
-      int i;
       if (variable_equal(var, haystack->var)) {
         return 1;
       }
-      for (i = 0; i < haystack->num_args; i++) {
-        if (is_free(var, haystack->args[i])) {
-          return 1;
-        }
-      }
+      IS_FREE_VEC(haystack->num_args, haystack->args);
+      IS_FREE_VEC(haystack->num_params, haystack->params);
+      IS_FREE_VEC(haystack->num_indices, haystack->indices);
       return 0;
     }
   case TYPE:
@@ -406,36 +364,37 @@ term* substitute(variable* from, term* to, term* haystack) {
   case DATATYPE:
     {
       term* ans = make_datatype_term(variable_dup(haystack->var),
-                                     haystack->num_args);
-      int i;
-      for (i = 0; i < haystack->num_args; i++) {
-        ans->args[i] = substitute(from, to, haystack->args[i]);
-      }
+                                     haystack->num_params, haystack->num_indices);
+#define SUB_VEC(dst, src, n) do {                       \
+        int __i;                                        \
+        for (__i = 0; __i < n; __i++) {                 \
+          dst[__i] = substitute(from, to, src[__i]);    \
+        }                                               \
+      } while(0)
+
+      SUB_VEC(ans->params, haystack->params, haystack->num_params);
+      SUB_VEC(ans->indices, haystack->indices, haystack->num_indices);
+
       return ans;
     }
 
   case INTRO:
     {
-      term* ans = make_intro(variable_dup(haystack->var), term_dup(haystack->left), haystack->num_args, haystack->num_params);
-      int i;
-      for (i = 0; i < haystack->num_params; i++) {
-        ans->params[i] = substitute(from, to, haystack->params[i]);
-      }
-      for (i = 0; i < haystack->num_args; i++) {
-        ans->args[i] = substitute(from, to, haystack->args[i]);
-      }
+      term* ans = make_intro(variable_dup(haystack->var), term_dup(haystack->left), haystack->num_args, haystack->num_params, haystack->num_indices);
+
+      SUB_VEC(ans->args, haystack->args, haystack->num_args);
+      SUB_VEC(ans->params, haystack->params, haystack->num_params);
+      SUB_VEC(ans->indices, haystack->indices, haystack->num_indices);
       return ans;
     }
   case ELIM:
     {
-      term* ans = make_elim(variable_dup(haystack->var), haystack->num_args, haystack->num_params);
-      int i;
-      for (i = 0; i < haystack->num_params; i++) {
-        ans->params[i] = substitute(from, to, haystack->params[i]);
-      }
-      for (i = 0; i < haystack->num_args; i++) {
-        ans->args[i] = substitute(from, to, haystack->args[i]);
-      }
+      term* ans = make_elim(variable_dup(haystack->var), haystack->num_args, haystack->num_params, haystack->num_indices);
+
+      SUB_VEC(ans->args, haystack->args, haystack->num_args);
+      SUB_VEC(ans->params, haystack->params, haystack->num_params);
+      SUB_VEC(ans->indices, haystack->indices, haystack->num_indices);
+
       return ans;
     }
   case IMPLICIT:
@@ -495,20 +454,19 @@ void free_term(term* t) {
   free_term(t->right);
   t->right = NULL;
 
-  int i;
-  for (i = 0; i < t->num_args; i++) {
-    free_term(t->args[i]);
-    t->args[i] = NULL;
-  }
-  free(t->args);
-  t->args = NULL;
+#define FREE_VEC(n, a) do {                     \
+    int __i;                                    \
+    for (__i = 0; __i < n; __i++) {             \
+      free_term(a[__i]);                        \
+      a[__i] = NULL;                            \
+    }                                           \
+    free(a);                                    \
+    a = NULL;                                   \
+  } while (0)
 
-  for (i = 0; i < t->num_params; i++) {
-    free_term(t->params[i]);
-    t->params[i] = NULL;
-  }
-  free(t->params);
-  t->params = NULL;
+  FREE_VEC(t->num_args, t->args);
+  FREE_VEC(t->num_params, t->params);
+  FREE_VEC(t->num_indices, t->indices);
 
   free(t);
 }
@@ -519,6 +477,18 @@ variable* variable_dup(variable* v) {
   return make_variable(strdup(v->name));
 }
 
+#define DUP_VEC(dstn, dst, srcn, src, dup_f, ty) do {   \
+    dstn = srcn;                                        \
+    dst = NULL;                                         \
+    if (dstn > 0) {                                     \
+      dst = malloc((dstn) * sizeof(ty));                \
+      int __i;                                          \
+      for (__i = 0; __i < dstn; __i++) {                \
+        dst[__i] = dup_f(src[__i]);                     \
+      }                                                 \
+    }                                                   \
+  } while (0)
+
 term* term_dup(term* t) {
   if (t == NULL) return NULL;
 
@@ -527,29 +497,24 @@ term* term_dup(term* t) {
   ans->var = variable_dup(t->var);
   ans->left = term_dup(t->left);
   ans->right = term_dup(t->right);
-  ans->num_args = t->num_args;
-  ans->args = NULL;
-  if (ans->num_args > 0) {
-    ans->args = malloc((ans->num_args) * sizeof(struct term*));
-    int i;
-    for (i = 0; i < ans->num_args; i++) {
-      ans->args[i] = term_dup(t->args[i]);
-    }
-  }
-  ans->num_params = t->num_params;
-  ans->params = NULL;
-  if (ans->num_params > 0) {
-    ans->params = malloc((ans->num_params) * sizeof(struct term*));
-    int i;
-    for (i = 0; i < ans->num_params; i++) {
-      ans->params[i] = term_dup(t->params[i]);
-    }
-  }
+
+  DUP_VEC(ans->num_args, ans->args,
+          t->num_args, t->args,
+          term_dup, struct term*);
+
+  DUP_VEC(ans->num_params, ans->params,
+          t->num_params, t->params,
+          term_dup, struct term*);
+
+  DUP_VEC(ans->num_indices, ans->indices,
+          t->num_indices, t->indices,
+          term_dup, struct term*);
+
 
   return ans;
 }
 
-term* make_intro(variable* name, term *type, int num_args, int num_params) {
+term* make_intro(variable* name, term *type, int num_args, int num_params, int num_indices) {
   term* ans = make_term();
   ans->tag = INTRO;
   ans->var = name;
@@ -558,10 +523,12 @@ term* make_intro(variable* name, term *type, int num_args, int num_params) {
   ans->args = calloc(num_args, sizeof(term*));
   ans->num_params = num_params;
   ans->params = calloc(num_params, sizeof(term*));
+  ans->num_indices = num_indices;
+  ans->indices = calloc(num_indices, sizeof(term*));
   return ans;
 }
 
-term* make_elim(variable* name, int num_args, int num_params) {
+term* make_elim(variable* name, int num_args, int num_params, int num_indices) {
   term* ans = make_term();
   ans->tag = ELIM;
   ans->var = name;
@@ -569,15 +536,19 @@ term* make_elim(variable* name, int num_args, int num_params) {
   ans->args = calloc(num_args, sizeof(term*));
   ans->num_params = num_params;
   ans->params = calloc(num_params, sizeof(term*));
+  ans->num_indices = num_indices;
+  ans->indices = calloc(num_indices, sizeof(term*));
   return ans;
 }
 
-term* make_datatype_term(variable* name, int num_args) {
+term* make_datatype_term(variable* name, int num_params, int num_indices) {
   term* ans = make_term();
   ans->tag = DATATYPE;
   ans->var = name;
-  ans->num_args = num_args;
-  ans->args = calloc(num_args, sizeof(term*));
+  ans->num_params = num_params;
+  ans->params = calloc(num_params, sizeof(term*));
+  ans->num_indices = num_indices;
+  ans->indices = calloc(num_indices, sizeof(term*));
   return ans;
 }
 

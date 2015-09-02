@@ -1,5 +1,5 @@
 import prelude.
-import axiomatic_equality.
+import equality.
 
 data bool := true | false.
 

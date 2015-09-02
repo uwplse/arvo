@@ -51,7 +51,7 @@ static term* typecheck_lam(telescope* Gamma, context* Sigma, typing_context* Del
 
 static term* typecheck_pi(telescope* Gamma, context* Sigma, typing_context* Delta, variable* v, term* A, term* B) {
   term* tyB = NULL;
-  term* tyA = typecheck(Gamma, Sigma, Delta, A);
+  term* tyA = normalize_and_free(Sigma, Delta, typecheck(Gamma, Sigma, Delta, A));
   check(tyA != NULL, "Bad domain %W", A, print_term);
   check(tyA->tag == TYPE, "Domain %W has type %W, but expected to have type Type",
         A, print_term, tyA, print_term);
@@ -167,8 +167,14 @@ term* typecheck_infer(telescope* Gamma, context *Sigma, typing_context* Delta, t
     return make_type();
   case INTRO:
     return term_dup(t->left);
-  case ELIM:
-    return make_app(term_dup(t->args[0]), term_dup(t->args[t->num_args-1]));
+  case ELIM: {
+    term* ans = term_dup(t->args[0]);
+    int i;
+    for (i = 0; i < t->num_indices; i++) {
+      ans = make_app(ans, term_dup(t->indices[i]));
+    }
+    return make_app(ans, term_dup(t->args[t->num_args-1]));
+  }
   case IMPLICIT:
     sentinel("Cannot infer type of implicit.");
   case HOLE:

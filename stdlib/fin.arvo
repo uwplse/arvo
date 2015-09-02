@@ -1,0 +1,72 @@
+import nat.
+import option.
+
+data fin : nat -> Type :=
+| fin_1 : (n : nat) -> fin (S n)
+| fin_S : (n : nat) -> fin n -> fin (S n).
+
+check fin_elim : (P : (n : nat) -> fin n -> Type) ->
+                 ((n : nat) -> P (S n) (fin_1 n)) ->
+                 ((n : nat) -> (x : fin n) -> P n x -> P (S n) (fin_S n x)) ->
+                 (n : nat) -> (x : fin n) -> P n x.
+
+def fin_option : nat -> Type :=
+  nat_elim (\_. Type)
+    False
+    (\n. \rec. option rec)
+  .
+
+def fin_to_fin_option : (n : nat) -> fin n -> fin_option n :=
+  fin_elim (\z. \w. fin_option z)
+    (\n. none (fin_option n))
+    (\n. \x. \Px. some (fin_option n) Px)
+  .
+
+simpl fin_to_fin_option (S O) (fin_1 O).
+simpl fin_to_fin_option (S (S O)) (fin_S (S O) (fin_1 O)).
+
+def fin_option_to_fin : (n : nat) -> fin_option n -> fin n :=
+  nat_elim (\z. fin_option z -> fin z)
+    (\H : False. exfalso H (fin O))
+    (\n. \rec : fin_option n -> fin n.
+      option_case_simple (fin_option n) (fin (S n))
+        (fin_1 n)
+        (\x : fin_option n. fin_S n (rec x)))
+  .
+
+simpl fin_option_to_fin (S O) (none (fin_option O)).
+
+def fin_to_nat : (n : nat) -> fin n -> nat :=
+  fin_elim (\_. \_. nat)
+    (\_. O)
+    (\_. \_. S)
+  .
+
+simpl fin_to_nat (S (S O)) (fin_S (S O) (fin_1 O)).
+
+def fin_O_False : fin O -> False :=
+  \x.
+    fin_elim (\z. \_. nat_elim (\_. Type) True (\_. \_. False) z -> fin z -> False)
+      (\_. \H : False. \_. H)
+      (\_. \_. \_. \H : False. \_. H)
+      O
+      x
+      I
+      x
+  .
+
+def fin_case_S : (P : (n : nat) -> fin (S n) -> Type) ->
+                 ((n : nat) -> P n (fin_1 n)) ->
+                 ((n : nat) -> (x : fin n) -> P n (fin_S n x)) ->
+                 (n : nat) -> (x : fin (S n)) -> P n x :=
+  \P. \o. \s. \n. \x.
+    fin_elim (\z. \w. nat_elim (\z0. fin z0 -> Type)
+                               (\_. True)
+                               (\k. \_. \w0 : fin (S k). P k w0)
+                               z
+                               w)
+      (\m. o m)
+      (\m. \x. \_. s m x)
+      (S n)
+      x
+  .

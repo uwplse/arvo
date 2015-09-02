@@ -1,4 +1,4 @@
-import nat. @ implies bool, axiomatic_equality, and prelude @
+import nat. @ implies bool, equality, and prelude @
 
 data list (A : Type) := nil : list A | cons : A -> list A -> list A.
 

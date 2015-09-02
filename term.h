@@ -48,6 +48,9 @@ typedef struct term {
 
   int num_params;
   struct term** params;
+
+  int num_indices;
+  struct term** indices;
 } term;
 
 int term_locally_well_formed(term* t);
@@ -73,9 +76,9 @@ term* make_type();
 term* make_hole();
 term* make_implicit();
 
-term* make_intro(variable* name, term *type, int num_args, int num_params);
-term* make_elim(variable* name, int num_args, int num_params);
-term* make_datatype_term(variable* name, int num_args);
+term* make_intro(variable* name, term *type, int num_args, int num_params, int num_indices);
+term* make_elim(variable* name, int num_args, int num_params, int num_indices);
+term* make_datatype_term(variable* name, int num_params, int num_indices);
 
 void free_variable(variable* v);
 

@@ -243,8 +243,12 @@ term* normalize_fuel_elim(context *Sigma, typing_context* Delta, term* t, int fu
     c->args[c->num_args - 1] = last;
     return normalize_and_free_fuel(Sigma, Delta, elim_over_intro(Delta, c), fuel-1);
   } else {
-    ans = make_elim(variable_dup(t->var), t->num_args, t->num_params);
+    ans = make_elim(variable_dup(t->var), t->num_args, t->num_params, t->num_indices);
     int i;
+    for (i = 0; i < t->num_indices; i++) {
+      ans->indices[i] = normalize_fuel(Sigma, Delta, t->indices[i], fuel-1);
+      if (!ans->indices[i]) goto error;
+    }
     for (i = 0; i < t->num_params; i++) {
       ans->params[i] = normalize_fuel(Sigma, Delta, t->params[i], fuel-1);
       if (!ans->params[i]) goto error;
@@ -263,8 +267,11 @@ term* normalize_fuel_elim(context *Sigma, typing_context* Delta, term* t, int fu
 }
 
 term* normalize_fuel_intro(context *Sigma, typing_context* Delta, term* t, int fuel) {
-  term* ans = make_intro(variable_dup(t->var), term_dup(t->left), t->num_args, t->num_params);
+  term* ans = make_intro(variable_dup(t->var), term_dup(t->left), t->num_args, t->num_params, t->num_indices);
   int i;
+  for (i = 0; i < t->num_indices; i++) {
+    ans->indices[i] = normalize_fuel(Sigma, Delta, t->indices[i], fuel-1);
+  }
   for (i = 0; i < t->num_params; i++) {
     ans->params[i] = normalize_fuel(Sigma, Delta, t->params[i], fuel-1);
   }
@@ -281,10 +288,13 @@ term* normalize_fuel_intro(context *Sigma, typing_context* Delta, term* t, int f
 }
 
 term* normalize_fuel_datatype(context *Sigma, typing_context* Delta, term* t, int fuel) {
-  term* ans = make_datatype_term(variable_dup(t->var), t->num_args);
+  term* ans = make_datatype_term(variable_dup(t->var), t->num_params, t->num_indices);
   int i;
-  for (i = 0; i < t->num_args; i++) {
-    ans->args[i] = normalize_fuel(Sigma, Delta, t->args[i], fuel-1);
+  for (i = 0; i < t->num_params; i++) {
+    ans->params[i] = normalize_fuel(Sigma, Delta, t->params[i], fuel-1);
+  }
+  for (i = 0; i < t->num_indices; i++) {
+    ans->indices[i] = normalize_fuel(Sigma, Delta, t->indices[i], fuel-1);
   }
   return ans;
 }
