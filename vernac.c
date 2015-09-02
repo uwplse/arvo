@@ -393,7 +393,7 @@ static void build_eliminator(command *c, datatype *T) {
   wrapped_eliminator = T->elim;
   wrapped_eliminator = make_lambda(variable_dup(vars[c->num_args+1]),
                                    term_dup(return_type), wrapped_eliminator);
-  for (i = 0; i < T->num_indices; i++) {
+  for (i = T->num_indices - 1; i >= 0; i--) {
     T->elim->indices[i] = make_var(variable_dup(indices[i]));
     wrapped_eliminator = make_lambda(variable_dup(indices[i]),
                                      term_dup(index_types[i]), wrapped_eliminator);
@@ -457,7 +457,7 @@ static void build_eliminator(command *c, datatype *T) {
   term* motive_type = make_pi(variable_dup(&ignore),
                               term_dup(return_type),
                               make_type());
-  for (i = 0; i < T->num_indices; i++) {
+  for (i = T->num_indices - 1; i >= 0; i--) {
     motive_type = make_pi(variable_dup(indices[i]),
                           term_dup(index_types[i]),
                           motive_type);

@@ -1,0 +1,3 @@
+data trans_clos (A : Type) (R : A -> A -> Type) : A -> A -> Type :=
+| tc_step : (x y : A) -> R x y -> trans_clos A R x y
+| tc_trans : (x y z : A) -> trans_clos A R x y -> trans_clos A R y z -> trans_clos A R x z.
