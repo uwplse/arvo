@@ -1,0 +1,113 @@
+use std::collections::HashMap;
+
+use super::token::{Tok, Error};
+use term::*;
+
+grammar<'input>(text: &'input str)["LALR(1)"];
+
+pub Program : Program = {
+    <cs: (<Command> ".")*> => panic!();
+};
+
+pub Command : Command = {
+    "def" <v:Variable> ":" <ty:Term> ":=" <body:Term> => panic!();
+    "print" <v:Variable> => panic!();
+    "check" <t:Term> <opt_ty: (":" <Term>)?> => panic!();
+    "simpl" <t:Term> => panic!();
+    "data" <v:Variable> <ps: Param*> ":=" <c:Constructor?> <cs: ("|" <Constructor>)*> => panic!();
+    "axiom" <v:Variable> ":" <t:Term> => panic!();
+    "import" <v:Variable> => panic!();
+    //TODO Comment;
+};
+
+Constructor : (Variable, Option<Term>) = {
+    <v:Variable> <t:(":" <Term>)?> => (v, t);
+};
+
+Param : (Variable, Term) = {
+    "(" <v:Variable> ":" <t:Term> ")" => (v, t);
+};
+
+// TODO     " comment : /@[^@]*@/                              ; \n"
+Comment : Command = {};
+
+Term : Term = {
+    Lambda;
+    Factor;
+};
+
+Lambda : Term = {
+    "lambda" <v:BoundVariable> <ty:(":" <Term>)?> "." <body:Term> => panic!();
+};
+
+Factor : Term = {
+    <arg:Expr> <ret:("->" <Expr>)*> => panic!();
+};
+
+Expr : Term = {
+    // "(" <bs:BoundVariable*> ":" <t:Term> ")" => panic!();
+    <a:App> => panic!();
+};
+
+App : Term = {
+    <f:Base> <args:Base*> => panic!();
+};
+
+Base : Term = {
+    Type;
+    Hole;
+    Variable => panic!();
+    "(" <t:Term> ")" => panic!();
+};
+
+Hole : Term = {
+    "?" => panic!();
+};
+
+BoundVariable : Term = {
+    "_" => panic!();
+    <v:Variable> => panic!();
+};
+
+Type : Term = {
+    "Type" => panic!();
+};
+
+Variable : Variable = {
+    <v:DummyVariable> => Variable { name: v.to_owned() };
+};
+
+// This rule is get around the lifetime not being used
+// when its actually being used.
+
+DummyVariable: &'input str = {
+    <v:"Var"> => v;
+};
+
+extern {
+    type Location = usize;
+    type Error = Error;
+
+    enum Tok<'input> {
+        "def"      => Tok::Def(..),
+        "axiom"    => Tok::Axiom(..),
+        "import"   => Tok::Import(..),
+        "print"    => Tok::Print(..),
+        "check"    => Tok::Check(..),
+        "simpl"    => Tok::Simpl(..),
+        "data"     => Tok::Data(..),
+        "Type"     => Tok::Type(..),
+
+        "Var"      => Tok::Var(<&'input str>),
+        ":"        => Tok::Colon(..),
+        ":="       => Tok::ColonEquals(..),
+        "."        => Tok::Dot(..),
+        "("        => Tok::LeftParen(..),
+        ")"        => Tok::RightParen(..),
+        "_"        => Tok::Underscore(..),
+        "->"       => Tok::RightArrow(..),
+        "|"        => Tok::Bar(..),
+        "?"        => Tok::Question(..),
+        "lambda"   => Tok::Backslash(..),
+    }
+}
