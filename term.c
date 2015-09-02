@@ -181,6 +181,7 @@ int syntactically_identical(term* a, term* b) {
       } while(0)
 
       EQ_VEC(a->params, a->num_params, b->params, b->num_params);
+      EQ_VEC(a->indices, a->num_indices, b->indices, b->num_indices);
 
       return 1;
     }
