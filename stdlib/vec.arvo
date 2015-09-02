@@ -1,4 +1,4 @@
-import nat.
+import fin.
 
 data vec (A : Type) : nat -> Type :=
 | vec_nil : vec A O
@@ -62,8 +62,6 @@ def vec_tail : (A : Type) -> (n : nat) -> vec A (S n) -> vec A n :=
     vec_case_S A (\n. \_. vec A n)
       (\_. \_. \v. v)
   .
-
-import fin.
 
 def index : (A : Type) -> (n : nat) -> fin n -> vec A n -> A :=
   \A.
