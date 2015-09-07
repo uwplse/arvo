@@ -266,7 +266,7 @@ void initialize_arvo_parsers() {
   mpc_err_t* err =
     mpca_lang(MPCA_LANG_DEFAULT,
               " comment : /@[^@]*@/                              ; \n"
-              " var     : /[a-zA-Z][a-zA-Z0-9_]*/ ;                \n"
+              " var     : /[a-zA-Z][a-zA-Z0-9_']*/ ;                \n"
               " hole    : \"\?\" ; \n"
               " bound   : \"_\" | <var> ;                          \n"
               " type    : \"Type\" ;\n"
