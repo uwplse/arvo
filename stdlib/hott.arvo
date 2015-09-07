@@ -1,0 +1,13 @@
+import equality.
+
+def eq_sym_invol : (A : Type) -> (a b : A) -> (p : eq A a b) ->
+                   eq
+                     (eq A a b)
+                     (eq_sym A b a (eq_sym A a b p))
+                     p :=
+  \A. \a. \b. \p.
+    eq_elim A a (\y. \z. eq (eq A a y) (eq_sym A y a (eq_sym A a y z)) z)
+      (refl (eq A a a) (refl A a))
+      b
+      p
+  .
