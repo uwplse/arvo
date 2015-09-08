@@ -31,6 +31,34 @@ def vec_append : (A : Type) ->
       u
   .
 
+def one : nat := S O.
+def two : nat := S one.
+def three : nat := S two.
+def four : nat := S three.
+def five : nat := S four.
+def six : nat := S five.
+
+def x : vec nat three :=
+    v_cons nat two O   (
+    v_cons nat one one (
+    v_cons nat O   two (
+    v_nil nat))).
+
+def xx : vec nat six :=
+    v_cons nat five  O   (
+    v_cons nat four  one (
+    v_cons nat three two (
+    v_cons nat two   O   (
+    v_cons nat one   one (
+    v_cons nat O     two (
+    v_nil nat)))))).
+
+
+simpl x.
+simpl (vec_append nat three x three x).
+simpl xx.
+simpl (v_cons nat O O (v_nil nat)).
+
 data eq (A : Type) (a : A) : A -> Type :=
 | eq_refl : eq A a a.
 
@@ -43,3 +71,6 @@ def subst : (A : Type) -> (P : A -> Type) ->
   \A. \P. \a.
     eq_elim A a (\z. \_. P z)
   .
+
+def foo : eq (vec nat six) xx (vec_append nat three x three x) :=
+  eq_refl (vec nat six) xx.
