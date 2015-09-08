@@ -1,0 +1,14 @@
+import prelude.
+
+def dec : Type -> Type := \A. sum A (A -> False).
+
+def dec_yes : (A : Type) -> A -> dec A :=
+  \A. inj_l A (A -> False).
+
+def dec_no : (A : Type) -> (A -> False) -> dec A :=
+  \A. inj_r A (A -> False).
+
+def dec_case_simple : (A B : Type) -> (A -> B) -> ((A -> False) -> B) -> dec A -> B :=
+  \A. \B.
+    sum_elim A (A -> False) (\_. B)
+  .
