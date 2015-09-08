@@ -1,2 +1,7 @@
 data bool := true | false.
 data empty := .
+data nat := O | S : nat -> nat.
+data id (A : Type) := in : A -> id A.
+data fin : nat -> Type :=
+| F1 : (n : nat) -> fin (S n)
+| FS : (n : nat) -> fin n -> fin (S n).
