@@ -1,5 +1,6 @@
 import nat.
 import option.
+import dec.
 
 data fin : nat -> Type :=
 | fin_1 : (n : nat) -> fin (S n)
@@ -69,4 +70,69 @@ def fin_case_S : (P : (n : nat) -> fin (S n) -> Type) ->
       (\m. \x. \_. s m x)
       (S n)
       x
+  .
+
+def O_S_inv : (n : nat) -> eq nat O (S n) -> False :=
+  \n.
+    subst nat
+        (nat_elim (\_. Type) True (\_. \_. False))
+        O
+        I
+        (S n)
+  .
+
+def fin_1_S_inv : (n : nat) -> (x : fin n) -> eq (fin (S n)) (fin_1 n) (fin_S n x) -> False :=
+  \n. \x.
+    subst (fin (S n))
+      (fin_elim (\_. \_. Type) (\_. True) (\_. \_. \_. False) (S n))
+      (fin_1 n)
+      I
+      (fin_S n x)
+  .
+
+@wow@
+def fin_S_injective : (n : nat) -> (x y : fin n) ->
+                      eq (fin (S n)) (fin_S n x) (fin_S n y) ->
+                      eq (fin n) x y :=
+  \n. \x. \y. \H.
+    subst (fin (S n))
+      (\a : fin (S n).
+        fin_elim (\z. \_. nat_elim (\_. Type) Type (\k. \_. fin k -> Type) z)
+          (\m. \_. True)
+          (\m : nat. \b : fin m. \_. \z : fin m. eq (fin m) z b)
+          (S n)
+          a x)
+      (fin_S n x)
+      (refl (fin n) x)
+      (fin_S n y)
+      H
+  .
+
+def fin_eq_dec : (n : nat) -> (x y : fin n) -> dec (eq (fin n) x y) :=
+  fin_elim (\z. \w. (y : fin z) -> dec (eq (fin z) w y))
+    (fin_case_S (\z. \w. dec (eq (fin (S z)) (fin_1 z) w))
+      (\n. dec_yes (eq (fin (S n)) (fin_1 n) (fin_1 n)) (refl (fin (S n)) (fin_1 n)))
+      (\n. \y. dec_no (eq (fin (S n)) (fin_1 n) (fin_S n y)) (fin_1_S_inv n y)))
+    (\n. \x : fin n. \rec : (y : fin n) -> dec (eq (fin n) x y). \y : fin (S n).
+       fin_case_S (\z. \w : fin (S z).
+                     (x : fin z) -> ((y : fin z) -> dec (eq (fin z) x y)) ->
+                     dec (eq (fin (S z)) (fin_S z x) w))
+         (\n. \x : fin n. \rec.
+           dec_no (eq (fin (S n)) (fin_S n x) (fin_1 n))
+             (\H : eq (fin (S n)) (fin_S n x) (fin_1 n).
+             (fin_1_S_inv n x
+               (eq_sym (fin (S n)) (fin_S n x) (fin_1 n) H))))
+         (\n. \y : fin n. \x : fin n. \rec : (z : fin n) -> dec (eq (fin n) x z).
+           dec_case_simple (eq (fin n) x y) (dec (eq (fin (S n)) (fin_S n x) (fin_S n y)))
+             (\H : eq (fin n) x y. dec_yes (eq (fin (S n)) (fin_S n x) (fin_S n y))
+               (f_equal (fin n) (fin (S n)) (fin_S n) x y H))
+             (\H : eq (fin n) x y -> False.
+               dec_no (eq (fin (S n)) (fin_S n x) (fin_S n y))
+                 (\Hs : eq (fin (S n)) (fin_S n x) (fin_S n y).
+                   H (fin_S_injective n x y Hs)))
+             (rec y))
+         n
+         y
+         x
+         rec)
   .
