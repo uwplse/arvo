@@ -267,7 +267,11 @@ term* normalize_fuel_elim(context *Sigma, typing_context* Delta, term* t, int fu
 }
 
 term* normalize_fuel_intro(context *Sigma, typing_context* Delta, term* t, int fuel) {
-  term* ans = make_intro(variable_dup(t->var), term_dup(t->left), t->num_args, t->num_params, t->num_indices);
+  term* ans = make_intro(variable_dup(t->var),
+                         normalize_fuel(Sigma, Delta, t->left, fuel-1),
+                         t->num_args,
+                         t->num_params,
+                         t->num_indices);
   int i;
   for (i = 0; i < t->num_indices; i++) {
     ans->indices[i] = normalize_fuel(Sigma, Delta, t->indices[i], fuel-1);
