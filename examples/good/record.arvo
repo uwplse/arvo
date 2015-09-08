@@ -1,0 +1,25 @@
+record unit := { }.
+check unit.
+check unit_intro.
+check unit_elim.
+
+record id (A : Type) := { id_out : A }.
+check id.
+check id_intro.
+check id_elim.
+check id_out.
+
+
+record prod (A : Type) (B : Type) := { fst : A ; snd : B }.
+check prod.
+check prod_intro.
+check prod_elim.
+check fst.
+check snd.
+
+record sigma (A : Type) (B : A -> Type) := { sig_fst : A; sig_snd : B sig_fst }.
+check sigma.
+check sigma_intro.
+check sigma_elim.
+check sig_fst.
+check sig_snd.

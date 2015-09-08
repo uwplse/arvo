@@ -58,7 +58,7 @@
   (save-excursion (search-forward s (line-end-position) 't)))
 
 (defconst arvo-font-lock-keywords
-  '(("\\<\\(def\\|axiom\\|import\\|print\\|check\\|simpl\\|data\\)\\>" . font-lock-keyword-face)
+  '(("\\<\\(def\\|axiom\\|import\\|print\\|check\\|simpl\\|data\\|record\\)\\>" . font-lock-keyword-face)
     ("\\<Type\\>" . font-lock-type-face)
     ("\\<def\\>" "\\<\\(\\w+\\)\\>" (position-of-string ":") nil (1 font-lock-function-name-face))
     ("\\\\" "\\<\\w+\\>" (let ((pd (position-of-string "."))

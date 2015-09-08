@@ -10,6 +10,7 @@ typedef enum command_tag {
   CHECK,
   SIMPL,
   DATA,
+  RECORD,
   AXIOM,
   IMPORT
 } command_tag;
@@ -24,6 +25,10 @@ typedef struct command {
   int num_params;
   variable** param_names;
   term** param_types;
+  int num_fields;
+  variable** field_names;
+  term** field_types;
+
   term* indices;  // pi-type returning Type
 } command;
 
@@ -35,6 +40,7 @@ command *make_print(variable *t);
 command *make_check(term *t);
 command *make_simpl(term *t);
 command *make_data(variable* name, int num_constructors, int num_params);
+command *make_record(variable* name, int num_fields, int num_params);
 command *make_axiom(variable* name, term* ty);
 command *make_import(variable* name);
 

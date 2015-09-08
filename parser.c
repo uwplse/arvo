@@ -198,6 +198,37 @@ command *ast_to_command(mpc_ast_t *ast) {
       data->indices = make_type();
     }
     return data;
+  } else if (prefix("record", ast->tag)) {
+    int num_fields = 0;
+    int num_params = 0;
+    int i;
+
+    for (i=0; i < ast->children_num; i++) {
+      if (prefix("field", ast->children[i]->tag)) {
+        num_fields++;
+      } else if (prefix("param", ast->children[i]->tag)) {
+        num_params++;
+      }
+    }
+    command* record = make_record(make_variable(strdup(ast->children[1]->contents)), num_fields, num_params);
+    int i_field = 0;
+    int i_param = 0;
+    for (i=0; i < ast->children_num; i++) {
+      mpc_ast_t *child = ast->children[i];
+      if (prefix("field", child->tag)) {
+        check(child->children_num == 3, "malformed field node");
+        record->field_names[i_field] = make_variable(strdup(child->children[0]->contents));
+        record->field_types[i_field] = ast_to_term(child->children[2]);
+        i_field++;
+      } else if (prefix("param", child->tag)) {
+        check(ast->children[i]->children_num == 5, "malformed param node");
+        record->param_names[i_param] = make_variable(strdup(child->children[1]->contents));
+        record->param_types[i_param] = ast_to_term(child->children[3]);
+        i_param++;
+      }
+    }
+
+    return record;
   } else {
     sentinel("unknown tag %s", ast->tag);
   }
@@ -226,6 +257,8 @@ static mpc_parser_t* pConstructor;
 static mpc_parser_t* pParam;
 static mpc_parser_t* pIndices;
 static mpc_parser_t* pData;
+static mpc_parser_t* pField;
+static mpc_parser_t* pRecord;
 static mpc_parser_t* pCommand;
 static mpc_parser_t* pSep;
 static mpc_parser_t* pProgram;
@@ -255,13 +288,15 @@ void initialize_arvo_parsers() {
   pParam       = mpc_new("param");
   pIndices     = mpc_new("indices");
   pData        = mpc_new("data");
+  pField       = mpc_new("field");
+  pRecord      = mpc_new("record");
   pCommand     = mpc_new("command");
   pProgram     = mpc_new("program");
   pSep         = mpc_new("sep");
 
 #define PARSERS pComment, pVar, pHole, pBound, pType, pBase, pApp, pExpr, pFactor, \
                 pLambda, pTerm, pDef, pAxiom, pImport, pPrint, pCheck, pSimpl, \
-                pConstructor, pParam, pIndices, pData, pCommand, pProgram, pSep
+                pConstructor, pParam, pIndices, pData, pField, pRecord, pCommand, pProgram, pSep
 
   mpc_err_t* err =
     mpca_lang(MPCA_LANG_DEFAULT,
@@ -287,7 +322,9 @@ void initialize_arvo_parsers() {
               " param  : '(' <var> ':' <term> ')' ;\n"
               " indices : ':' <term> ; \n"
               " data    : \"data\" <var> <param>* <indices>?  \":=\" <constructor>? ('|' <constructor>)*  ;\n"
-              " command : /^/ (<def> | <print> | <check> | <simpl> | <data> | <axiom> | <import> | <comment>) ;\n"
+              " field   : <var> ':' <term> ; \n"
+              " record  : \"record\" <var> <param>* \":=\" '{' <field>? (';' <field>)* '}' ; \n"
+              " command : /^/ (<def> | <print> | <check> | <simpl> | <data> | <record> | <axiom> | <import> | <comment>) ;\n"
               " sep     : '.' ; \n"
               " program  : /^/ <command> * /$/ ;\n",
               PARSERS, NULL);
