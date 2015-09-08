@@ -271,6 +271,7 @@ int is_free(variable *var, term *haystack) {
       } while (0)
 
       IS_FREE_VEC(haystack->num_params, haystack->params);
+      IS_FREE_VEC(haystack->num_indices, haystack->indices);
       return 0;
     }
   case INTRO:
