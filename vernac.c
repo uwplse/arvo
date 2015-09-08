@@ -41,7 +41,11 @@ int print_command(FILE* stream, command* c) {
     for (i = 0; i < c->num_params; i++) {
       ans += fprintf(stream, "(%W : %W) ", c->param_names[i], print_variable, c->param_types[i], print_term);
     }
-    ans += fprintf(stream, ":= <declaration>.");
+    ans += fprintf(stream, ":=");
+    for (i = 0; i < c->num_args; i++) {
+      ans += fprintf(stream, "\n| %W : %W", c->args[i], print_term, c->args[i]->left, print_term);
+    }
+
     return ans;
   }
   default:
