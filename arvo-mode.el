@@ -46,6 +46,7 @@
     (define-key map (kbd "C-c RET") 'arvo-send-buffer-up-to-point)
     (define-key map (kbd "C-c C-t") 'arvo-type-of-term)
     (define-key map (kbd "C-c C-n") 'arvo-normalize-term)
+    (define-key map (kbd "C-c C-p") 'arvo-print-term)
     map)
   "Keymap for Arvo major mode")
 
@@ -149,6 +150,13 @@
    (let ((w (thing-at-point 'word t)))
      (list (read-string (format "Term (default %s): " w) nil nil w))))
   (arvo-send-command-and-message "simpl" s))
+
+(defun arvo-print-term (s)
+  (interactive
+   (let ((w (thing-at-point 'word t)))
+     (list (read-string (format "Term (default %s): " w) nil nil w))))
+  (arvo-send-command-and-message "print" s))
+
 
 (defun arvo-send-range (beginning end)
   (arvo-send-string (buffer-substring-no-properties beginning end)))
