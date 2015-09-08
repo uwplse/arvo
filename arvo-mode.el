@@ -44,6 +44,7 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-c") 'arvo-send-command-under-point)
     (define-key map (kbd "C-c RET") 'arvo-send-buffer-up-to-point)
+    (define-key map (kbd "C-c <C-return>") 'arvo-send-buffer-up-to-point)
     (define-key map (kbd "C-c C-t") 'arvo-type-of-term)
     (define-key map (kbd "C-c C-n") 'arvo-normalize-term)
     (define-key map (kbd "C-c C-p") 'arvo-print-term)
