@@ -69,3 +69,12 @@ def index : (A : Type) -> (n : nat) -> fin n -> vec A n -> A :=
       (vec_head A)
       (\n. \x. \rec : vec A n -> A. \v. rec (vec_tail A n v))
   .
+
+def vec_app : (A : Type) -> (n : nat) -> vec A n -> (m : nat) -> vec A m -> vec A (plus n m) :=
+  \A. \n. \u. \m. \v.
+    vec_elim A (\z. \w. vec A (plus z m))
+      v
+      (\n. \a. \_. \rec. vec_cons A (plus n m) a rec)
+      n
+      u
+  .
