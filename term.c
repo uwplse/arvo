@@ -381,7 +381,11 @@ term* substitute(variable* from, term* to, term* haystack) {
 
   case INTRO:
     {
-      term* ans = make_intro(variable_dup(haystack->var), term_dup(haystack->left), haystack->num_args, haystack->num_params, haystack->num_indices);
+      term* ans = make_intro(variable_dup(haystack->var),
+                             substitute(from, to, haystack->left),
+                             haystack->num_args,
+                             haystack->num_params,
+                             haystack->num_indices);
 
       SUB_VEC(ans->args, haystack->args, haystack->num_args);
       SUB_VEC(ans->params, haystack->params, haystack->num_params);
