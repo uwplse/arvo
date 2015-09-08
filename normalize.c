@@ -40,7 +40,7 @@ term* whnf_no_unfold(context *Sigma, typing_context* Delta, term* t) {
       free_term(c->args[c->num_args - 1]);
       c->args[c->num_args - 1] = nlast;
       if (nlast->tag == INTRO) {
-        return elim_over_intro(Delta, c);
+        return whnf_no_unfold_and_free(Sigma, Delta, elim_over_intro(Delta, c));
       } else {
         return c;
       }
@@ -94,7 +94,7 @@ term* whnf(context *Sigma, typing_context* Delta, term* t) {
       free_term(c->args[c->num_args - 1]);
       c->args[c->num_args - 1] = nlast;
       if (nlast->tag == INTRO) {
-        return elim_over_intro(Delta, c);
+        return whnf_and_free(Sigma, Delta, elim_over_intro(Delta, c));
       } else {
         return c;
       }
