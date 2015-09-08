@@ -18,8 +18,6 @@ def plus_O_n : (n : nat) -> eq nat (plus O n) n :=
 
 check subst.
 
-axiom admit : (A : Type) -> A.
-
 check nat_elim.
 
 def plus_n_O : (n : nat) -> eq nat (plus n O) n :=
@@ -179,3 +177,44 @@ def eqb_nat_sound : (n m : nat) -> eq bool (eqb_nat n m) true -> eq nat n m :=
                                f_equal nat nat S x p (IH p H))
                              m)
              n.
+
+def pred : nat -> nat :=
+  nat_elim (\_. nat)
+    O
+    (\n. \_. n)
+  .
+
+
+def S_inj : (n m : nat) -> eq nat (S n) (S m) -> eq nat n m :=
+  \n. \m. \H.
+    f_equal nat nat pred (S n) (S m) H
+  .
+
+
+def plus_inj_l : (a b c : nat) -> eq nat (plus a b) (plus a c) -> eq nat b c :=
+  \a. \b. \c.
+    nat_elim (\z. eq nat (plus z b) (plus z c) -> eq nat b c)
+      (\H. H)
+      (\n. \IHn. \H. IHn (S_inj (plus n b) (plus n c) H))
+    a
+  .
+
+def plus_inj_r : (a b c : nat) -> eq nat (plus a c) (plus b c) -> eq nat a b :=
+  \a. \b. \c. \H.
+    plus_inj_l c a b
+      (eq_trans nat (plus c a) (plus a c) (plus c b)
+        (plus_comm c a)
+        (eq_trans nat (plus a c) (plus b c) (plus c b)
+          H
+          (plus_comm b c)))
+  .
+
+def leb : nat -> nat -> bool :=
+  nat_elim (\_. nat -> bool)
+    (\_. true)
+    (\n. \rec.
+      nat_elim (\_. bool)
+        false
+        (\m. \_. rec m))
+  .
+
