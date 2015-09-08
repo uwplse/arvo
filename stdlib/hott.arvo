@@ -1,13 +1,413 @@
-import equality.
+import prelude.
 
-def eq_sym_invol : (A : Type) -> (a b : A) -> (p : eq A a b) ->
-                   eq
-                     (eq A a b)
-                     (eq_sym A b a (eq_sym A a b p))
+@redefined for better names and underlying induction principle@
+data eq (A : Type) : A -> A -> Type :=
+| refl : (a : A) -> eq A a a.
+
+def ind : (A : Type) -> (P : (a b : A) -> eq A a b -> Type) ->
+          ((a : A) -> P a a (refl A a)) ->
+          (a b : A) -> (p : eq A a b) ->
+          P a b p :=
+  \A. \P. \x.
+    eq_elim A P x
+  .
+
+@Lemma 2.1.1@
+def sym : (A : Type) -> (a b : A) ->
+          eq A a b -> eq A b a :=
+  \A.
+    ind A (\x. \y. \z. eq A y x)
+      (\a. refl A a)
+  .
+
+@Lemma 2.1.2@
+def trans : (A : Type) -> (a b c : A) ->
+            eq A a b -> eq A b c -> eq A a c :=
+  \A. \a. \b. \c.
+    ind A (\x. \y. \_. eq A y c -> eq A x c)
+      (\a. \H. H)
+      a
+      b
+  .
+
+
+@Lemma 2.1.4(i) first part@
+def trans_refl_r : (A : Type) -> (a b : A) ->
+                   (p : eq A a b) ->
+                   eq (eq A a b)
+                     (trans A a b b p (refl A b))
+                     p :=
+  \A.
+    ind A
+      (\x. \y. \z.
+        eq (eq A x y)
+          (trans A x y y z (refl A y))
+          z)
+      (\a. refl (eq A a a) (refl A a))
+  .
+
+@Lemma 2.1.4(i) second part@
+def trans_refl_l : (A : Type) -> (a b : A) ->
+                   (p : eq A a b) ->
+                   eq (eq A a b)
+                     (trans A a a b (refl A a) p)
                      p :=
   \A. \a. \b. \p.
-    eq_elim A a (\y. \z. eq (eq A a y) (eq_sym A y a (eq_sym A a y z)) z)
-      (refl (eq A a a) (refl A a))
+    refl (eq A a b) p.
+
+@Lemma 2.1.4(ii) first part@
+def back_and_there_again : (A : Type) -> (a b : A) ->
+                           (p : eq A a b) ->
+                           eq (eq A b b)
+                             (trans A b a b (sym A a b p) p)
+                             (refl A b) :=
+  \A.
+    ind A
+      (\x. \y. \z.
+        eq (eq A y y)
+          (trans A y x y (sym A x y z) z)
+          (refl A y))
+      (\a. refl (eq A a a) (refl A a))
+  .
+
+@Lemma 2.1.4(ii) second part@
+def there_and_back_again : (A : Type) -> (a b : A) ->
+                           (p : eq A a b) ->
+                           eq (eq A a a)
+                             (trans A a b a p (sym A a b p))
+                             (refl A a) :=
+  \A.
+    ind A
+      (\x. \y. \z.
+        eq (eq A x x)
+          (trans A x y x z (sym A x y z))
+          (refl A x))
+      (\a. refl (eq A a a) (refl A a))
+  .
+
+@Lemma 2.1.4(iii)@
+def sym_involutive :
+    (A : Type) -> (a b : A) ->
+    (p : eq A a b) ->
+    eq (eq A a b)
+      (sym A b a (sym A a b p))
+      p :=
+  \A.
+    ind A
+      (\x. \y. \z.
+        eq (eq A x y)
+          (sym A y x (sym A x y z))
+          z)
+    (\a. refl (eq A a a) (refl A a))
+  .
+
+@Lemma 2.1.4(iv)@
+def trans_assoc :
+    (A : Type) -> (a b c d : A) ->
+    (p : eq A a b) -> (q : eq A b c) -> (r : eq A c d) ->
+    eq (eq A a d)
+      (trans A a b d p (trans A b c d q r))
+      (trans A a c d (trans A a b c p q) r) :=
+  \A. \a. \b. \c. \d. \p. \q. \r.
+    ind A
+      (\x. \y. \z.
+        (q : eq A y c) ->
+        eq (eq A x d)
+          (trans A x y d z (trans A y c d q r))
+          (trans A x c d (trans A x y c z q) r))
+      (\a. \q. refl (eq A a d) (trans A a c d q r))
+      a
       b
       p
+      q
+  .
+
+@-----------@
+def loops : (A : Type) -> (a : A) -> Type :=
+  \A. \a.
+    eq A a a
+  .
+
+def loop_dot : (A : Type) -> (a : A) ->
+                        loops A a ->
+                        loops A a ->
+                        loops A a :=
+  \A. \a. \p. \q.
+    trans A a a a p q
+  .
+
+def whisker_r : (A : Type) -> (a b c : A) ->
+                (p q : eq A a b) ->
+                (alpha : eq (eq A a b) p q) ->
+                (r : eq A b c) ->
+                eq (eq A a c)
+                  (trans A a b c p r)
+                  (trans A a b c q r) :=
+  \A. \a. \b. \c. \p. \q. \alpha. \r.
+    ind A
+      (\x. \y. \z.
+        (p q : eq A a x) ->
+        (alpha : eq (eq A a x) p q) ->
+        eq (eq A a y)
+          (trans A a x y p z)
+          (trans A a x y q z))
+      (\x. \p. \q. \alpha.
+        trans (eq A a x)
+          (trans A a x x p (refl A x))
+          p
+          (trans A a x x q (refl A x))
+          (trans_refl_r A a x p)
+          (trans (eq A a x)
+            p
+            q
+            (trans A a x x q (refl A x))
+            alpha
+            (sym (eq A a x) (trans A a x x q (refl A x)) q
+              (trans_refl_r A a x q))))
+      b
+      c
+      r
+      p
+      q
+      alpha
+  .
+
+def whisker_l : (A : Type) -> (a b c : A) ->
+                (q : eq A a b) ->
+                (r s : eq A b c) ->
+                (beta : eq (eq A b c) r s) ->
+                eq (eq A a c)
+                  (trans A a b c q r)
+                  (trans A a b c q s) :=
+  \A. \a. \b. \c.
+    ind A
+      (\x. \y. \z.
+        (r s : eq A y c) ->
+        (beta : eq (eq A y c) r s) ->
+        eq (eq A x c)
+          (trans A x y c z r)
+          (trans A x y c z s))
+      (\x. \r. \s. \beta. beta)
+      a
+      b
+  .
+
+def horizontal_composition : (A : Type) -> (a b c : A) ->
+                             (p q : eq A a b) ->
+                             (alpha : eq (eq A a b) p q) ->
+                             (r s : eq A b c) ->
+                             (beta : eq (eq A b c) r s) ->
+                             eq (eq A a c)
+                               (trans A a b c p r)
+                               (trans A a b c q s) :=
+  \A. \a. \b. \c. \p. \q. \alpha. \r. \s. \beta.
+    trans (eq A a c)
+      (trans A a b c p r)
+      (trans A a b c q r)
+      (trans A a b c q s)
+      (whisker_r A a b c p q alpha r)
+      (whisker_l A a b c q r s beta)
+  .
+
+def ind_based : (A : Type) -> (a : A) -> (P : (b : A) -> eq A a b -> Type) ->
+                P a (refl A a) ->
+                (b : A) -> (pf : eq A a b) -> P b pf :=
+  \A. \a. \P. \x. \b. \pf.
+    ind A
+      (\x. \y. \z. (P : (b : A) -> eq A x b -> Type) ->
+                   P x (refl A x) ->
+                   P y z)
+      (\a. \P. \x. x)
+      a
+      b
+      pf
+      P
+      x
+  .
+
+def subst : (A : Type) -> (a : A) -> (P : (b : A) -> Type) ->
+            P a ->
+            (b : A) ->
+            eq A a b ->
+            P b :=
+  \A. \a. \P.
+   ind_based A a (\b. \_. P b)
+  .
+
+def rewrite : (A : Type) -> (a : A) -> (P : (b : A) -> Type) ->
+              P a ->
+              (b : A) ->
+              eq A b a ->
+              P b :=
+  \A. \a. \P. \x. \b. \pf.
+    subst A a P x b (sym A b a pf)
+  .
+
+def loop_dot_refl_r : (A : Type) -> (a : A) -> (p : loops A a) ->
+                      eq (loops A a) (loop_dot A a p (refl A a)) p :=
+  \A. \a. \p.
+    trans_refl_r A a a p
+  .
+
+def horizontal_composition_is_composition :
+    (A : Type) -> (a : A) ->
+    (alpha beta : loops (loops A a) (refl A a)) ->
+    eq (loops (loops A a) (refl A a))
+      (horizontal_composition A a a a (refl A a) (refl A a) alpha (refl A a) (refl A a) beta)
+      (loop_dot (loops A a) (refl A a) alpha beta) :=
+  \A. \a. \alpha. \beta.
+    rewrite (loops (loops A a) (refl A a)) alpha
+      (\z. eq (loops (loops A a) (refl A a))
+             (loop_dot (loops A a) (refl A a)
+               z
+               beta)
+             (loop_dot (loops A a) (refl A a) alpha beta))
+      (refl (loops (loops A a) (refl A a)) (loop_dot (loops A a) (refl A a) alpha beta))
+      (loop_dot (loops A a) (refl A a)
+                   alpha
+                   (refl (eq A a a) (refl A a)))
+      (loop_dot_refl_r (loops A a) (refl A a) alpha)
+  .
+
+def horizontal_composition' : (A : Type) -> (a b c : A) ->
+                              (p q : eq A a b) ->
+                              (alpha : eq (eq A a b) p q) ->
+                              (r s : eq A b c) ->
+                              (beta : eq (eq A b c) r s) ->
+                              eq (eq A a c)
+                                (trans A a b c p r)
+                                (trans A a b c q s) :=
+  \A. \a. \b. \c. \p. \q. \alpha. \r. \s. \beta.
+    trans (eq A a c)
+      (trans A a b c p r)
+      (trans A a b c p s)
+      (trans A a b c q s)
+      (whisker_l A a b c p r s beta)
+      (whisker_r A a b c p q alpha s)
+  .
+
+
+def horizontal_composition'_is_other_composition :
+    (A : Type) -> (a : A) ->
+    (alpha beta : loops (loops A a) (refl A a)) ->
+    eq (loops (loops A a) (refl A a))
+      (horizontal_composition' A a a a (refl A a) (refl A a) alpha (refl A a) (refl A a) beta)
+      (loop_dot (loops A a) (refl A a) beta alpha) :=
+  \A. \a. \alpha. \beta.
+    rewrite (loops (loops A a) (refl A a))
+      alpha
+      (\z.
+        eq (loops (loops A a) (refl A a))
+          (loop_dot (loops A a) (refl A a)
+            beta
+            z)
+          (loop_dot (loops A a) (refl A a) beta alpha))
+      (refl (loops (loops A a) (refl A a)) (loop_dot (loops A a) (refl A a) beta alpha))
+      (loop_dot (eq A a a) (refl A a)
+                alpha
+                (refl (eq A a a) (refl A a)))
+      (loop_dot_refl_r (loops A a) (refl A a) alpha)
+  .
+
+
+def horizontal_compositions_agree :
+    (A : Type) -> (a b c : A) ->
+    (p q : eq A a b) -> (alpha : eq (eq A a b) p q) ->
+    (r s : eq A b c) -> (beta : eq (eq A b c) r s) ->
+    eq (eq (eq A a c) (trans A a b c p r) (trans A a b c q s))
+      (horizontal_composition A a b c p q alpha r s beta)
+      (horizontal_composition' A a b c p q alpha r s beta) :=
+  \A. \a. \b. \c.
+    ind (eq A a b)
+     (\x. \y. \z.
+      (r s : eq A b c) -> (beta : eq (eq A b c) r s) ->
+      eq (eq (eq A a c) (trans A a b c x r) (trans A a b c y s))
+       (horizontal_composition A a b c x y z r s beta)
+       (horizontal_composition' A a b c x y z r s beta))
+     (\p : eq A a b.
+      ind (eq A b c)
+       (\x. \y. \z.
+        eq (eq (eq A a c) (trans A a b c p x) (trans A a b c p y))
+          (horizontal_composition A a b c p p (refl (eq A a b) p) x y z)
+          (horizontal_composition' A a b c p p (refl (eq A a b) p) x y z))
+       (\r : eq A b c.
+        ind A
+         (\x. \y. \z.
+          (r : eq A y c) ->
+          eq (eq (eq A x c) (trans A x y c z r) (trans A x y c z r))
+           (horizontal_composition A x y c z z (refl (eq A x y) z) r r (refl (eq A y c) r))
+           (horizontal_composition' A x y c z z (refl (eq A x y) z) r r (refl (eq A y c) r)))
+         (\a. \r : eq A a c.
+          ind A
+           (\x. \y. \z.
+             eq (eq (eq A x y) (trans A x x y (refl A x) z) (trans A x x y (refl A x) z))
+               (horizontal_composition A x x y (refl A x) (refl A x) (refl (eq A x x) (refl A x)) z z (refl (eq A x y) z))
+               (horizontal_composition' A x x y (refl A x) (refl A x) (refl (eq A x x) (refl A x)) z z (refl (eq A x y) z)))
+           (\a.
+             refl (eq (eq A a a) (refl A a) (refl A a))
+               (refl (eq A a a) (refl A a)))
+           a
+           c
+           r)
+
+         a
+         b
+         p
+         r))
+  .
+
+
+@Theorem 2.6.1@
+def eckmann_hilton : (A : Type) -> (a : A) ->
+                     (alpha beta : loops (loops A a) (refl A a)) ->
+                     eq (loops (loops A a) (refl A a))
+                       (loop_dot (loops A a) (refl A a) alpha beta)
+                       (loop_dot (loops A a) (refl A a) beta alpha) :=
+  \A. \a. \alpha. \beta.
+    trans (loops (loops A a) (refl A a))
+      (loop_dot (loops A a) (refl A a) alpha beta)
+      (horizontal_composition A a a a (refl A a) (refl A a) alpha (refl A a) (refl A a) beta)
+      (loop_dot (loops A a) (refl A a) beta alpha)
+      (sym (loops (loops A a) (refl A a))
+        (horizontal_composition A a a a (refl A a) (refl A a) alpha (refl A a) (refl A a) beta)
+        (loop_dot (loops A a) (refl A a) alpha beta)
+        (horizontal_composition_is_composition A a alpha beta))
+      (trans (loops (loops A a) (refl A a))
+        (horizontal_composition A a a a (refl A a) (refl A a) alpha (refl A a) (refl A a) beta)
+        (horizontal_composition' A a a a (refl A a) (refl A a) alpha (refl A a) (refl A a) beta)
+        (loop_dot (loops A a) (refl A a) beta alpha)
+        (horizontal_compositions_agree A a a a (refl A a) (refl A a) alpha (refl A a) (refl A a) beta)
+        (horizontal_composition'_is_other_composition A a alpha beta))
+  .
+
+@----------@
+
+@Lemma 2.2.1@
+def ap : (A B : Type) -> (f : A -> B) -> (x y : A) -> eq A x y -> eq B (f x) (f y) :=
+  \A. \B. \f.
+    ind A
+      (\x. \y. \z. eq B (f x) (f y))
+      (\a. refl B (f a))
+  .
+
+@Lemma 2.2.2 part (i)@
+def ap_over_transport : (A B : Type) -> (f : A -> B) ->
+                        (x y z: A) -> (p : eq A x y) -> (q : eq A y z) ->
+                        eq (eq B (f x) (f z))
+                          (ap A B f x z (trans A x y z p q))
+                          (trans B (f x) (f y) (f z)
+                            (ap A B f x y p)
+                            (ap A B f y z q)) :=
+  \A. \B. \f. \x. \y. \z.
+    ind A
+      (\x'. \y'. \p'.
+        (q : eq A y' z) ->
+        eq (eq B (f x') (f z))
+          (ap A B f x' z (trans A x' y' z p' q))
+          (trans B (f x') (f y') (f z)
+            (ap A B f x' y' p')
+            (ap A B f y' z q)))
+      (\a. \q. refl (eq B (f a) (f z)) (ap A B f a z q))
+      x
+      y
   .
