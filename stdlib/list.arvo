@@ -807,6 +807,19 @@ def sort_perm : (A : Type) -> (le : A -> A -> bool) -> (l : list A) ->
           (insert_perm A le h t)
           (insert_preserves_perm A le h t (sort A le t) IHt))
   .
+
+def nth_default : (A : Type) -> nat -> A -> list A -> A :=
+  \A. \n. \x. \l.
+    list_elim A (\_. nat -> A)
+      (\_. x)
+      (\h. \t. \rec : nat -> A.
+        nat_elim (\_. A)
+          h
+          (\n. \_. rec n))
+      l
+      n
+  .
+
 def perm_of_nil_help :
     (A : Type) -> (xs ys : list A) ->
     perm A xs ys ->
