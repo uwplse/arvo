@@ -48,6 +48,26 @@ int print_command(FILE* stream, command* c) {
 
     return ans;
   }
+  case RECORD: {
+    int ans = fprintf(stream, "record %W ", c->var, print_variable);
+    int i;
+    for (i = 0; i < c->num_params; i++) {
+      ans += fprintf(stream, "(%W : %W) ", c->param_names[i], print_variable, c->param_types[i], print_term);
+    }
+    ans += fprintf(stream, ":= { ");
+
+    int started = 0;
+    for (i = 0; i < c->num_fields; i++) {
+      if (started) {
+        ans += fprintf(stream, "; ");
+      }
+      started = 1;
+      ans += fprintf(stream, "%W : %W ", c->field_names[i], print_variable, c->field_types[i], print_term);
+    }
+
+    ans += fprintf(stream, "}.");
+    return ans;
+  }
   default:
     return fprintf(stream, "<command>");
   }
@@ -537,6 +557,116 @@ static void vernac_run_data(command *c) {
   printf("added datatype %W\n", T->name, print_variable);
 }
 
+static void vernac_run_record(command *c) {
+  command* data = make_data(variable_dup(c->var), 1, c->num_params);
+  data->args[0] = NULL;
+
+  int i;
+  for (i = 0; i < c->num_params; i++) {
+    data->param_names[i] = variable_dup(c->param_names[i]);
+    data->param_types[i] = term_dup(c->param_types[i]);
+  }
+
+  term* return_type = make_var(variable_dup(c->var));
+  for (i = 0; i < c->num_params; i++) {
+    return_type = make_app(return_type, make_var(variable_dup(c->param_names[i])));
+  }
+
+  term* constructor_type = term_dup(return_type);
+
+  for (i = c->num_fields - 1; i >= 0; i--) {
+    constructor_type = make_pi(variable_dup(c->field_names[i]),
+                               term_dup(c->field_types[i]),
+                               constructor_type);
+  }
+
+
+  char* name;
+  asprintf(&name, "%s_intro", c->var->name);
+
+  data->args[0] = make_var(make_variable(name));
+  data->args[0]->left = constructor_type;
+
+  data->indices = make_type();
+
+
+  vernac_run(data);
+  free_command(data);
+
+  char* elim_name;
+  asprintf(&elim_name, "%s_elim", c->var->name);
+  term* elim = make_var(make_variable(elim_name));
+
+  for (i = 0; i < c->num_params; i++) {
+    elim = make_app(elim, make_var(variable_dup(c->param_names[i])));
+  }
+
+  for (i = 0; i < c->num_fields; i++) {
+    term* export_field_type = term_dup(c->field_types[i]);
+
+    variable* z = gensym("z");
+
+    int j;
+    for (j = i - 1; j >= 0; j--) {
+      term* dst = make_var(variable_dup(c->field_names[j]));
+      int k;
+      for (k = 0; k < c->num_params; k++) {
+        dst = make_app(dst, make_var(variable_dup(c->param_names[k])));
+      }
+      dst = make_app(dst, make_var(variable_dup(z)));
+      term* tmp = export_field_type;
+      export_field_type = substitute(c->field_names[j], dst, export_field_type);
+      free_term(tmp);
+      tmp = NULL;
+      free_term(dst);
+      dst = NULL;
+    }
+
+    term* def_type = make_pi(variable_dup(z),
+                             term_dup(return_type),
+                             term_dup(export_field_type));
+
+    term* def_term = make_app(term_dup(elim),
+                              make_lambda(z,
+                                          term_dup(return_type),
+                                          export_field_type));
+
+    term* base_case = make_var(variable_dup(c->field_names[i]));
+    for (j = c->num_fields - 1; j >= 0; j--) {
+      base_case = make_lambda(variable_dup(c->field_names[j]),
+                              term_dup(c->field_types[j]),
+                              base_case);
+    }
+
+    def_term = make_app(def_term, base_case);
+
+    variable* x = gensym("x");
+    def_term = make_app(def_term, make_var(variable_dup(x)));
+    def_term = make_lambda(x, term_dup(return_type), def_term);
+
+
+    for (j = c->num_params - 1; j >= 0; j--) {
+      def_type = make_pi(variable_dup(c->param_names[j]),
+                         term_dup(c->param_types[j]),
+                         def_type);
+      def_term = make_lambda(variable_dup(c->param_names[j]),
+                             term_dup(c->param_types[j]),
+                             def_term);
+    }
+
+    command* def = make_def(variable_dup(c->field_names[i]),
+                            def_type, def_term);
+    vernac_run(def);
+    free_command(def);
+  }
+
+  free_term(return_type);
+  return_type = NULL;
+
+  free_term(elim);
+  elim = NULL;
+}
+
 void vernac_run(command *c) {
   switch (c->tag) {
   case DEF:
@@ -560,6 +690,9 @@ void vernac_run(command *c) {
       vernac_run_data(c);
       break;
     }
+  case RECORD:
+    vernac_run_record(c);
+    break;
   case AXIOM:
     {
       term* Type = make_type();
@@ -601,6 +734,9 @@ static command* make_command() {
   ans->param_names = NULL;
   ans->param_types = NULL;
   ans->indices = NULL;
+  ans->num_fields = 0;
+  ans->field_names = NULL;
+  ans->field_types = NULL;
   return ans;
 }
 
@@ -629,8 +765,22 @@ void free_command(command* c) {
   free(c->param_types);
   c->param_types = NULL;
   free(c->param_names);
+  c->param_names = NULL;
+
   free_term(c->indices);
   c->indices = NULL;
+
+  for (i = 0; i < c->num_fields; i++) {
+    free_term(c->field_types[i]);
+    c->field_types[i] = NULL;
+    free_variable(c->field_names[i]);
+    c->field_names[i] = NULL;
+  }
+  free(c->field_types);
+  c->field_types = NULL;
+  free(c->field_names);
+  c->field_names = NULL;
+
   free(c);
 }
 
@@ -672,6 +822,19 @@ command *make_data(variable* name, int num_constructors, int num_params) {
   ans->num_params = num_params;
   ans->param_names = malloc(num_params * sizeof(variable*));
   ans->param_types = malloc(num_params * sizeof(term*));
+  return ans;
+}
+
+command *make_record(variable* name, int num_fields, int num_params) {
+  command* ans = make_command();
+  ans->tag = RECORD;
+  ans->var = name;
+  ans->num_fields = num_fields;
+  ans->field_names = calloc(num_fields, sizeof(variable*));
+  ans->field_types = calloc(num_fields, sizeof(term*));
+  ans->num_params = num_params;
+  ans->param_names = calloc(num_params, sizeof(variable*));
+  ans->param_types = calloc(num_params, sizeof(term*));
   return ans;
 }
 
