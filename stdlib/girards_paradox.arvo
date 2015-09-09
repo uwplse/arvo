@@ -4,29 +4,12 @@ import sig.
 
 def rel : Type -> Type := \A. A -> A -> Type.
 
-data ordering :=
-  mkOrdering : (A : Type) -> (lt : rel A) ->
-               ((x y z : A) -> lt x y -> lt y z -> lt x z) ->
-               ((f : nat -> A) -> ((n : nat) -> lt (f (S n)) (f n)) -> False) ->
-               ordering.
-
-def carrier : ordering -> Type :=
-  ordering_elim (\_. Type) (\A. \_. \_. \_. A).
-
-def lt : (o : ordering) -> rel (carrier o) :=
-  \o. ordering_elim (\z. rel (carrier z)) (\_. \lt. \_. \_. lt) o.
-
-def transitive :
-    (o : ordering) ->
-    (x y z : carrier o) -> lt o x y -> lt o y z -> lt o x z :=
-  \o. ordering_elim (\w. (x y z : carrier w) -> lt w x y -> lt w y z -> lt w x z)
-                    (\_. \_. \t. \_. t) o.
-
-def noChains :
-    (o : ordering) ->
-    ((f : nat -> carrier o) -> ((n : nat) -> lt o (f (S n)) (f n)) -> False) :=
-  \o. ordering_elim (\w. (f : nat -> carrier w) -> ((n : nat) -> lt w (f (S n)) (f n)) -> False)
-                    (\_. \_. \_. \nc. nc) o.
+record ordering := {
+    carrier : Type ;
+    lt : rel carrier ;
+    transitive : (x y z : carrier) -> lt x y -> lt y z -> lt x z ;
+    noChains : (f : nat -> carrier) -> ((n : nat) -> lt (f (S n)) (f n)) -> False
+  }.
 
 def irreflexive :
     (o : ordering) ->
@@ -36,34 +19,12 @@ def irreflexive :
   \o. \a. \H.
    noChains o (\_. a) (\_. H).
 
-data orderingLe (o1 : ordering) (o2 : ordering) :=
-  mkOrderingLe :
-    (map : carrier o1 -> carrier o2) ->
-    (max : carrier o2) ->
-    ((x y : carrier o1) -> lt o1 x y -> lt o2 (map x) (map y)) ->
-    ((x : carrier o1) -> lt o2 (map x) max) ->
-    orderingLe o1 o2.
-
-def map : (o1 o2 : ordering) -> orderingLe o1 o2 -> carrier o1 -> carrier o2 :=
-  \o1. \o2.
-    orderingLe_elim o1 o2 (\_. carrier o1 -> carrier o2)
-      (\map. \_. \_. \_. map).
-
-def max : (o1 o2 : ordering) -> orderingLe o1 o2 -> carrier o2 :=
-  \o1. \o2.
-    orderingLe_elim o1 o2 (\_. carrier o2)
-      (\_. \max. \_. \_. max).
-
-def mapOk : (o1 o2 : ordering) -> (ole : orderingLe o1 o2) -> (x y : carrier o1) -> lt o1 x y -> lt o2 (map o1 o2 ole x) (map o1 o2 ole y) :=
-  \o1. \o2. \ole.
-    orderingLe_elim o1 o2 (\z. (x y : carrier o1) -> lt o1 x y -> lt o2 (map o1 o2 z x) (map o1 o2 z y))
-      (\_. \_. \mapOk. \_. mapOk) ole.
-
-def maxOk : (o1 o2 : ordering) -> (ole : orderingLe o1 o2) -> (x : carrier o1) -> lt o2 (map o1 o2 ole x) (max o1 o2 ole) :=
-  \o1. \o2. \ole.
-    orderingLe_elim o1 o2 (\z. (x : carrier o1) -> lt o2 (map o1 o2 z x) (max o1 o2 z))
-      (\_. \_. \_. \maxOk. maxOk) ole.
-
+record orderingLe (o1 : ordering) (o2 : ordering) := {
+    map : carrier o1 -> carrier o2 ;
+    max : carrier o2 ;
+    mapOk : (x y : carrier o1) -> lt o1 x y -> lt o2 (map x) (map y) ;
+    maxOk : (x : carrier o1) -> lt o2 (map x) max
+  }.
 
 def the_map : (f : nat -> ordering) -> ((n : nat) -> orderingLe (f (S n)) (f n)) -> (n : nat) -> carrier (f n) -> carrier (f O) :=
   \f. \Hf.
@@ -105,7 +66,7 @@ def orderingLe_trans : (o1 o2 o3 : ordering) ->
                        orderingLe o1 o3 :=
   \o1. \o2. \o3.
   \ole12. \ole23.
-    mkOrderingLe o1 o3
+    orderingLe_intro o1 o3
       (\x. map o2 o3 ole23 (map o1 o2 ole12 x))
       (max o2 o3 ole23)
       (\x. \y. \Hxy.
@@ -114,7 +75,7 @@ def orderingLe_trans : (o1 o2 o3 : ordering) ->
   .
 
 def orderingOfOrderings : ordering :=
-  mkOrdering ordering orderingLe orderingLe_trans orderingLe_noChains.
+  ordering_intro ordering orderingLe orderingLe_trans orderingLe_noChains.
 
 def subOrdering_carrier : (o : ordering) -> carrier o -> Type :=
   \o. \a. (sigT (carrier o) (\x. lt o x a)).
@@ -127,7 +88,7 @@ def subOrdering_proof : (o : ordering) -> (a : carrier o) -> (x : subOrdering_ca
 
 def subOrdering : (o : ordering) -> carrier o -> ordering :=
   \o. \a.
-    mkOrdering
+    ordering_intro
       (subOrdering_carrier o a)
       (\x. \y. lt o (subOrdering_proj o a x) (subOrdering_proj o a y))
       (\x. \y. \z. \Hxy. \Hyz. transitive o (subOrdering_proj o a x) (subOrdering_proj o a y) (subOrdering_proj o a z) Hxy Hyz)
@@ -138,7 +99,7 @@ def subOrdering_monotonic : (o : ordering) -> (a b : carrier o) ->
                             lt o a b ->
                             orderingLe (subOrdering o a) (subOrdering o b) :=
   \o. \a. \b. \Hab.
-    mkOrderingLe (subOrdering o a) (subOrdering o b)
+    orderingLe_intro (subOrdering o a) (subOrdering o b)
       (\x. existT (carrier o) (\x. lt o x b) (subOrdering_proj o a x) (transitive o (subOrdering_proj o a x) a b (subOrdering_proof o a x) Hab))
       (existT (carrier o) (\x. lt o x b) a Hab)
       (\x. \y. \Hxy. Hxy)
@@ -149,7 +110,7 @@ def subOrdering_less_than_original :
     (o : ordering) -> (a : carrier o) ->
     orderingLe (subOrdering o a) o :=
   \o. \a.
-    mkOrderingLe (subOrdering o a) o
+    orderingLe_intro (subOrdering o a) o
       (subOrdering_proj o a)
       a
       (\x. \y. \Hxy. Hxy)
@@ -160,7 +121,7 @@ def orderingOfOrderings_is_max :
     (o : ordering) ->
     orderingLe o orderingOfOrderings :=
   \o.
-    mkOrderingLe
+    orderingLe_intro
       o orderingOfOrderings
       (subOrdering o)
       o
