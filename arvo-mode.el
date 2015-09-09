@@ -57,8 +57,11 @@
 (defun position-of-string (s)
   (save-excursion (search-forward s (line-end-position) 't)))
 
+(defconst arvo-keyword-regex
+  "\\<\\(def\\|axiom\\|import\\|print\\|check\\|simpl\\|data\\|record\\)\\>")
+
 (defconst arvo-font-lock-keywords
-  '(("\\<\\(def\\|axiom\\|import\\|print\\|check\\|simpl\\|data\\|record\\)\\>" . font-lock-keyword-face)
+  `((,arvo-keyword-regex . font-lock-keyword-face)
     ("\\<Type\\>" . font-lock-type-face)
     ("\\<def\\>" "\\<\\(\\w+\\)\\>" (position-of-string ":") nil (1 font-lock-function-name-face))
     ("\\\\" "\\<\\w+\\>" (let ((pd (position-of-string "."))
@@ -180,7 +183,7 @@
   (re-search-backward re))
 
 (defun arvo-find-command-under-point ()
-  (let ((start (re-search-forward-backward "\\<\\(?:def\\|print\\|check\\|simpl\\|data\\|axiom\\|import\\)\\>"))
+  (let ((start (re-search-forward-backward arvo-keyword-regex))
         (end (cl-do ((i (point) (+ i 1))
                      (opens 0 (cond ((equal (char-after i) ?.) (- opens 1))
                                     ((equal (char-after i) ?\\) (+ opens 1))
