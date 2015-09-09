@@ -1,0 +1,161 @@
+import normalize.
+
+def int : Type := prod nat nat.
+
+def int_intro : nat -> nat -> int := prod_intro nat nat.
+
+def int_elim : (P : int -> Type) ->
+               ((n m : nat) -> P (int_intro n m)) ->
+               (x : int) -> P x :=
+  prod_elim nat nat.
+
+def int_eq : int -> int -> Type :=
+  int_elim (\_. int -> Type)
+    (\xl. \xr.
+      int_elim (\_. Type)
+        (\yl. \yr. eq nat (plus xl yr) (plus yl xr)))
+  .
+
+def int_eq_refl : (x : int) -> int_eq x x :=
+  int_elim (\z. int_eq z z)
+    (\n. \m. refl nat (plus n m))
+  .
+
+def int_eq_sym : (x y : int) -> int_eq x y -> int_eq y x :=
+  int_elim (\z. (y : int) -> int_eq z y -> int_eq y z)
+    (\xl. \xr.
+      int_elim (\z. int_eq (int_intro xl xr) z -> int_eq z (int_intro xl xr))
+        (\yl. \yr. eq_sym nat (plus xl yr) (plus yl xr)))
+  .
+
+def int_eq_trans : (x y z : int) -> int_eq x y -> int_eq y z -> int_eq x z :=
+  int_elim (\w. (y z : int) -> int_eq w y -> int_eq y z -> int_eq w z)
+    (\xl. \xr.
+      int_elim (\w. (z : int) -> int_eq (int_intro xl xr) w ->
+                    int_eq w z -> int_eq (int_intro xl xr) z)
+      (\yl. \yr.
+        int_elim (\w. int_eq (int_intro xl xr) (int_intro yl yr) ->
+                      int_eq (int_intro yl yr) w -> int_eq (int_intro xl xr) w)
+          (\zl. \zr.
+           \Hxy : eq nat (plus xl yr) (plus yl xr).
+           \Hyz : eq nat (plus yl zr) (plus zl yr).
+             plus_inj_l yr (plus xl zr) (plus zl xr)
+               (eq_trans nat
+                 (plus yr (plus xl zr))
+                 (plus (plus xl yr) zr)
+                 (plus yr (plus zl xr))
+                 (use_expr_normalize
+                   (lookup (cons nat yr (cons nat xl (cons nat zr (nil nat)))))
+                   (e_plus (e_atom O) (e_plus (e_atom (S O)) (e_atom (S (S O)))))
+                   (e_plus (e_plus (e_atom (S O)) (e_atom O)) (e_atom (S (S O))))
+                   (refl nat
+                     (eval
+                       (lookup (cons nat yr (cons nat xl (cons nat zr (nil nat)))))
+                       (e_plus (e_atom O) (e_plus (e_atom (S O)) (e_atom (S (S O))))))))
+                 (rewrite nat (\z. eq nat (plus z zr) (plus yr (plus zl xr)))
+                   (plus yl xr)
+                   (eq_trans nat
+                     (plus (plus yl xr) zr)
+                     (plus (plus yl zr) xr)
+                     (plus yr (plus zl xr))
+                     (use_expr_normalize
+                       (lookup (cons nat yl (cons nat xr (cons nat zr (nil nat)))))
+                       (e_plus (e_plus (e_atom O) (e_atom (S O))) (e_atom (S (S O))))
+                       (e_plus (e_plus (e_atom O) (e_atom (S (S O)))) (e_atom (S O)))
+                       (refl nat
+                         (eval
+                           (lookup (cons nat yl (cons nat xr (cons nat zr (nil nat)))))
+                           (expr_normalize
+                             (e_plus (e_plus (e_atom O) (e_atom (S O))) (e_atom (S (S O))))))))
+                     (rewrite nat (\z. eq nat (plus z xr) (plus yr (plus zl xr)))
+                       (plus zl yr)
+                       (use_expr_normalize
+                         (lookup (cons nat zl (cons nat yr (cons nat xr (nil nat)))))
+                         (e_plus (e_plus (e_atom O) (e_atom (S O))) (e_atom (S (S O))))
+                         (e_plus (e_atom (S O)) (e_plus (e_atom O) (e_atom (S (S O)))))
+                         (refl nat
+                           (eval
+                             (lookup (cons nat zl (cons nat yr (cons nat xr (nil nat)))))
+                             (expr_normalize
+                               (e_plus
+                                 (e_plus (e_atom O) (e_atom (S O)))
+                                 (e_atom (S (S O))))))))
+                       (plus yl zr)
+                       Hyz))
+                   (plus xl yr)
+                   Hxy)))))
+  .
+
+def int_neg : int -> int :=
+  int_elim (\_. int)
+    (\xl. \xr. int_intro xr xl)
+  .
+
+def int_zero : int := int_intro O O.
+
+def int_from_nat : nat -> int :=
+  \n. int_intro n O.
+
+def int_to_nat : int -> nat :=
+  int_elim (\_. nat)
+    (\xl. \xr. ?)
+  .
+
+def int_plus : int -> int -> int :=
+    int_elim (\_. int -> int)
+      (\xl. \xr.
+        int_elim (\_. int)
+          (\yl. \yr. int_intro (plus xl yl) (plus xr yr)))
+  .
+
+def int_plus_comm : (a b : int) -> int_eq (int_plus a b) (int_plus b a) :=
+  int_elim (\z. (b : int) -> int_eq (int_plus z b) (int_plus b z))
+    (\xl. \xr.
+      (int_elim (\z. int_eq (int_plus (int_intro xl xr) z) (int_plus z (int_intro xl xr)))
+        (\yl. \yr.
+          use_expr_normalize
+            (lookup (cons nat xl (cons nat yl (cons nat yr (cons nat xr (nil nat))))))
+            (e_plus (e_plus (e_atom O) (e_atom (S O)))
+                    (e_plus (e_atom (S (S O))) (e_atom (S (S (S O))))))
+            (e_plus (e_plus (e_atom (S O)) (e_atom O))
+                    (e_plus (e_atom (S (S (S O)))) (e_atom (S (S O)))))
+            (refl nat
+              (eval
+                (lookup (cons nat xl (cons nat yl (cons nat yr (cons nat xr (nil nat))))))
+                (expr_normalize
+                  (e_plus (e_plus (e_atom O) (e_atom (S O)))
+                          (e_plus (e_atom (S (S O))) (e_atom (S (S (S O))))))))))))
+  .
+
+def int_plus_assoc :
+    (a b c : int) ->
+    int_eq (int_plus (int_plus a b) c)
+           (int_plus a (int_plus b c)) :=
+  int_elim (\z. (b c : int) -> int_eq (int_plus (int_plus z b) c) (int_plus z (int_plus b c)))
+  (\xl. \xr.
+  int_elim (\z. (c : int) ->
+                int_eq (int_plus (int_plus (int_intro xl xr) z) c)
+                       (int_plus (int_intro xl xr) (int_plus z c)))
+  (\yl. \yr.
+  int_elim (\z. int_eq (int_plus (int_plus (int_intro xl xr) (int_intro yl yr)) z)
+                       (int_plus (int_intro xl xr) (int_plus (int_intro yl yr) z)))
+  (\zl. \zr.
+  use_expr_normalize
+    (lookup (cons nat xl (cons nat yl (cons nat zl
+            (cons nat xr (cons nat yr (cons nat zr (nil nat))))))))
+    (e_plus (e_plus (e_plus (e_atom O) (e_atom (S O))) (e_atom (S (S O))))
+            (e_plus (e_atom (S (S (S O))))
+              (e_plus (e_atom (S (S (S (S O))))) (e_atom (S (S (S (S (S O)))))))))
+    (e_plus (e_plus (e_atom O) (e_plus (e_atom (S O)) (e_atom (S (S O)))))
+            (e_plus (e_plus (e_atom (S (S (S O)))) (e_atom (S (S (S (S O))))))
+                    (e_atom (S (S (S (S (S O))))))))
+    (refl nat
+      (eval
+        (lookup (cons nat xl (cons nat yl (cons nat zl
+                (cons nat xr (cons nat yr (cons nat zr (nil nat))))))))
+        (expr_normalize
+          (e_plus
+            (e_plus (e_plus (e_atom O) (e_atom (S O))) (e_atom (S (S O))))
+            (e_plus (e_atom (S (S (S O))))
+                    (e_plus (e_atom (S (S (S (S O))))) (e_atom (S (S (S (S (S O)))))))))))))))
+  .
