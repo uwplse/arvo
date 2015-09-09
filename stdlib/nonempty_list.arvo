@@ -1,0 +1,40 @@
+import list.
+
+data nonempty_list (A : Type) :=
+| nel_singleton : A -> nonempty_list A
+| nel_cons : A -> nonempty_list A -> nonempty_list A.
+
+def nel_app : (A : Type) -> nonempty_list A -> nonempty_list A -> nonempty_list A :=
+  \A. \xs. \ys.
+    nonempty_list_elim A (\_. nonempty_list A)
+      (\x. nel_cons A x ys)
+      (\h. \_. \rec. nel_cons A h rec)
+      xs
+  .
+
+def nel_to_list : (A : Type) -> nonempty_list A -> list A :=
+  \A.
+    nonempty_list_elim A (\_. list A)
+      (\x. cons A x (nil A))
+      (\h. \_. \rec. cons A h rec)
+  .
+
+def list_to_nel_def : (A : Type) -> nonempty_list A -> list A -> nonempty_list A :=
+  \A. \d.
+    list_elim A (\_. nonempty_list A)
+      d
+      (\h. \t. \rec.
+        list_elim A (\_. nonempty_list A)
+          (nel_singleton A h)
+          (\_. \_. \_. nel_cons A h rec)
+          t)
+  .
+
+def nel_to_list_not_nil :
+    (A : Type) -> (nel : nonempty_list A) ->
+    eq (list A) (nel_to_list A nel) (nil A) -> False :=
+  \A.
+    nonempty_list_elim A (\z. eq (list A) (nel_to_list A z) (nil A) -> False)
+      (\x. cons_nil_inv A x (nil A))
+      (\h. \t. \_. cons_nil_inv A h (nel_to_list A t))
+  .
