@@ -1,0 +1,328 @@
+import nonempty_list.
+
+def key : Type := nat.
+
+data expr : Type :=
+| e_atom : key -> expr
+| e_plus : expr -> expr -> expr.
+
+def eval : (key -> nat) -> expr -> nat :=
+  \G.
+  expr_elim (\_. nat)
+    (\n. G n)
+    (\_. \recl. \_. \recr. plus recl recr)
+  .
+
+def key_leb : key -> key -> bool := leb.
+
+def nel_normalize : nonempty_list key -> nonempty_list key :=
+  \nel.
+    list_to_nel_def key nel (sort key key_leb (nel_to_list key nel))
+  .
+
+def collect : expr -> nonempty_list key :=
+  expr_elim (\_. nonempty_list key)
+    (\k. nel_singleton key k)
+    (\_. \recl. \_. \recr. nel_app key recl recr)
+  .
+
+def eval_collected : (key -> nat) -> nonempty_list key -> nat :=
+  \G.
+    nonempty_list_elim key (\_. nat)
+      G
+      (\h. \_. \rec. plus (G h) rec)
+  .
+
+def sum : list nat -> nat :=
+  fold_right nat nat O plus
+.
+
+def sum_perm :
+    (xs ys : list nat) ->
+    perm nat xs ys ->
+    eq nat (sum xs) (sum ys) :=
+  perm_elim nat (\z. \w. \_. eq nat (sum z) (sum w))
+    (refl nat O)
+    (\x. \xs. \ys.
+     \H : perm nat xs ys.
+     \IH : eq nat (sum xs) (sum ys).
+     f_equal nat nat (plus x) (sum xs) (sum ys) IH)
+    (\x. \y. \l.
+     eq_trans nat
+       (plus x (plus y (sum l)))
+       (plus (plus x y) (sum l))
+       (plus y (plus x (sum l)))
+       (eq_sym nat (plus (plus x y) (sum l)) (plus x (plus y (sum l)))
+         (plus_assoc x y (sum l)))
+       (eq_trans nat
+         (plus (plus x y) (sum l))
+         (plus (plus y x) (sum l))
+         (plus y (plus x (sum l)))
+         (f_equal2 nat nat nat plus
+           (plus x y) (plus y x) (plus_comm x y)
+           (sum l) (sum l) (refl nat (sum l)))
+         (plus_assoc y x (sum l))))
+    (\xs. \ys. \zs.
+     \_. \IHxsys : eq nat (sum xs) (sum ys).
+     \_. \IHyszs : eq nat (sum ys) (sum zs).
+     eq_trans nat (sum xs) (sum ys) (sum zs) IHxsys IHyszs)
+  .
+
+def map_perm :
+    (A B : Type) -> (f : A -> B) ->
+    (xs ys : list A) -> perm A xs ys ->
+    perm B (map A B f xs) (map A B f ys) :=
+  \A. \B. \f.
+    perm_elim A (\z. \w. \_. perm B (map A B f z) (map A B f w))
+      (perm_nil B)
+      (\x. \xs. \ys. \H : perm A xs ys. \IH : perm B (map A B f xs) (map A B f ys).
+        perm_skip B (f x) (map A B f xs) (map A B f ys) IH)
+      (\x. \y. \l.
+        perm_swap B (f x) (f y) (map A B f l))
+      (\xs. \ys. \zs.
+       \_. \IHxsys.
+       \_. \IHyszs.
+         perm_trans B (map A B f xs) (map A B f ys) (map A B f zs) IHxsys IHyszs)
+  .
+
+def eval_list : (key -> nat) -> list key -> nat :=
+  \G. \l.
+    sum (map key nat G l)
+  .
+
+def uncollect : nonempty_list key -> expr :=
+  nonempty_list_elim key (\_. expr)
+    e_atom
+    (\h. \_. \rec. e_plus (e_atom h) rec)
+  .
+
+def expr_normalize : expr -> expr :=
+  \e.
+    uncollect (nel_normalize (collect e))
+  .
+
+
+def uncollect_correct :
+    (G : key -> nat) ->
+    (nel : nonempty_list key) ->
+    eq nat (eval G (uncollect nel)) (eval_collected G nel) :=
+  \G.
+    nonempty_list_elim key (\z. eq nat (eval G (uncollect z)) (eval_collected G z))
+      (\x. refl nat (G x))
+      (\h. \t. \IHt.
+        f_equal nat nat (plus (G h)) (eval G (uncollect t)) (eval_collected G t) IHt)
+  .
+
+def list_to_nel_def_correct :
+    (G : key -> nat) ->
+    (d : nonempty_list key ) ->
+    (l : list key) ->
+    (eq (list key) l (nil key) -> False) ->
+    eq nat (eval_collected G (list_to_nel_def key d l))
+           (eval_list G l) :=
+  \G. \d.
+    list_elim key (\z. (eq (list key) z (nil key) -> False) ->
+                       eq nat (eval_collected G (list_to_nel_def key d z))
+                       (eval_list G z))
+      (\H. exfalso (H (refl (list key) (nil key))) (eq nat (eval_collected G d) O))
+      (\h. \t.
+       \IHt : (eq (list key) t (nil key) -> False) ->
+              eq nat (eval_collected G (list_to_nel_def key d t))
+                     (eval_list G t).
+       \_.
+       list_elim key
+         (\z.
+           ((eq (list key) z (nil key) -> False) ->
+              eq nat (eval_collected G (list_to_nel_def key d z))
+                     (eval_list G z)) ->
+           (eq nat
+             (eval_collected G (list_elim key (\_. nonempty_list key)
+                                 (nel_singleton key h)
+                                 (\_. \_. \_. nel_cons key h (list_to_nel_def key d z))
+                                 z))
+             (eval_list G (cons key h z))))
+         (\_. eq_sym nat (plus (G h) O) (G h) (plus_n_O (G h)))
+         (\h2. \t2. \_. \H.
+           f_equal nat nat (plus (G h))
+             (eval_collected G (list_to_nel_def key d (cons key h2 t2)))
+             (eval_list G (cons key h2 t2))
+             (H (cons_nil_inv key h2 t2)))
+         t IHt)
+  .
+
+def nel_to_list_correct :
+    (G : key -> nat) ->
+    (nel : nonempty_list key) ->
+    eq nat
+      (eval_list G (nel_to_list key nel))
+      (eval_collected G nel) :=
+  \G.
+    nonempty_list_elim key
+      (\z.
+        eq nat
+          (eval_list G (nel_to_list key z))
+          (eval_collected G z))
+      (\x. plus_n_O (G x))
+      (\h. \t. \IHt.
+        f_equal nat nat (plus (G h))
+          (eval_list G (nel_to_list key t))
+          (eval_collected G t)
+          IHt)
+  .
+
+def nel_normalize_correct :
+    (G : key -> nat) ->
+    (nel : nonempty_list key) ->
+    eq nat
+      (eval_collected G (nel_normalize nel))
+      (eval_collected G nel) :=
+  \G. \nel.
+    eq_trans nat
+      (eval_collected G (nel_normalize nel))
+      (eval_list G (sort key key_leb (nel_to_list key nel)))
+      (eval_collected G nel)
+      (list_to_nel_def_correct G nel
+        (sort key key_leb (nel_to_list key nel))
+        (sort_not_nil key key_leb
+          (nel_to_list key nel)
+          (nel_to_list_not_nil key nel)))
+      (eq_trans nat
+        (eval_list G (sort key key_leb (nel_to_list key nel)))
+        (eval_list G (nel_to_list key nel))
+        (eval_collected G nel)
+        (sum_perm
+          (map key nat G (sort key key_leb (nel_to_list key nel)))
+          (map key nat G (nel_to_list key nel))
+          (map_perm key nat G
+            (sort key key_leb (nel_to_list key nel))
+            (nel_to_list key nel)
+            (perm_sym key (nel_to_list key nel) (sort key key_leb (nel_to_list key nel))
+              (sort_perm key key_leb (nel_to_list key nel)))))
+        (nel_to_list_correct G nel))
+  .
+
+def eval_collected_nel_app :
+    (G : key -> nat) ->
+    (xs ys : nonempty_list key) ->
+    eq nat (eval_collected G (nel_app key xs ys))
+           (plus (eval_collected G xs) (eval_collected G ys)) :=
+  \G. \xs. \ys.
+    nonempty_list_elim key
+      (\z.
+        eq nat (eval_collected G (nel_app key z ys))
+         (plus (eval_collected G z) (eval_collected G ys)))
+      (\x. refl nat (plus (G x) (eval_collected G ys)))
+      (\h. \t. \IHt.
+        eq_sym nat
+          (plus (plus (G h) (eval_collected G t)) (eval_collected G ys))
+          (plus (G h) (eval_collected G (nel_app key t ys)))
+          (eq_trans nat
+            (plus (plus (G h) (eval_collected G t)) (eval_collected G ys))
+            (plus (G h) (plus (eval_collected G t) (eval_collected G ys)))
+            (plus (G h) (eval_collected G (nel_app key t ys)))
+            (plus_assoc (G h) (eval_collected G t) (eval_collected G ys))
+            (f_equal nat nat (plus (G h))
+              (plus (eval_collected G t) (eval_collected G ys))
+              (eval_collected G (nel_app key t ys))
+              (eq_sym nat
+                (eval_collected G (nel_app key t ys))
+                (plus (eval_collected G t) (eval_collected G ys))
+                IHt))))
+      xs
+  .
+
+def collect_correct :
+    (G : key -> nat) -> (e : expr) ->
+    eq nat
+      (eval_collected G (collect e))
+      (eval G e) :=
+  \G.
+    expr_elim
+      (\z.
+        eq nat
+          (eval_collected G (collect z))
+          (eval G z))
+      (\k. refl nat (G k))
+      (\l. \IHl. \r. \IHr.
+        eq_trans nat
+          (eval_collected G (nel_app key (collect l) (collect r)))
+          (plus (eval_collected G (collect l)) (eval_collected G (collect r)))
+          (plus (eval G l) (eval G r))
+          (eval_collected_nel_app G (collect l) (collect r))
+          (f_equal2 nat nat nat plus
+            (eval_collected G (collect l)) (eval G l) IHl
+            (eval_collected G (collect r)) (eval G r) IHr))
+  .
+
+
+def expr_normalize_correct :
+    (G : key -> nat) ->
+    (e : expr) ->
+    eq nat (eval G (expr_normalize e)) (eval G e) :=
+  \G. \e.
+    eq_trans nat
+      (eval G (expr_normalize e))
+      (eval_collected G (nel_normalize (collect e)))
+      (eval G e)
+      (uncollect_correct G (nel_normalize (collect e)))
+      (eq_trans nat
+        (eval_collected G (nel_normalize (collect e)))
+        (eval_collected G (collect e))
+        (eval G e)
+        (nel_normalize_correct G (collect e))
+        (collect_correct G e))
+  .
+
+def use_expr_normalize :
+    (G : key -> nat) ->
+    (e1 e2 : expr) ->
+    eq nat (eval G (expr_normalize e1)) (eval G (expr_normalize e2)) ->
+    eq nat (eval G e1) (eval G e2) :=
+  \G. \e1. \e2. \H.
+    eq_trans nat
+      (eval G e1)
+      (eval G (expr_normalize e1))
+      (eval G e2)
+      (eq_sym nat (eval G (expr_normalize e1)) (eval G e1) (expr_normalize_correct G e1))
+      (eq_trans nat
+        (eval G (expr_normalize e1))
+        (eval G (expr_normalize e2))
+        (eval G e2)
+        H
+        (expr_normalize_correct G e2))
+  .
+
+def lookup : list nat -> key -> nat :=
+  \l. \k.
+    nth_default nat k O l
+  .
+
+def example :
+    (n m : nat) ->
+    eq nat (plus n m) (plus m n) :=
+  \n. \m.
+    use_expr_normalize
+        (lookup (cons nat n (cons nat m (nil nat))))
+        (e_plus (e_atom O) (e_atom (S O)))
+        (e_plus (e_atom (S O)) (e_atom O))
+        (refl nat
+          (eval
+            (lookup (cons nat n (cons nat m (nil nat))))
+            (expr_normalize (e_plus (e_atom O) (e_atom (S O))))))
+  .
+
+def example2 :
+    (a b c : nat) ->
+    eq nat
+      (plus a (plus b c))
+      (plus c (plus b a)) :=
+  \a. \b. \c.
+    use_expr_normalize
+        (lookup (cons nat a (cons nat b (cons nat c (nil nat)))))
+        (e_plus (e_atom O) (e_plus (e_atom (S O)) (e_atom (S (S O)))))
+        (e_plus (e_atom (S (S O))) (e_plus (e_atom (S O)) (e_atom O)))
+        (refl nat
+          (eval
+            (lookup (cons nat a (cons nat b (cons nat c (nil nat)))))
+            (e_plus (e_atom O) (e_plus (e_atom (S O)) (e_atom (S (S O)))))))
+  .
