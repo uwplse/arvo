@@ -38,6 +38,13 @@ fn main() {
             Some(path) => path
         };
 
+        // Run the Rust parsing code in parallel for now.
+        let parser = arvo::parser::Parser::from_file(filename).unwrap(); // may fail opening file
+        let program = match parser.parse_program() {
+            Err(e) => panic!("rust parser failed with: {:?}", e),
+            Ok(p)  => p
+        };
+
         // All interaction with external code is inhernetly unsafe, eventually if this code
         // is written in Rust we can just remove it.
         unsafe {

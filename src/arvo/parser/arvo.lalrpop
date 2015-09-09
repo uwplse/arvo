@@ -3,21 +3,42 @@ use std::collections::HashMap;
 use super::token::{Tok, Error};
 use term::*;
 
+// May be worth looking at the grammar from this:
+// https://github.com/jroesch/hubris/blob/290c/src/Hubris/Parser/Internal.y
+
 grammar<'input>(text: &'input str)["LALR(1)"];
 
 pub Program : Program = {
-    <cs: (<Command> ".")*> => panic!();
+    <cs: Commands> => panic!();
+};
+
+Commands : Vec<Command> = {
+    <cs: Commands> <c:Command> "." => {
+        let mut cs = cs;
+        cs.push(c);
+        cs
+    };
+    <cs: Commands> <c:"Comment"> => cs;
+    => Vec::new();
 };
 
 pub Command : Command = {
-    "def" <v:Variable> ":" <ty:Term> ":=" <body:Term> => panic!();
-    "print" <v:Variable> => panic!();
-    "check" <t:Term> <opt_ty: (":" <Term>)?> => panic!();
-    "simpl" <t:Term> => panic!();
-    "data" <v:Variable> <ps: Param*> ":=" <c:Constructor?> <cs: ("|" <Constructor>)*> => panic!();
-    "axiom" <v:Variable> ":" <t:Term> => panic!();
-    "import" <v:Variable> => panic!();
-    //TODO Comment;
+    "def" <v:Variable> ":" <ty:Term> ":=" <body:Term> => {
+        Command::Def(v, ty, body)
+    };
+    "print" <v:Variable> => Command::Print(v);
+    "check" <t:Term> <opt_ty: (":" <Term>)?> => Command::Check(t, opt_ty);
+    "simpl" <t:Term> => Command::Simpl(t);
+    "data" <v:Variable> <ps: Param*> ":=" <c:Constructor?> <cs: ("|" <Constructor>)*> => {
+        let mut cs = cs;
+        match c {
+            None => {},
+            Some(cons) => cs.push(cons),
+        }
+        Command::Data(v, ps, cs)
+    };
+    "axiom" <v:Variable> ":" <t:Term> => Command::Axiom(v, t);
+    "import" <v:Variable> => Command::Import(v);
 };
 
 Constructor : (Variable, Option<Term>) = {
@@ -27,9 +48,6 @@ Constructor : (Variable, Option<Term>) = {
 Param : (Variable, Term) = {
     "(" <v:Variable> ":" <t:Term> ")" => (v, t);
 };
-
-// TODO     " comment : /@[^@]*@/                              ; \n"
-Comment : Command = {};
 
 Term : Term = {
     Lambda;
@@ -41,36 +59,34 @@ Lambda : Term = {
 };
 
 Factor : Term = {
-    <arg:Expr> <ret:("->" <Expr>)*> => panic!();
+    <arg:Expr> "->" <ret:Expr> => {
+        match arg {
+            
+        }
+    };
+    <e:Expr> => e;
 };
 
 Expr : Term = {
-    // "(" <bs:BoundVariable*> ":" <t:Term> ")" => panic!();
     <a:App> => panic!();
 };
 
 App : Term = {
-    <f:Base> <args:Base*> => panic!();
+    <f:Base> <g:Base> => Term::App(Box::new(f), Box::new(g));
 };
 
 Base : Term = {
-    Type;
-    Hole;
-    Variable => panic!();
-    "(" <t:Term> ")" => panic!();
-};
-
-Hole : Term = {
-    "?" => panic!();
+    "Type" => Term::Type;
+    "?" => Term::Hole;
+    "_" => panic!();
+    <v:Variable> => Term::Var(v);
+    "(" <t:Term> ")" => t;
+    "(" <t:Term> ":" <ty:Term> ")" => Term::Ascribe(t, ty);
 };
 
 BoundVariable : Term = {
     "_" => panic!();
     <v:Variable> => panic!();
-};
-
-Type : Term = {
-    "Type" => panic!();
 };
 
 Variable : Variable = {
@@ -97,7 +113,7 @@ extern {
         "simpl"    => Tok::Simpl(..),
         "data"     => Tok::Data(..),
         "Type"     => Tok::Type(..),
-
+        "Comment"  => Tok::Comment(<&'input str>),
         "Var"      => Tok::Var(<&'input str>),
         ":"        => Tok::Colon(..),
         ":="       => Tok::ColonEquals(..),

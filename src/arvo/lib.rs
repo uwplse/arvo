@@ -5,7 +5,7 @@ extern crate lalrpop_util;
 mod term;
 mod ffi;
 mod prettyprint;
-mod parser;
+pub mod parser;
 
 #[no_mangle]
 pub extern "C" fn C_prettyprint(t: *mut ffi::term) -> *const libc::c_char{

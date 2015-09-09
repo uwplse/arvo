@@ -163,13 +163,7 @@ impl<'input> Tokenizer<'input> {
                         match self.lookahead {
                             Some((_, '<')) => MacroId(word),
                             _ => {
-                                // check if atom or variable
-                                let first = word.chars().next().unwrap();
-                                if ('A' <= first) && (first <= 'Z') {
-                                    Var(word)
-                                } else {
-                                    Atom(word)
-                                }
+                                Var(word)
                             }
                         }
                     });
