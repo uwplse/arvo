@@ -628,13 +628,13 @@ static void vernac_run_record(command *c) {
 
     term* def_term = make_app(term_dup(elim),
                               make_lambda(z,
-                                          term_dup(return_type),
+                                          NULL,
                                           export_field_type));
 
     term* base_case = make_var(variable_dup(c->field_names[i]));
     for (j = c->num_fields - 1; j >= 0; j--) {
       base_case = make_lambda(variable_dup(c->field_names[j]),
-                              term_dup(c->field_types[j]),
+                              NULL,
                               base_case);
     }
 
@@ -642,7 +642,7 @@ static void vernac_run_record(command *c) {
 
     variable* x = gensym("x");
     def_term = make_app(def_term, make_var(variable_dup(x)));
-    def_term = make_lambda(x, term_dup(return_type), def_term);
+    def_term = make_lambda(x, NULL, def_term);
 
 
     for (j = c->num_params - 1; j >= 0; j--) {
@@ -650,7 +650,7 @@ static void vernac_run_record(command *c) {
                          term_dup(c->param_types[j]),
                          def_type);
       def_term = make_lambda(variable_dup(c->param_names[j]),
-                             term_dup(c->param_types[j]),
+                             NULL,
                              def_term);
     }
 
