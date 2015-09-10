@@ -411,3 +411,174 @@ def ap_over_transport : (A B : Type) -> (f : A -> B) ->
       x
       y
   .
+
+@Lemma 2.3.1@
+def transport : (A : Type) -> (P : A -> Type) -> (x y : A) -> (p : eq A x y) ->
+                P x -> P y :=
+  \A. \P. \x. \y. \p. \px.
+    subst A x P px y p
+  .
+
+record sig (A : Type) (B : A -> Type) := { pr1 : A ; pr2 : B pr1 }.
+
+
+@Lemma 2.3.2@
+def lift : (A : Type) -> (P : A -> Type) -> (x : A) -> (u : P x) ->
+           (y : A) -> (p : eq A x y) ->
+           eq (sig A P) (sig_intro A P x u) (sig_intro A P y (transport A P x y p u)) :=
+  \A. \P. \x. \u. \y. \p.
+    ind A
+      (\x'. \y'. \p'.
+        (u : P x') ->
+        eq (sig A P) (sig_intro A P x' u) (sig_intro A P y' (transport A P x' y' p' u)))
+      (\a. \u. refl (sig A P) (sig_intro A P a u))
+      x
+      y
+      p
+      u
+  .
+
+def apd : (A : Type) -> (P : A -> Type) ->
+          (f : (a : A) -> P a) ->
+          (x y : A) -> (p : eq A x y) ->
+          eq (P y) (transport A P x y p (f x)) (f y) :=
+  \A. \P. \f.
+    ind A
+      (\x. \y. \p. eq (P y) (transport A P x y p (f x)) (f y))
+      (\a. refl (P a) (f a))
+  .
+
+def eq_dep : (A : Type) -> (P : A -> Type) -> (x y : A) -> (p : eq A x y) ->
+             (u : P x) -> (v : P y) -> Type :=
+  \A. \P. \x. \y. \p. \u. \v.
+    eq (P y) (transport A P x y p u) v
+  .
+
+axiom quotient : (A : Type) -> (R : A -> A -> Type) -> Type.
+axiom quotient_intro : (A : Type) -> (R : A -> A -> Type) -> A -> quotient A R.
+axiom quotient_eq : (A : Type) -> (R : A -> A -> Type) ->
+                    (x y : A) -> R x y ->
+                    eq (quotient A R)
+                      (quotient_intro A R x)
+                      (quotient_intro A R y).
+axiom quotient_rec : (A : Type) -> (R : A -> A -> Type) ->
+                     (B : Type) ->
+                     (f : A -> B) ->
+                     ((x y : A) -> R x y -> eq B (f x) (f y)) ->
+                     quotient A R -> B.
+axiom quotient_ind : (A : Type) -> (R : A -> A -> Type) ->
+                     (P : quotient A R -> Type) ->
+                     (f : (x : A) -> P (quotient_intro A R x)) ->
+                     ((x y : A) -> (r : R x y) ->
+                       eq_dep (quotient A R) P
+                         (quotient_intro A R x) (quotient_intro A R y)
+                         (quotient_eq A R x y r)
+                         (f x) (f y)) ->
+                     (x : quotient A R) -> P x.
+
+
+record contractible (A : Type) := { center : A; centerOk : (x : A) -> eq A x center }.
+
+axiom S1 : Type.
+axiom base : S1.
+axiom loop : eq S1 base base.
+axiom S1_ind :
+      (P : S1 -> Type) ->
+      (b : P base) ->
+      eq_dep S1 P base base loop b b ->
+      (x : S1) -> P x.
+
+axiom interval : Type.
+axiom i_zero : interval.
+axiom i_one : interval.
+axiom i_seg : eq interval i_zero i_one.
+axiom interval_ind :
+      (P : interval -> Type) ->
+      (b0 : P i_zero) ->
+      (b1 : P i_one) ->
+      (s : eq_dep interval P i_zero i_one i_seg b0 b1) -> (x : interval) -> P x.
+axiom interval_rec :
+      (B : Type) ->
+      (b0 : B) ->
+      (b1 : B) ->
+      eq B b0 b1 ->
+      interval -> B.
+axiom interval_rec_compute_i_zero :
+      (B : Type) ->
+      (b0 : B) ->
+      (b1 : B) ->
+      (p : eq B b0 b1) ->
+      eq B (interval_rec B b0 b1 p i_zero) b0.
+axiom interval_rec_compute_i_one :
+      (B : Type) ->
+      (b0 : B) ->
+      (b1 : B) ->
+      (p : eq B b0 b1) ->
+      eq B (interval_rec B b0 b1 p i_one) b1.
+@
+axiom interval_rec_compute_i_seg :
+      (B : Type) ->
+      (b0 : B) ->
+      (b1 : B) ->
+      (p : eq B b0 b1) ->
+      eq (eq B b0 b1)
+        (ap interval B (interval_rec B b0 b1 p) i_zero i_one i_seg)
+        p.
+@
+
+
+
+def transport_on_eq_is_there_and_back :
+    (A : Type) -> (x y : A) -> (p : eq A x y) ->
+    eq (eq A y y)
+      (transport A (\z. eq A z y) x y p p)
+      (trans A y x y (sym A x y p) p) :=
+  \A.
+    ind A
+      (\x'. \y'. \p'.
+        eq (eq A y' y')
+          (transport A (\z. eq A z y') x' y' p' p')
+          (trans A y' x' y' (sym A x' y' p') p'))
+      (\a. (refl (eq A a a) (refl A a)))
+  .
+
+def interval_contractible : contractible interval :=
+  contractible_intro interval
+    i_one
+    (interval_ind (\x. eq interval x i_one)
+      i_seg
+      (refl interval i_one)
+      (trans (eq interval i_one i_one)
+          (transport interval (\x. eq interval x i_one)
+            i_zero i_one
+            i_seg i_seg)
+          (trans interval i_one i_zero i_one
+            (sym interval i_zero i_one i_seg)
+            i_seg)
+          (refl interval i_one)
+          (transport_on_eq_is_there_and_back interval i_zero i_one i_seg)
+          (back_and_there_again interval i_zero i_one i_seg)))
+  .
+
+def p_twiddle : (A B : Type) -> (f g : A -> B) ->
+                ((x : A) -> eq B (f x) (g x)) ->
+                (x : A) -> interval -> B :=
+  \A. \B. \f. \g. \p. \x.
+    interval_rec B
+      (f x)
+      (g x)
+      (p x)
+  .
+
+def q : (A B : Type) -> (f g : A -> B) -> ((x : A) -> eq B (f x) (g x)) ->
+        interval -> A -> B :=
+  \A. \B. \f. \g. \p. \i. \x.
+    p_twiddle A B f g p x i
+  .
+
+def funext_from_interval : (A B : Type) -> (f g : A -> B) ->
+                           ((x : A) -> eq B (f x) (g x)) ->
+                           eq (A -> B) f g :=
+  \A. \B. \f. \g. \p.
+    ?
+  .
