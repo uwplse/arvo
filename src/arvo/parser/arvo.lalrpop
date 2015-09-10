@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::token::{Tok, Error};
-use term::*;
+use super::ast::*;
 
 // May be worth looking at the grammar from this:
 // https://github.com/jroesch/hubris/blob/290c/src/Hubris/Parser/Internal.y
@@ -61,7 +61,7 @@ Lambda : Term = {
 Factor : Term = {
     <arg:Expr> "->" <ret:Expr> => {
         match arg {
-            
+
         }
     };
     <e:Expr> => e;
