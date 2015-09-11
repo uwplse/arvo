@@ -163,20 +163,32 @@ def eqb_nat_refl : (n : nat) -> eq bool (eqb_nat n n) true :=
              (\_. \IH. IH)
              n.
 
+def eqb_complete : (n m : nat) -> eq nat n m -> eq bool (eqb_nat n m) true :=
+  \n.
+    subst nat (\z. eq bool (eqb_nat n z) true)
+      n
+      (eqb_nat_refl n)
+  .
+
 def eqb_nat_sound : (n m : nat) -> eq bool (eqb_nat n m) true -> eq nat n m :=
   \n.
-    nat_elim (\z. (m : nat) -> eq bool (eqb_nat z m) true -> eq nat z m)
-             (\m. nat_case (\z. eq bool (nat_case_simple bool true (\_. false) z) true -> eq nat O z)
-                           (\_. refl nat O)
-                           (\x. \H : eq bool false true. exfalso (false_true_inv H) (eq nat O (S x)))
-                           m)
-             (\x. \IH : (m : nat) -> eq bool (eqb_nat x m) true -> eq nat x m.
-                \m. nat_case (\z. eq bool (nat_case_simple bool false (eqb_nat x) z) true -> eq nat (S x) z)
-                             (\H : eq bool false true. exfalso (false_true_inv H) (eq nat (S x) O))
-                             (\p. \H : eq bool (eqb_nat x p) true.
-                               f_equal nat nat S x p (IH p H))
-                             m)
-             n.
+    nat_elim
+      (\z. (m : nat) -> eq bool (eqb_nat z m) true -> eq nat z m)
+      (\m. nat_case
+        (\z. eq bool (nat_case_simple bool true (\_. false) z) true -> eq nat O z)
+        (\_. refl nat O)
+        (\x. \H : eq bool false true. exfalso (false_true_inv H) (eq nat O (S x)))
+        m)
+      (\x. \IH : (m : nat) -> eq bool (eqb_nat x m) true -> eq nat x m.
+        \m. nat_case
+          (\z. eq bool (nat_case_simple bool false (eqb_nat x) z) true -> eq nat (S x) z)
+          (\H : eq bool false true. exfalso (false_true_inv H) (eq nat (S x) O))
+          (\p. \H : eq bool (eqb_nat x p) true.
+            f_equal nat nat S x p (IH p H))
+          m)
+      n.
+
+
 
 def pred : nat -> nat :=
   nat_elim (\_. nat)
@@ -217,4 +229,3 @@ def leb : nat -> nat -> bool :=
         false
         (\m. \_. rec m))
   .
-
