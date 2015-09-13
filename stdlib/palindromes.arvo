@@ -1,0 +1,171 @@
+@TODO: this file needs to be updated to use a more natural encoding. 
+it was written before we had indices. @
+import list_theorems.
+import nat_theorems.
+
+data palindromic_list (A : Type) :=
+  PL_nil : palindromic_list A
+| PL_one : A -> palindromic_list A
+| PL_cons : A -> palindromic_list A -> palindromic_list A.
+
+def PL_to_list : (A : Type) -> palindromic_list A -> list A :=
+  \A.
+    palindromic_list_elim A (\_. list A)
+      (nil A)
+      (\x. cons A x (nil A))
+      (\ends. \middle. \rec. cons A ends (snoc A rec ends))
+  .
+
+def PL_to_list_rev : (A : Type) -> (pl : palindromic_list A) -> eq (list A) (rev A (PL_to_list A pl)) (PL_to_list A pl) :=
+  \A.
+    palindromic_list_elim A (\z. eq (list A) (rev A (PL_to_list A z)) (PL_to_list A z))
+      (refl (list A) (nil A))
+      (\x. refl (list A) (cons A x (nil A)))
+      (\e. \m. \IHm.
+        f_equal2 (list A) A (list A) (snoc A)
+                 (rev A (snoc A (PL_to_list A m) e))
+                 (cons A e (PL_to_list A m))
+                 (eq_trans (list A)
+                           (rev A (snoc A (PL_to_list A m) e))
+                           (cons A e (rev A (PL_to_list A m)))
+                           (cons A e (PL_to_list A m))
+                           (rev_snoc A (PL_to_list A m) e)
+                           (f_equal (list A) (list A) (cons A e)
+                                    (rev A (PL_to_list A m)) (PL_to_list A m) IHm))
+                 e e (refl A e))
+
+  .
+
+
+import sig.
+
+def palindrome : (A : Type) -> list A -> Type :=
+  \A. \l.
+    sigT (palindromic_list A) (\pl. eq (list A) (PL_to_list A pl) l).
+
+def palindrome_nil : (A : Type) -> palindrome A (nil A) :=
+  \A.
+    existT (palindromic_list A) (\pl. eq (list A) (PL_to_list A pl) (nil A)) (PL_nil A) (refl (list A) (nil A))
+  .
+
+def palindrome_singleton : (A : Type) -> (x : A) -> palindrome A (cons A x (nil A)) :=
+  \A. \x.
+    existT (palindromic_list A) (\pl. eq (list A) (PL_to_list A pl) (cons A x (nil A))) (PL_one A x) (refl (list A) (cons A x (nil A)))
+  .
+
+def palindrome_extend : (A : Type) -> (x : A) -> (l : list A) -> palindrome A l -> palindrome A (cons A x (snoc A l x)) :=
+  \A. \x. \l. \Hl.
+    sigT_elim (palindromic_list A) (\pl. eq (list A) (PL_to_list A pl) l)
+      (\_. palindrome A (cons A x (snoc A l x)))
+      (\pl. \Hpl : eq (list A) (PL_to_list A pl) l.
+        existT (palindromic_list A) (\pl. eq (list A) (PL_to_list A pl) (cons A x (snoc A l x)))
+          (PL_cons A x pl)
+          (f_equal (list A) (list A) (cons A x)
+            (snoc A (PL_to_list A pl) x)
+            (snoc A l x)
+            (f_equal2 (list A) A (list A) (snoc A)
+              (PL_to_list A pl) l Hpl
+              x x (refl A x))))
+      Hl
+  .
+
+
+def pal_rev : (A : Type) -> (l : list A) -> palindrome A l -> eq (list A) (rev A l) l :=
+  \A. \l. \p.
+    sigT_elim (palindromic_list A) (\pl. eq (list A) (PL_to_list A pl) l)
+      (\_. eq (list A) (rev A l) l)
+      (\pl. \Hpl : eq (list A) (PL_to_list A pl) l.
+        subst (list A)
+              (\z. eq (list A) (rev A z) z)
+              (PL_to_list A pl)
+              (PL_to_list_rev A pl)
+              l
+              Hpl)
+      p
+  .
+
+def palindrome_converse : (A : Type) -> (l : list A) -> eq (list A) l (rev A l) -> palindrome A l :=
+  \A. \l.
+    nat_elim (\z. (l : list A) -> le (length A l) z -> eq (list A) l (rev A l) -> palindrome A l)
+      (list_case A (\z. le (length A z) O -> eq (list A) z (rev A z) -> palindrome A z)
+                   (\_. \_. palindrome_nil A)
+                   (\h. \t. \Hlength : False. \_. exfalso Hlength (palindrome A (cons A h t))))
+      (\n. \IHn : (l : list A) -> le (length A l) n -> eq (list A) l (rev A l) -> palindrome A l.
+        (list_case A (\z. le (length A z) (S n) -> eq (list A) z (rev A z) -> palindrome A z)
+                   (\_. \_. palindrome_nil A)
+                   (\h. \t.
+                    \Hlength : le (length A t) n.
+                    \Hrev : eq (list A) (cons A h t) (rev A (cons A h t)).
+                     list_case A (\z. eq (list A) (rev A t) z -> palindrome A (cons A h t))
+                       (\Heq : eq (list A) (rev A t) (nil A).
+                         rewrite (list A) (\z. palindrome A (cons A h z))
+                           (nil A)
+                           (palindrome_singleton A h)
+                           t
+                           (rev_eq_nil A t Heq))
+                       (\h2. \t2. \Heq : eq (list A) (rev A t) (cons A h2 t2).
+                         (\Ht : eq (list A) t (snoc A (rev A t2) h2).
+                           (\Ht2 : eq (list A) (cons A h2 (snoc A t2 h)) (cons A h (snoc A (rev A t2) h2)).
+                             (\Hh : eq A h h2.
+                               (\Ht2 : eq (list A) t2 (rev A t2).
+                                 rewrite (list A) (\z. palindrome A (cons A h z))
+                                   (snoc A (rev A t2) h2)
+                                   (subst A (\z. palindrome A (cons A h (snoc A (rev A t2) z)))
+                                     h
+                                     (palindrome_extend A h (rev A t2)
+                                       (IHn (rev A t2)
+                                         (subst (list A) (\z. le (length A z) n)
+                                           t2
+                                           (le_trans (length A t2) (length A t) n
+                                             (rewrite (list A) (\z. (le (length A t2) (length A z)))
+                                               (snoc A (rev A t2) h2)
+                                               (rewrite nat (\z. le (length A t2) z)
+                                                 (S (length A (rev A t2)))
+                                                 (le_n_Sm (length A t2) (length A (rev A t2))
+                                                   (eq_le (length A t2) (length A (rev A t2))
+                                                     (eq_sym nat (length A (rev A t2)) (length A t2)
+                                                       (length_rev A t2))))
+                                                 (length A (snoc A (rev A t2) h2))
+                                                 (length_snoc A (rev A t2) h2))
+                                               t
+                                               Ht)
+                                             Hlength)
+                                           (rev A t2)
+                                           Ht2)
+                                         (f_equal (list A) (list A) (rev A)
+                                           t2 (rev A t2) Ht2)))
+                                     h2
+                                     Hh)
+                                   t
+                                   Ht)
+                               (snoc_inv1 A t2 (rev A t2) h h2 (cons_inv2 A h2 h (snoc A t2 h) (snoc A (rev A t2) h2) Ht2)))
+                             (eq_sym A h2 h (cons_inv1 A h2 h (snoc A t2 h) (snoc A (rev A t2) h2) Ht2)))
+                           (eq_sym (list A)
+                             (cons A h (snoc A (rev A t2) h2))
+                             (cons A h2 (snoc A t2 h))
+                             (eq_trans (list A)
+                               (cons A h (snoc A (rev A t2) h2))
+                               (cons A h t)
+                               (cons A h2 (snoc A t2 h))
+                               (f_equal (list A) (list A) (cons A h)
+                                 (snoc A (rev A t2) h2)
+                                 t
+                                 (eq_sym (list A) t (snoc A (rev A t2) h2) Ht))
+                               (eq_trans (list A)
+                                 (cons A h t)
+                                 (snoc A (rev A t) h)
+                                 (cons A h2 (snoc A t2 h))
+                                 Hrev
+                                 (f_equal2 (list A) A (list A) (snoc A)
+                                   (rev A t) (cons A h2 t2) Heq
+                                   h h (refl A h))))))
+                         (eq_trans (list A) t (rev A (rev A t)) (rev A (cons A h2 t2))
+                           (eq_sym (list A) (rev A (rev A t)) t (rev_involutive A t))
+                           (f_equal (list A) (list A) (rev A) (rev A t) (cons A h2 t2) Heq)))
+                       (rev A t)
+                       (refl (list A) (rev A t)))))
+      (length A l)
+      l
+      (le_refl (length A l))
+  .
+

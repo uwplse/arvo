@@ -1,0 +1,26 @@
+import prelude.
+import equality.
+
+def prod_inv1 : (A B : Type) -> (a1 a2 : A) -> (b1 b2 : B) -> 
+                eq (prod A B) 
+                   (prod_intro A B a1 b1) 
+                   (prod_intro A B a2 b2) -> 
+                eq A a1 a2 :=
+  \A. \B. \a1. \a2. \b1. \b2. \Heq. 
+    f_equal (prod A B) A (fst A B)
+      (prod_intro A B a1 b1)
+      (prod_intro A B a2 b2)
+      Heq
+  .
+
+def prod_inv2 : (A B : Type) -> (a1 a2 : A) -> (b1 b2 : B) -> 
+                eq (prod A B) 
+                   (prod_intro A B a1 b1) 
+                   (prod_intro A B a2 b2) -> 
+                eq B b1 b2 :=
+  \A. \B. \a1. \a2. \b1. \b2. \Heq. 
+    f_equal (prod A B) B (snd A B)
+      (prod_intro A B a1 b1)
+      (prod_intro A B a2 b2)
+      Heq
+  .

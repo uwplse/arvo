@@ -1,4 +1,6 @@
 import nonempty_list.
+import insertion_sort_theorems.
+import nat_theorems.
 
 def key : Type := nat.
 

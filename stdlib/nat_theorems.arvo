@@ -1,0 +1,311 @@
+import nat.
+import bool_theorems.
+
+def plus_O_n : (n : nat) -> eq nat (plus O n) n :=
+    \n. refl nat n.
+
+def plus_n_O : (n : nat) -> eq nat (plus n O) n :=
+     \n. nat_elim (\x. eq nat (plus x O) x)
+                  (refl nat O)
+                  (\x. \IH : eq nat (plus x O) x. f_equal nat nat S (plus x O) x IH)
+                  n.
+
+def plus_n_S : (n m : nat) -> eq nat (plus n (S m)) (S (plus n m)) :=
+    \n. \m.
+        nat_elim (\x. eq nat (plus x (S m)) (S (plus x m)))
+                 (refl nat (S m))
+                 (\x. \IH : eq nat (plus x (S m)) (S (plus x m)).
+                   f_equal nat nat S (plus x (S m)) (S (plus x m)) IH)
+                 n.
+
+def plus_comm : (n m : nat) -> eq nat (plus n m) (plus m n) :=
+    \n. nat_elim (\x. (m : nat) -> eq nat (plus x m) (plus m x))
+                 (\m. eq_sym nat (plus m O) m (plus_n_O m))
+                 (\x. \IH : (m : nat) -> eq nat (plus x m) (plus m x).
+                     \m. eq_trans nat (plus (S x) m) (S (plus m x)) (plus m (S x))
+                                  (f_equal nat nat S (plus x m) (plus m x) (IH m))
+                                  (eq_sym nat (plus m (S x)) (S (plus m x)) (plus_n_S m x)))
+                 n.
+
+def plus_assoc : (a b c : nat) ->
+                 eq nat (plus (plus a b) c) (plus a (plus b c)) :=
+    \a. \b. \c.
+      nat_elim (\x. eq nat (plus (plus x b) c) (plus x (plus b c)))
+               (refl nat (plus b c))
+               (\x. \IH. f_equal nat nat S (plus (plus x b) c) (plus x (plus b c)) IH)
+               a.
+
+def mult_n_O : (n : nat) -> eq nat (mult n O) O :=
+  \n. nat_elim (\x. eq nat (mult x O) O)
+               (refl nat O)
+               (\x. \IH. IH)
+               n.
+
+def lemma : (a b c : nat) ->
+             eq nat (plus a (plus b c))
+                    (plus b (plus a c)) :=
+  \a. \b. \c.
+    subst nat
+          (\z. eq nat z (plus b (plus a c)))
+          (plus (plus a b) c)
+          (rewrite nat
+                   (\z. eq nat (plus z c) (plus b (plus a c)))
+                   (plus b a)
+                   (plus_assoc b a c)
+                   (plus a b)
+                   (plus_comm a b))
+          (plus a (plus b c))
+          (plus_assoc a b c).
+
+
+def mult_n_S : (n m : nat) -> eq nat (mult n (S m)) (plus n (mult n m)) :=
+  \n. \m.
+     nat_elim (\x. eq nat (mult x (S m)) (plus x (mult x m)))
+     	      (refl nat O)
+	      (\x. \IH : eq nat (mult x (S m)) (plus x (mult x m)).
+                  f_equal nat nat S (plus m (mult x (S m))) (plus x (plus m (mult x m)))
+                    (rewrite nat
+                             (\z. eq nat (plus m z) (plus x (plus m (mult x m))))
+                             (plus x (mult x m))
+                             (lemma m x (mult x m))
+                             (mult x (S m))
+                             IH))
+	      n.
+
+def mult_comm : (n m : nat) -> eq nat (mult n m) (mult m n) :=
+  \n. \m.
+    nat_elim (\x. eq nat (mult x m) (mult m x))
+             (eq_sym nat (mult m O) O (mult_n_O m))
+             (\x. \IH : eq nat (mult x m) (mult m x).
+               rewrite nat
+                       (\z. eq nat (mult (S x) m) z)
+                       (plus m (mult m x))
+                       (f_equal nat nat (plus m) (mult x m) (mult m x) IH)
+                       (mult m (S x))
+                       (mult_n_S m x))
+             n.
+
+def mult_plus_dist_r : (a b c : nat) -> eq nat (mult (plus a b) c) (plus (mult a c) (mult b c)) :=
+  \a. \b. \c.
+    nat_elim (\x. eq nat (mult (plus x b) c) (plus (mult x c) (mult b c)))
+             (refl nat (mult b c))
+             (\x. \IH : eq nat (mult (plus x b) c) (plus (mult x c) (mult b c)).
+               rewrite nat
+                       (\z. eq nat (plus c (mult (plus x b) c)) z)
+                       (plus c (plus (mult x c) (mult b c)))
+                       (f_equal nat nat (plus c) (mult (plus x b) c) (plus (mult x c) (mult b c)) IH)
+                       (plus (plus c (mult x c)) (mult b c))
+                       (plus_assoc c (mult x c) (mult b c)))
+             a.
+
+
+def mult_assoc : (a b c : nat) -> eq nat (mult (mult a b) c) (mult a (mult b c)) :=
+  \a. \b. \c.
+    nat_elim (\x. eq nat (mult (mult x b) c) (mult x (mult b c)))
+             (refl nat O)
+             (\x. \IH : eq nat (mult (mult x b) c) (mult x (mult b c)).
+               rewrite nat
+                       (\z. eq nat z (plus (mult b c) (mult x (mult b c))))
+                       (plus (mult b c) (mult (mult x b) c))
+                       (f_equal nat nat (plus (mult b c)) (mult (mult x b) c) (mult x (mult b c)) IH)
+                       (mult (plus b (mult x b)) c)
+                       (mult_plus_dist_r b (mult x b) c))
+             a.
+
+def eqb_nat_refl : (n : nat) -> eq bool (eqb_nat n n) true :=
+  \n.
+    nat_elim (\z. eq bool (eqb_nat z z) true)
+             (refl bool true)
+             (\_. \IH. IH)
+             n.
+
+def eqb_complete : (n m : nat) -> eq nat n m -> eq bool (eqb_nat n m) true :=
+  \n.
+    subst nat (\z. eq bool (eqb_nat n z) true)
+      n
+      (eqb_nat_refl n)
+  .
+
+def eqb_nat_sound : (n m : nat) -> eq bool (eqb_nat n m) true -> eq nat n m :=
+  \n.
+    nat_elim
+      (\z. (m : nat) -> eq bool (eqb_nat z m) true -> eq nat z m)
+      (\m. nat_case
+        (\z. eq bool (nat_case_simple bool true (\_. false) z) true -> eq nat O z)
+        (\_. refl nat O)
+        (\x. \H : eq bool false true. exfalso (false_true_inv H) (eq nat O (S x)))
+        m)
+      (\x. \IH : (m : nat) -> eq bool (eqb_nat x m) true -> eq nat x m.
+        \m. nat_case
+          (\z. eq bool (nat_case_simple bool false (eqb_nat x) z) true -> eq nat (S x) z)
+          (\H : eq bool false true. exfalso (false_true_inv H) (eq nat (S x) O))
+          (\p. \H : eq bool (eqb_nat x p) true.
+            f_equal nat nat S x p (IH p H))
+          m)
+      n.
+
+def S_inj : (n m : nat) -> eq nat (S n) (S m) -> eq nat n m :=
+  \n. \m. \H.
+    f_equal nat nat pred (S n) (S m) H
+  .
+
+
+def plus_inj_l : (a b c : nat) -> eq nat (plus a b) (plus a c) -> eq nat b c :=
+  \a. \b. \c.
+    nat_elim (\z. eq nat (plus z b) (plus z c) -> eq nat b c)
+      (\H. H)
+      (\n. \IHn. \H. IHn (S_inj (plus n b) (plus n c) H))
+    a
+  .
+
+def plus_inj_r : (a b c : nat) -> eq nat (plus a c) (plus b c) -> eq nat a b :=
+  \a. \b. \c. \H.
+    plus_inj_l c a b
+      (eq_trans nat (plus c a) (plus a c) (plus c b)
+        (plus_comm c a)
+        (eq_trans nat (plus a c) (plus b c) (plus c b)
+          H
+          (plus_comm b c)))
+  .
+
+def ltb_leb : (n m : nat) -> 
+              eq bool (ltb n m) true -> 
+              eq bool (leb n m) true :=
+  \n. \m. 
+    nat_elim (\z. (n : nat) -> eq bool (ltb n z) true -> eq bool (leb n z) true)
+      (\n. \H. exfalso (false_true_inv H) (eq bool (leb n O) true))
+      (\m. \IHm : (n : nat) -> eq bool (ltb n m) true -> eq bool (leb n m) true. 
+       \n. 
+        nat_case (\z. eq bool (ltb z (S m)) true -> eq bool (leb z (S m)) true)
+          (\_. refl bool true)
+          IHm
+          n)
+      m
+      n
+  .
+
+def ltb_S_leb : (n m : nat) -> 
+                eq bool (ltb n (S m)) true -> 
+                eq bool (leb n m) true :=
+  nat_elim
+    (\z. (m : nat) -> 
+      eq bool (ltb z (S m)) true -> 
+      eq bool (leb z m) true)
+    (\m. \_. refl bool true)
+    (\n. \IHn : (m : nat) -> eq bool (ltb n (S m)) true -> eq bool (leb n m) true.
+      nat_case (\z. eq bool (ltb (S n) (S z)) true -> eq bool (leb (S n) z) true)
+        (\H. H)
+        IHn)
+  .
+
+def leb_O : (n : nat) -> eq bool (leb n O) true -> eq nat n O :=
+  nat_case (\z. eq bool (leb z O) true -> eq nat z O)
+    (\_. refl nat O)
+    (\n. \H. exfalso (false_true_inv H) (eq nat (S n) O))
+  .
+
+def ltb_S_neq_ltb : 
+    (n m : nat) -> 
+    eq bool (ltb n (S m)) true -> 
+    (eq nat n m -> False) -> 
+    eq bool (ltb n m) true :=
+  \n. \m. 
+    nat_elim 
+      (\z. (n : nat) -> 
+        eq bool (ltb n (S z)) true -> 
+        (eq nat n z -> False) ->
+        eq bool (ltb n z) true)
+      (\n. \Hlt. \Hneq. exfalso (Hneq (leb_O n (ltb_S_leb n O Hlt))) (eq bool false true))
+      (\m. \IHm. 
+        nat_case 
+          (\z.
+            eq bool (ltb z (S (S m))) true -> 
+            (eq nat z (S m) -> False) -> 
+            eq bool (ltb z (S m)) true)
+          (\_. \_. refl bool true)
+          (\n. \Hlt : eq bool (ltb n (S m)) true. \Hneq. 
+            IHm n Hlt 
+              (\H. Hneq (f_equal nat nat S n m H))))
+      m
+      n
+  .
+
+def ltb_S : (n : nat) -> eq bool (ltb n (S n)) true :=
+  nat_elim (\z. eq bool (ltb z (S z)) true)
+    (refl bool true)
+    (\n. \IHn. IHn)
+  .
+
+def ltb_trans : (a b c : nat) -> 
+                eq bool (ltb a b) true -> 
+                eq bool (ltb b c) true -> 
+                eq bool (ltb a c) true :=
+  \a. \b. \c. 
+    nat_elim 
+      (\z. (a' b' : nat) -> 
+        eq bool (ltb a' b') true -> 
+        eq bool (ltb b' z) true -> 
+        eq bool (ltb a' z) true)
+      (\a. \b. \_. \H. H)
+      (\c. \IHc. \a. \b. 
+        nat_case 
+          (\z. 
+            eq bool (ltb a z) true ->
+            eq bool (ltb z (S c)) true -> 
+            eq bool (ltb a (S c)) true)
+          (\H. \_. exfalso (false_true_inv H) (eq bool (ltb a (S c)) true))
+          (\b. 
+            nat_case
+              (\z. 
+                eq bool (ltb z (S b)) true -> 
+                eq bool (ltb (S b) (S c)) true -> 
+                eq bool (ltb z (S c)) true)
+              (\_. \_. refl bool true)
+              (\a. IHc a b)
+              a)
+          b)
+      c
+      a
+      b
+  .
+
+def le_refl : (n : nat) -> le n n :=
+  nat_elim (\z. le z z)
+    I
+    (\n. \IHn. IHn)
+  .
+
+def le_trans : (a b c : nat) -> le a b -> le b c -> le a c :=
+  nat_elim (\z. (b c : nat) -> le z b -> le b c -> le z c)
+    (\b. \c. \Hab. \Hbc. I)
+    (\a. \IHa.
+      nat_case (\z. (c : nat) -> le (S a) z -> le z c -> le (S a) c)
+        (\c. \Hcontra. \_. exfalso Hcontra (le (S a) c))
+        (\b.
+          nat_case (\z. le (S a) (S b) -> le (S b) z -> le (S a) z)
+            (\_. \Hcontra. exfalso Hcontra (le (S a) O))
+            (\c. IHa b c)))
+  .
+
+def le_n_S : (n : nat) -> le n (S n) :=
+  nat_elim (\z. le z (S z))
+    I
+    (\n. \IHn. IHn)
+  .
+
+def le_n_Sm : (n m : nat) -> le n m -> le n (S m) :=
+  nat_elim (\z. (m : nat) -> le z m -> le z (S m))
+    (\_. \_. I)
+    (\n. \IHn : (m : nat) -> le n m -> le n (S m).
+     nat_case (\z. le (S n) z -> le n z)
+       (\Hcontra. exfalso Hcontra (le n O))
+       IHn)
+  .
+
+def eq_le : (n m : nat) -> eq nat n m -> le n m :=
+  \n. \m.
+    rewrite nat (\z. le z m)
+      m
+      (le_refl m)
+      n
+  .

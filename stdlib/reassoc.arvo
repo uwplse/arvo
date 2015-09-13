@@ -1,4 +1,4 @@
-import nat.
+import nat_theorems.
 
 data expr := Atom : nat -> expr | Plus : expr -> expr -> expr.
 

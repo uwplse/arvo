@@ -1,4 +1,4 @@
-import list.
+import list_theorems.
 
 data nonempty_list (A : Type) :=
 | nel_singleton : A -> nonempty_list A

@@ -1,0 +1,247 @@
+import insertion_sort. 
+import permutation.
+
+def sorted : (A : Type) -> (A -> A -> bool) -> list A -> Type :=
+  \A. \le.
+    list_elim A (\_. Type)
+      True
+      (\h. \t. \rec.
+        prod (all A (\x. is_true (le h x)) t) rec)
+  .
+
+def sorted_cons_intro :
+    (A : Type) ->
+    (le : A -> A -> bool) ->
+    (h : A) ->
+    (t : list A) ->
+    sorted A le t ->
+    all A (\x. is_true (le h x)) t ->
+    sorted A le (cons A h t) :=
+  \A. \le. \h. \t. \Hsorted. \Hall.
+    prod_intro (all A (\x. is_true (le h x)) t) (sorted A le t)
+      Hall Hsorted
+  .
+
+def transitive : (A : Type) -> (A -> A -> bool) -> Type :=
+  \A. \le.
+    (x y z : A) ->
+    is_true (le x y) ->
+    is_true (le y z) ->
+    is_true (le x z).
+
+def all_le_cons_intro :
+    (A : Type) ->
+    (le : A -> A -> bool) ->
+    transitive A le ->
+    (x h : A) ->
+    (t : list A) ->
+    all A (\y. is_true (le h y)) t ->
+    is_true (le x h) ->
+    all A (\y. is_true (le x y)) (cons A h t) :=
+  \A. \le. \Htrans. \x. \h. \t. \Hall. \Hxh.
+    prod_intro (is_true (le x h)) (all A (\y. is_true (le x y)) t)
+      Hxh
+      (implies_all A (\y. is_true (le h y)) (\y. is_true (le x y))
+         (\a. \Ha : is_true (le h a). Htrans x h a Hxh Ha) t
+         Hall)
+  .
+
+def all_le_insert_intro :
+    (A : Type) ->
+    (le : A -> A -> bool) ->
+    (x i : A) ->
+    is_true (le x i) ->
+    (l : list A) ->
+    all A (\y. is_true (le x y)) l ->
+    all A (\y. is_true (le x y)) (insert A le i l) :=
+  \A. \le. \x. \i. \Hxi.
+    list_elim A (\z. all A (\y. is_true (le x y)) z -> all A (\y. is_true (le x y)) (insert A le i z))
+      (\_. prod_intro (is_true (le x i)) True Hxi I)
+      (\h. \t. \IHt. \Ht : all A (\y. is_true (le x y)) (cons A h t).
+        bool_elim (\z. eq bool (le i h) z -> all A (\y. is_true (le x y)) (if (list A) z (cons A i (cons A h t)) (cons A h (insert A le i t))))
+          (\Heq : is_true (le i h).
+            prod_intro (is_true (le x i)) (all A (\y. is_true (le x y)) (cons A h t))
+              Hxi
+              (prod_intro (is_true (le x h)) (all A (\y. is_true (le x y)) t)
+                (fst (is_true (le x h)) (all A (\y. is_true (le x y)) t) Ht)
+                (snd (is_true (le x h)) (all A (\y. is_true (le x y)) t) Ht)))
+          (\Heq.
+            prod_intro (is_true (le x h)) (all A (\y. is_true (le x y)) (insert A le i t))
+              (fst (is_true (le x h)) (all A (\y. is_true (le x y)) t) Ht)
+              (IHt (snd (is_true (le x h)) (all A (\y. is_true (le x y)) t) Ht)))
+          (le i h)
+          (refl bool (le i h)))
+  .
+
+
+def asym : (A : Type) -> (A -> A -> bool) -> Type :=
+  \A. \le.
+    (x y : A) ->
+    eq bool (le x y) false ->
+    eq bool (le y x) true.
+
+def insert_preserves_sorted :
+    (A : Type) -> (le : A -> A -> bool) ->
+    transitive A le ->
+    asym A le ->
+    (l : list A) ->
+    sorted A le l ->
+    (x : A) ->
+    sorted A le (insert A le x l) :=
+  \A. \le. \Htrans. \Hasym.
+    list_elim A (\z. sorted A le z -> (x : A) -> sorted A le (insert A le x z))
+      (\Hsort. \x. sorted_cons_intro A le x (nil A) Hsort I)
+      (\h. \t. \IHt. \Hsort : sorted A le (cons A h t). \x.
+        bool_elim (\z. eq bool (le x h) z -> sorted A le (if (list A) z (cons A x (cons A h t)) (cons A h (insert A le x t))))
+          (\Heq : is_true (le x h). sorted_cons_intro A le x (cons A h t) Hsort (all_le_cons_intro A le Htrans x h t (fst (all A (\y. is_true (le h y)) t) (sorted A le t) Hsort) Heq))
+          (\Heq. prod_intro (all A (\y. is_true (le h y)) (insert A le x t)) (sorted A le (insert A le x t))
+                   (all_le_insert_intro A le h x (Hasym x h Heq) t (fst (all A (\x. is_true (le h x)) t) (sorted A le t) Hsort))
+                   (IHt (snd (all A (\x. is_true (le h x)) t) (sorted A le t) Hsort) x))
+          (le x h)
+          (refl bool (le x h)))
+  .
+
+def sort_sorted :
+    (A : Type) -> (le : A -> A -> bool) ->
+    transitive A le ->
+    asym A le ->
+    (l : list A) ->
+    sorted A le (sort A le l) :=
+  \A. \le. \Htrans. \Hasym.
+    list_elim A (\z. sorted A le (sort A le z))
+      I
+      (\h. \t. \IHt.
+        insert_preserves_sorted A le Htrans Hasym (sort A le t) IHt h)
+  .
+
+def insert_perm : (A : Type) -> (le : A -> A -> bool) ->
+                  (a : A) -> (l : list A) ->
+                  perm A (cons A a l) (insert A le a l) :=
+  \A. \le. \a.
+    list_elim A (\z. perm A (cons A a z) (insert A le a z))
+      (perm_skip A a (nil A) (nil A) (perm_nil A))
+      (\x. \xs. \IHxs : perm A (cons A a xs) (insert A le a xs).
+        bool_elim (\z.
+                    (perm A (cons A a (cons A x xs))
+                      (if (list A) z
+                        (cons A a (cons A x xs))
+                        (cons A x (insert A le a xs)))))
+          (perm_refl A (cons A a (cons A x xs)))
+          (perm_trans A (cons A a (cons A x xs))
+                        (cons A x (cons A a xs))
+                        (cons A x (insert A le a xs))
+            (perm_swap A a x xs)
+            (perm_skip A x (cons A a xs) (insert A le a xs) IHxs))
+          (le a x))
+  .
+
+def insert_preserves_perm : (A : Type) -> (le : A -> A -> bool) ->
+                            (a : A) -> (xs ys : list A) ->
+                            perm A xs ys ->
+                            perm A (insert A le a xs) (insert A le a ys) :=
+  \A. \le. \a.
+    perm_elim A (\z. \w. \_. perm A (insert A le a z) (insert A le a w))
+      (perm_skip A a (nil A) (nil A) (perm_nil A))
+      (\x. \xs. \ys. \Hxsys : perm A xs ys.
+       \H : perm A (insert A le a xs) (insert A le a ys).
+         bool_elim (\z.
+           (perm A (if (list A) z
+                       (cons A a (cons A x xs))
+                       (cons A x (insert A le a xs)))
+                   (if (list A) z
+                       (cons A a (cons A x ys))
+                       (cons A x (insert A le a ys)))))
+           (perm_skip A a (cons A x xs) (cons A x ys)
+             (perm_skip A x xs ys Hxsys))
+           (perm_skip A x (insert A le a xs) (insert A le a ys) H)
+           (le a x))
+      (\x. \y. \xs.
+        bool_elim
+          (\z.
+             (perm A
+                (if (list A) z
+                  (cons A a (cons A x (cons A y xs)))
+                  (cons A x
+                    (if (list A) (le a y)
+                      (cons A a (cons A y xs))
+                      (cons A y (insert A le a xs)))))
+                (if (list A) (le a y)
+                  (cons A a (cons A y (cons A x xs)))
+                  (cons A y
+                    (if (list A) z
+                      (cons A a (cons A x xs))
+                      (cons A x (insert A le a xs)))))))
+        (bool_elim
+          (\z.
+            (perm A
+                (cons A a (cons A x (cons A y xs)))
+              (if (list A) z
+                (cons A a (cons A y (cons A x xs)))
+                (cons A y (cons A a (cons A x xs))))))
+          (perm_skip A a (cons A x (cons A y xs)) (cons A y (cons A x xs))
+            (perm_swap A x y xs))
+          (perm_trans A
+            (cons A a (cons A x (cons A y xs)))
+            (cons A a (cons A y (cons A x xs)))
+            (cons A y (cons A a (cons A x xs)))
+            (perm_skip A a (cons A x (cons A y xs)) (cons A y (cons A x xs))
+              (perm_swap A x y xs))
+            (perm_swap A a y (cons A x xs)))
+          (le a y))
+        (bool_elim
+          (\z.
+            (perm A
+              (cons A x
+                (if (list A) z
+                  (cons A a (cons A y xs))
+                  (cons A y (insert A le a xs))))
+              (if (list A) z
+                (cons A a (cons A y (cons A x xs)))
+                (cons A y (cons A x (insert A le a xs))))))
+          (perm_trans A
+            (cons A x (cons A a (cons A y xs)))
+            (cons A a (cons A x (cons A y xs)))
+            (cons A a (cons A y (cons A x xs)))
+            (perm_swap A x a (cons A y xs))
+            (perm_skip A a (cons A x (cons A y xs)) (cons A y (cons A x xs))
+              (perm_swap A x y xs)))
+          (perm_swap A x y (insert A le a xs))
+          (le a y))
+        (le a x))
+      (\xs. \ys. \zs. \Hxsys. \IHxsys. \Hyszs. \IHyszs.
+        perm_trans A
+          (insert A le a xs)
+          (insert A le a ys)
+          (insert A le a zs)
+          IHxsys
+          IHyszs)
+  .
+
+
+def sort_perm : (A : Type) -> (le : A -> A -> bool) -> (l : list A) ->
+                perm A l (sort A le l) :=
+  \A. \le.
+    list_elim A (\z. perm A z (sort A le z))
+      (perm_nil A)
+      (\h. \t. \IHt : perm A t (sort A le t).
+        perm_trans A
+          (cons A h t)
+          (insert A le h t)
+          (insert A le h (sort A le t))
+          (insert_perm A le h t)
+          (insert_preserves_perm A le h t (sort A le t) IHt))
+  .
+
+def sort_not_nil : (A : Type) -> (le : A -> A -> bool) ->
+                   (l : list A) ->
+                   (eq (list A) l (nil A) -> False) ->
+                   eq (list A) (sort A le l) (nil A) -> False :=
+  \A. \le. \l. \Hl. \H.
+    (Hl
+      (perm_of_nil A l
+        (subst (list A) (\z. perm A l z)
+          (sort A le l)
+          (sort_perm A le l)
+          (nil A)
+          H)))
+  .

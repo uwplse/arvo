@@ -1,0 +1,18 @@
+import list.
+
+def insert : (A : Type) -> (A -> A -> bool) -> A -> list A -> list A :=
+  \A. \lt. \x.
+    list_elim A (\_. list A)
+      (cons A x (nil A))
+      (\h. \t. \rec.
+        if (list A) (lt x h)
+           (cons A x (cons A h t))
+           (cons A h rec))
+  .
+
+def sort : (A : Type) -> (A -> A -> bool) -> list A -> list A :=
+  \A. \lt.
+    list_elim A (\_. list A)
+      (nil A)
+      (\h. \_. \rec. insert A lt h rec)
+  .

@@ -12,3 +12,12 @@ def dec_case_simple : (A B : Type) -> (A -> B) -> ((A -> False) -> B) -> dec A -
   \A. \B.
     sum_elim A (A -> False) (\_. B)
   .
+
+def dec_case : (A : Type) -> (P : dec A -> Type) -> 
+               ((x : A) -> P (dec_yes A x)) -> 
+               ((y : A -> False) -> P (dec_no A y)) -> 
+               (d : dec A) -> P d := 
+  \A. 
+    sum_elim A (A -> False)
+  .
+               

@@ -1,0 +1,60 @@
+@FIXME: this file is out of date@
+import list_theorems. 
+
+data subset_list (A : Type) := s_nil : subset_list A | s_cons : A -> bool -> subset_list A -> subset_list A.
+
+def subset_list_superset : (A : Type) -> subset_list A -> list A :=
+  \A.
+    subset_list_elim A (\_. list A)
+      (nil A)
+      (\h. \_. \t. \rec. cons A h rec)
+  .
+
+def subset_list_subset : (A : Type) -> subset_list A -> list A :=
+  \A.
+    subset_list_elim A (\_. list A)
+      (nil A)
+      (\h. \b. \t. \rec.
+        if (list A) b (cons A h rec) rec)
+  .
+
+import sig. 
+
+def subset : (A : Type) -> list A -> list A -> Type :=
+  \A. \xs. \ys.
+    sigT (subset_list A) (\s. prod (eq (list A) (subset_list_superset A s) ys) (eq (list A) (subset_list_subset A s) xs))
+  .
+
+def list_to_superset : (A : Type) -> (xs : list A) -> subset_list A :=
+  \A.
+    list_elim A (\_. subset_list A)
+      (s_nil A)
+      (\h. \t. \rec. s_cons A h false rec)
+  .
+
+def list_to_from_superset : (A : Type) -> (xs : list A) ->
+                            eq (list A) (subset_list_superset A (list_to_superset A xs)) xs :=
+  \A.
+    list_elim A (\z. eq (list A) (subset_list_superset A (list_to_superset A z)) z)
+      (refl (list A) (nil A))
+      (\h. \t. \IHt.
+        f_equal (list A) (list A) (cons A h)
+          (subset_list_superset A (list_to_superset A t)) t IHt)
+  .
+
+def list_to_from_subset : (A : Type) -> (xs : list A) ->
+                          eq (list A) (subset_list_subset A (list_to_superset A xs)) (nil A) :=
+  \A.
+    list_elim A (\z. eq (list A) (subset_list_subset A (list_to_superset A z)) (nil A))
+      (refl (list A) (nil A))
+      (\h. \t. \IHt. IHt)
+  .
+
+def subset_nil : (A : Type) -> (xs : list A) -> subset A (nil A) xs :=
+  \A. \xs.
+    existT (subset_list A) (\s. prod (eq (list A) (subset_list_superset A s) xs) (eq (list A) (subset_list_subset A s) (nil A)))
+      (list_to_superset A xs)
+      (prod_intro (eq (list A) (subset_list_superset A (list_to_superset A xs)) xs) (eq (list A) (subset_list_subset A (list_to_superset A xs)) (nil A))
+        (list_to_from_superset A xs)
+        (list_to_from_subset A xs))
+  .

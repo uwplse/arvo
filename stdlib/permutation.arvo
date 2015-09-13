@@ -1,0 +1,90 @@
+import list_theorems.
+
+data perm (A : Type) : list A -> list A -> Type :=
+| perm_nil : perm A (nil A) (nil A)
+| perm_skip : (x : A) -> (xs ys : list A) -> perm A xs ys -> perm A (cons A x xs) (cons A x ys)
+| perm_swap : (x y : A) -> (xs : list A) ->
+              perm A (cons A x (cons A y xs)) (cons A y (cons A x xs))
+| perm_trans : (xs ys zs : list A) -> perm A xs ys -> perm A ys zs -> perm A xs zs.
+
+def perm_refl : (A : Type) -> (l : list A) -> perm A l l :=
+  \A.
+    list_elim A (\z. perm A z z)
+      (perm_nil A)
+      (\h. \t. \IHt : perm A t t. perm_skip A h t t IHt)
+  .
+
+
+def perm_swap_strong : (A : Type) -> (x y : A) -> (xs ys : list A) ->
+                       perm A xs ys ->
+                       perm A (cons A x (cons A y xs))
+                              (cons A y (cons A x ys)) :=
+  \A. \x. \y. \xs. \ys. \H.
+    perm_trans A (cons A x (cons A y xs)) (cons A x (cons A y ys)) (cons A y (cons A x ys))
+      (perm_skip A x (cons A y xs) (cons A y ys)
+        (perm_skip A y xs ys H))
+      (perm_swap A x y ys)
+  .
+
+def perm_of_nil_help :
+    (A : Type) -> (xs ys : list A) ->
+    perm A xs ys ->
+    eq (list A) ys (nil A) ->
+    eq (list A) xs (nil A) :=
+  \A.
+    perm_elim A (\z. \w. \_. eq (list A) w (nil A) -> eq (list A) z (nil A))
+      (\H. refl (list A) (nil A))
+      (\x. \xs. \ys. \_. \_. \H : eq (list A) (cons A x ys) (nil A).
+        exfalso
+          (cons_nil_inv A x ys H)
+          (eq (list A) (cons A x xs) (nil A)))
+      (\x. \y. \l. \H : eq (list A) (cons A y (cons A x l)) (nil A).
+        exfalso
+          (cons_nil_inv A y (cons A x l) H)
+          (eq (list A) (cons A x (cons A y l)) (nil A)))
+      (\xs. \ys. \zs.
+        \_. \IHxsys : eq (list A) ys (nil A) -> eq (list A) xs (nil A).
+        \_. \IHyszs : eq (list A) zs (nil A) -> eq (list A) ys (nil A).
+        \H : eq (list A) zs (nil A).
+          IHxsys (IHyszs H))
+  .
+
+
+def perm_of_nil : (A : Type) -> (l : list A) ->
+                  perm A l (nil A) ->
+                  eq (list A) l (nil A) :=
+  \A. \l. \H.
+    perm_of_nil_help A l (nil A) H (refl (list A) (nil A))
+  .
+
+def perm_sym : (A : Type) -> (xs ys : list A) ->
+               perm A xs ys ->
+               perm A ys xs :=
+  \A.
+    perm_elim A (\z. \w. \_. perm A w z)
+      (perm_nil A)
+      (\x. \xs. \ys. \_. \IH : perm A ys xs.
+        perm_skip A x ys xs IH)
+      (\x. \y. \l. perm_swap A y x l)
+      (\xs. \ys. \zs.
+       \_. \IHxsys : perm A ys xs.
+       \_. \IHyszs : perm A zs ys.
+       perm_trans A zs ys xs IHyszs IHxsys)
+  .
+
+def map_perm :
+    (A B : Type) -> (f : A -> B) ->
+    (xs ys : list A) -> perm A xs ys ->
+    perm B (map A B f xs) (map A B f ys) :=
+  \A. \B. \f.
+    perm_elim A (\z. \w. \_. perm B (map A B f z) (map A B f w))
+      (perm_nil B)
+      (\x. \xs. \ys. \H : perm A xs ys. \IH : perm B (map A B f xs) (map A B f ys).
+        perm_skip B (f x) (map A B f xs) (map A B f ys) IH)
+      (\x. \y. \l.
+        perm_swap B (f x) (f y) (map A B f l))
+      (\xs. \ys. \zs.
+       \_. \IHxsys.
+       \_. \IHyszs.
+         perm_trans B (map A B f xs) (map A B f ys) (map A B f zs) IHxsys IHyszs)
+  .

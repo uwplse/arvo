@@ -1,0 +1,46 @@
+import option.
+
+def some_inv : (A : Type) -> (x y : A) ->
+               eq (option A) (some A x) (some A y) ->
+               eq A x y :=
+  \A. \x. \y.
+    f_equal (option A) A (option_elim A (\_. A) x (\z. z)) (some A x) (some A y)
+  .
+
+def none_some_inv : (A : Type) -> (x : A) ->
+                    eq (option A) (some A x) (none A) ->
+                    False :=
+  \A. \x. \Heq.
+    subst (option A) (option_elim A (\_. Type) False (\_. True))
+      (some A x)
+      I
+      (none A)
+      Heq
+  .
+
+def option_some_bind : (A B : Type) -> (f : A -> option B) -> (x : A) ->
+                       eq (option B) (option_bind A B f (some A x)) (f x) :=
+  \A. \B. \f. \x.
+    refl (option B) (f x)
+  .
+
+def option_bind_some : (A : Type) -> (m : option A) ->
+                       eq (option A) (option_bind A A (some A) m) m :=
+  \A.
+    option_elim A (\z. eq (option A) (option_bind A A (some A) z) z)
+      (refl (option A) (none A))
+      (\x. refl (option A) (some A x))
+  .
+
+def option_bind_assoc : (A B C : Type) -> (m : option A) -> (f : A -> option B) -> (g : B -> option C) ->
+                        eq (option C)
+                          (option_bind B C g (option_bind A B f m))
+                          (option_bind A C (\x. option_bind B C g (f x)) m) :=
+  \A. \B. \C. \m. \f. \g.
+    option_elim A (\z. eq (option C)
+                          (option_bind B C g (option_bind A B f z))
+                          (option_bind A C (\x. option_bind B C g (f x)) z))
+      (refl (option C) (none C))
+      (\a. refl (option C) (option_bind B C g (f a)))
+      m
+  .

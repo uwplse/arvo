@@ -1,0 +1,185 @@
+import list. 
+import bool_theorems.
+
+def fold_left_ind : (A B : Type) -> (P : B -> Type) -> (f : B -> A -> B) -> ((b : B) -> (a : A) -> P b -> P (f b a)) -> (l : list A) -> (z : B) -> P z -> P (fold_left A B z f l) :=
+  \A. \B. \P. \f. \Pf.
+    \l.
+      list_elim A (\w. (z : B) -> P z -> P (fold_left A B z f w))
+                (\z. \Pz. Pz)
+                (\h. \t. \rec : (z : B) -> P z -> P (fold_left A B z f t).
+                  \z. \Pz.
+                    rec (f z h) (Pf z h Pz))
+                l.
+
+def app_nil_r : (A : Type) -> (xs : list A) -> eq (list A) (app A xs (nil A)) xs :=
+  \A. \xs.
+    list_elim A (\z. eq (list A) (app A z (nil A)) z)
+      (refl (list A) (nil A))
+      (\h. \t. \IHt.
+        f_equal (list A) (list A) (cons A h) (app A t (nil A)) t IHt)
+      xs.
+
+def app_assoc : (A : Type) -> (xs ys zs : list A) -> eq (list A) (app A (app A xs ys) zs) (app A xs (app A ys zs)) :=
+  \A. \xs. \ys. \zs.
+    list_elim A (\z. eq (list A) (app A (app A z ys) zs) (app A z (app A ys zs)))
+      (refl (list A) (app A ys zs))
+      (\h. \t. \IHt.
+        f_equal (list A) (list A) (cons A h)
+                (app A (app A t ys) zs) (app A t (app A ys zs)) IHt)
+      xs.
+
+def map_app : (A B : Type) -> (f : A -> B) -> (xs ys : list A) -> eq (list B) (map A B f (app A xs ys)) (app B (map A B f xs) (map A B f ys)) :=
+  \A. \B. \f. \xs. \ys.
+    list_elim A (\z. eq (list B) (map A B f (app A z ys)) (app B (map A B f z) (map A B f ys)))
+      (refl (list B) (map A B f ys))
+      (\h. \t. \IHt. f_equal (list B) (list B) (cons B (f h)) (map A B f (app A t ys)) (app B (map A B f t) (map A B f ys)) IHt)
+      xs
+  .
+
+def rev_app : (A : Type) -> (xs ys : list A) -> eq (list A) (rev A (app A xs ys)) (app A (rev A ys) (rev A xs)) :=
+ \A. \xs. \ys.
+   list_elim A (\z. eq (list A) (rev A (app A z ys)) (app A (rev A ys) (rev A z)))
+     (eq_sym (list A) (app A (rev A ys) (nil A)) (rev A ys) (app_nil_r A (rev A ys)))
+     (\h. \t. \IHt : eq (list A) (rev A (app A t ys)) (app A (rev A ys) (rev A t)).
+       rewrite (list A)
+         (\z. eq (list A) (snoc A z h) (app A (rev A ys) (snoc A (rev A t) h)))
+         (app A (rev A ys) (rev A t))
+         (rewrite (list A)
+           (\z. eq (list A) z (app A (rev A ys) (snoc A (rev A t) h)))
+           (app A (rev A ys) (snoc A (rev A t) h))
+           (refl (list A) (app A (rev A ys) (snoc A (rev A t) h)))
+           (snoc A (app A (rev A ys) (rev A t)) h)
+           (app_assoc A (rev A ys) (rev A t) (cons A h (nil A))))
+         (rev A (app A t ys))
+         IHt)
+     xs.
+
+def rev_snoc : (A : Type) -> (xs : list A) -> (x : A) -> eq (list A) (rev A (snoc A xs x)) (cons A x (rev A xs)) :=
+  \A. \xs. \x.
+    rev_app A xs (cons A x (nil A)).
+
+def rev_involutive : (A : Type) -> (l : list A) -> eq (list A) (rev A (rev A l)) l :=
+  \A. \l.
+    list_elim A (\z. eq (list A) (rev A (rev A z)) z)
+      (refl (list A) (nil A))
+      (\h. \t. \IHt : eq (list A) (rev A (rev A t)) t.
+        eq_trans (list A)
+          (rev A (snoc A (rev A t) h))
+          (cons A h (rev A (rev A t)))
+          (cons A h t)
+          (rev_snoc A (rev A t) h)
+          (f_equal (list A) (list A) (cons A h) (rev A (rev A t)) t IHt))
+      l.
+
+def rev_injective : (A : Type) -> (xs ys : list A) -> eq (list A) (rev A xs) (rev A ys) -> eq (list A) xs ys :=
+  \A. \xs. \ys. \Hxsys.
+    eq_trans (list A)
+             xs
+             (rev A (rev A xs))
+             ys
+             (eq_sym (list A) (rev A (rev A xs)) xs (rev_involutive A xs))
+             (eq_trans (list A)
+                       (rev A (rev A xs))
+                       (rev A (rev A ys))
+                       ys
+                       (f_equal (list A) (list A) (rev A) (rev A xs) (rev A ys) Hxsys)
+                       (rev_involutive A ys)).
+
+def map_rev : (A B : Type) -> (f : A -> B) -> (xs : list A) -> eq (list B) (map A B f (rev A xs)) (rev B (map A B f xs)) :=
+  \A. \B. \f.
+    list_elim A (\z. eq (list B) (map A B f (rev A z)) (rev B (map A B f z)))
+      (refl (list B) (nil B))
+      (\h. \t. \IHt. eq_trans (list B)
+                              (map A B f (snoc A (rev A t) h))
+                              (snoc B (map A B f (rev A t)) (f h))
+                              (snoc B (rev B (map A B f t)) (f h))
+                              (map_app A B f (rev A t) (cons A h (nil A)))
+                              (f_equal2 (list B) B (list B) (snoc B)
+                                        (map A B f (rev A t)) (rev B (map A B f t)) IHt
+                                        (f h) (f h) (refl B (f h))))
+  .
+
+def length_app : (A : Type) -> (xs ys : list A) -> eq nat (length A (app A xs ys)) (plus (length A xs) (length A ys)) :=
+  \A. \xs. \ys.
+    list_elim A (\z. eq nat (length A (app A z ys)) (plus (length A z) (length A ys)))
+              (refl nat (length A ys))
+              (\h. \t. \IHt. f_equal nat nat S (length A (app A t ys)) (plus (length A t) (length A ys)) IHt)
+              xs
+  .
+
+def length_snoc : (A : Type) -> (xs : list A) -> (x : A) -> eq nat (length A (snoc A xs x)) (S (length A xs)) :=
+  \A. \xs. \x.
+    list_elim A (\z. eq nat (length A (snoc A z x)) (S (length A z)))
+      (refl nat (S O))
+      (\h. \t. \IHt.
+        f_equal nat nat S (length A (snoc A t x)) (S (length A t)) IHt)
+      xs
+  .
+
+def length_rev : (A : Type) -> (xs : list A) -> eq nat (length A (rev A xs)) (length A xs) :=
+  \A.
+    list_elim A (\z. eq nat (length A (rev A z)) (length A z))
+      (refl nat O)
+      (\h. \t. \IHt.
+        (eq_trans nat
+          (length A (snoc A (rev A t) h))
+          (S (length A (rev A t)))
+          (S (length A t))
+          (length_snoc A (rev A t) h)
+          (f_equal nat nat S (length A (rev A t)) (length A t) IHt)))
+  .
+
+def cons_nil_inv : (A : Type) -> (h : A) -> (t : list A) -> eq (list A) (cons A h t) (nil A) -> False :=
+  \A. \h. \t. \Heq.
+    true_false_inv (f_equal (list A) bool (is_cons A) (cons A h t) (nil A) Heq)
+  .
+
+def snoc_not_nil : (A : Type) -> (l : list A) -> (x : A) -> eq (list A) (snoc A l x) (nil A) -> False :=
+  \A. \l. \x.
+    list_case A (\z. eq (list A) (snoc A z x) (nil A) -> False)
+      (cons_nil_inv A x (nil A))
+      (\h. \t. cons_nil_inv A h (snoc A t x))
+      l
+  .
+
+def rev_eq_nil : (A : Type) -> (l : list A) -> eq (list A) (rev A l) (nil A) -> eq (list A) l (nil A) :=
+  \A. \l.
+    list_case A (\z. eq (list A) (rev A z) (nil A) -> eq (list A) z (nil A))
+      (\_. refl (list A) (nil A))
+      (\h. \t. \Heq. exfalso (snoc_not_nil A (rev A t) h Heq) (eq (list A) (cons A h t) (nil A)))
+      l
+  .
+
+def cons_inv1 : (A : Type) -> (x y : A) -> (xs ys : list A) ->
+                eq (list A) (cons A x xs) (cons A y ys) ->
+                eq A x y :=
+  \A. \x. \y. \xs. \ys.
+    f_equal (list A) A (list_case A (\_. A) x (\h. \_. h))
+      (cons A x xs) (cons A y ys)
+  .
+
+def cons_inv2 : (A : Type) -> (x y : A) -> (xs ys : list A) ->
+                eq (list A) (cons A x xs) (cons A y ys) ->
+                eq (list A) xs ys :=
+  \A. \x. \y. \xs. \ys.
+    f_equal (list A) (list A) (list_case A (\_. list A) (nil A) (\_. \t. t))
+      (cons A x xs) (cons A y ys)
+  .
+
+def snoc_inv1 : (A : Type) -> (xs ys : list A) -> (x y : A) ->
+                eq (list A) (snoc A xs x) (snoc A ys y) ->
+                eq (list A) xs ys :=
+  \A. \xs. \ys. \x. \y. \H.
+    rev_injective A xs ys
+      (cons_inv2 A x y (rev A xs) (rev A ys)
+        (rev_injective A (cons A x (rev A xs)) (cons A y (rev A ys))
+          (rewrite (list A) (\z. eq (list A) (snoc A z x) (snoc A (rev A (rev A ys)) y))
+            xs
+            (rewrite (list A) (\z. eq (list A) (snoc A xs x) (snoc A z y))
+              ys
+              H
+              (rev A (rev A ys))
+              (rev_involutive A ys))
+            (rev A (rev A xs))
+            (rev_involutive A xs))))
+  .
