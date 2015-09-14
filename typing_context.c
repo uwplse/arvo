@@ -1,3 +1,4 @@
+#include "printing.h"
 #include "typing_context.h"
 
 #include <stdlib.h>
@@ -22,7 +23,7 @@ int datatype_intro_index(variable* needle, datatype* T) {
       return i;
     }
   }
-  sentinel("T has no constructor named %s", needle->name);
+  sentinel("%W has no constructor named %s", T->name, print_variable, needle->name);
  error:
   return -1;
 }

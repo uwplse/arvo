@@ -215,6 +215,7 @@ static term* elim_over_intro(typing_context* Delta, term* t) {
   term* last = t->args[t->num_args - 1];
   datatype* T = elim_to_datatype(t->var, Delta);
   int index = datatype_intro_index(last->var, T);
+  check(index != -1, "bad intro index while evaluating %W", t, print_term);
   term *app = term_dup(t->args[index + 1]);
   int i;
   for (i = 0; i < last->num_args; i++) {
