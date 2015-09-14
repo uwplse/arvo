@@ -713,8 +713,9 @@ void vernac_run(command *c) {
       asprintf(&filename, "%s/%s%s", wd, c->var->name, ".arvo");
       log_info("path = %s", filename);
       fflush(stdout);
-      check(process_file(filename) == 0, "Failed to import file %s.", c->var->name);
+      int ans = process_file(filename);
       free(filename);
+      check(ans == 0, "Failed to import file %s.", c->var->name);
       break;
     }
   }
