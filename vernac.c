@@ -871,7 +871,10 @@ int process_stream(char* filename, FILE* stream) {
 
 int process_file(char* filename) {
   FILE* stream = fopen(filename, "r");
+  check(stream, "could not open file %s", filename);
   int ans = process_stream(filename, stream);
   fclose(stream);
   return ans;
+ error:
+  return 1;
 }
