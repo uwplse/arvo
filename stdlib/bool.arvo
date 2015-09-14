@@ -1,5 +1,5 @@
-import prelude.
 import equality.
+import dec.
 
 data bool := true | false.
 
@@ -26,3 +26,8 @@ def eqb_bool : bool -> bool -> bool :=
     if bool x y (notb y).
 
 def is_true : bool -> Type := \x. eq bool x true.
+
+def decb : (A : Type) -> dec A -> bool :=
+  \A.
+    dec_case_simple A bool (\_. true) (\_. false)
+  .
