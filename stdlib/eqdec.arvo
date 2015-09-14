@@ -1,0 +1,4 @@
+import equality.
+import dec.
+
+def eqdec : Type -> Type := \A. (x y : A) -> dec (eq A x y).
