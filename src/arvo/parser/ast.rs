@@ -6,15 +6,12 @@ pub struct Variable {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Term {
+pub enum AST {
     Type,
     Hole,
     Var(Variable),
     Lambda(Variable, Option<Box<Term>>, Box<Term>),
-    Pi(Variable, Box<Term>, Box<Term>),
     App(Box<Term>, Box<Term>),
-    Intro(Variable, Box<Term>, Vec<Term>, Vec<Term>),
-    Elim(Variable, Vec<Term>, Vec<Term>),
     Data(Variable, Vec<Term>),
     // Borrowed from https://github.com/jroesch/hubris inspiration is discussed in write-up
     // which was last minute assemblage of english from the code, so please excuse any
