@@ -110,6 +110,8 @@ static int typecheck_check_rec(telescope* local, telescope* Gamma, context *Sigm
         check(definitionally_equal(Sigma, Delta, t->left, nty->left),
               "annotation %W does not match type %W",
               t->left, print_term, nty->left, print_term);
+        free_term(nty->left);
+        nty->left = term_dup(t->left);
       }
       if (variable_equal(t->var, &ignore)) {
         int ans = typecheck_check_rec(local, Gamma, Sigma, Delta, t->right, nty->right);
