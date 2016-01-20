@@ -95,7 +95,7 @@ static int typecheck_check_rec(telescope* local, telescope* Gamma, context *Sigm
   case HOLE:
     {
       term* nty = whnf_no_unfold(Sigma, Delta, ty);
-      log_info("Hole has type %W in context %W", nty, print_term, local, print_telescope);
+      log_info("In context %W\nHole has type %W", local, print_telescope, nty, print_term);
       free_term(nty);
       return 1;
     }
