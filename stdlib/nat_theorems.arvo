@@ -126,6 +126,14 @@ def eqb_complete : (n m : nat) -> eq nat n m -> eq bool (eqb_nat n m) true :=
       (eqb_nat_refl n)
   .
 
+def eqb_complete_false : (n m : nat) -> eq nat n m -> eq bool (eqb_nat n m) false -> False :=
+  \n. \m. \Heq. \Hf.
+    false_true_inv
+      (eq_trans bool false (eqb_nat n m) true
+        (eq_sym bool (eqb_nat n m) false Hf)
+        (eqb_complete n m Heq))
+  .
+
 def eqb_nat_sound : (n m : nat) -> eq bool (eqb_nat n m) true -> eq nat n m :=
   \n.
     nat_elim
@@ -308,4 +316,32 @@ def eq_le : (n m : nat) -> eq nat n m -> le n m :=
       m
       (le_refl m)
       n
+  .
+
+def ltb_irref : (n : nat) -> eq bool (ltb n n) false :=
+  nat_elim (\z. eq bool (ltb z z) false)
+    (refl bool false)
+    (\n. \IHn. IHn)
+  .
+
+def eqb_not_ltb : (n m : nat) -> eq bool (eqb_nat n m) true ->
+                  eq bool (ltb n m) false :=
+  \n. \m. \H.
+    subst nat (\z. eq bool (ltb n z) false)
+      n
+      (ltb_irref n)
+      m
+      (eqb_nat_sound n m H)
+  .
+
+def ltb_not_eqb : (n m : nat) -> eq bool (ltb n m) true -> eq bool (eqb_nat n m) false :=
+  \n. \m. \H.
+    bool_elim (\z. eq bool (eqb_nat n m) z -> eq bool z false)
+      (\H' : eq bool (eqb_nat n m) true.
+        eq_trans bool true (ltb n m) false
+          (eq_sym bool (ltb n m) true H)
+          (eqb_not_ltb n m H'))
+      (\_. refl bool false)
+      (eqb_nat n m)
+      (refl bool (eqb_nat n m))
   .
