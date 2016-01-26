@@ -75,3 +75,18 @@ def nth_default : (A : Type) -> nat -> A -> list A -> A :=
       l
       n
   .
+
+import option.
+
+def nth_error : (A : Type) -> nat -> list A -> option A :=
+  \A. \n. \l.
+    nth_default (option A) n (none A) (map A (option A) (some A) l)
+  .
+
+def alist : Type -> Type -> Type := \k. \v. list (prod k v).
+
+def alist_lookup : (K V : Type) -> (K -> K -> bool) -> K -> alist K V -> option V :=
+  \K. \V. \k_eq. \k.
+    fold_right (prod K V) (option V) (none V)
+      (\item. \rec. if (option V) (k_eq k (fst K V item)) (some V (snd K V item)) rec)
+  .
