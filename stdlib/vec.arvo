@@ -4,6 +4,11 @@ data vec (A : Type) : nat -> Type :=
 | vec_nil : vec A O
 | vec_cons : (n : nat) -> (a : A) -> vec A n -> vec A (S n).
 
+check vec_elim : (A : Type) -> (P : (n : nat) -> vec A n -> Type) ->
+                 P O (vec_nil A) ->
+                 ((n : nat) -> (a : A) -> (v : vec A n) -> P n v -> P (S n) (vec_cons A n a v)) ->
+                 (n : nat) -> (v : vec A n) -> P n v.
+
 def vec_case : (A : Type) -> (P : (n : nat) -> vec A n -> Type) ->
                (P O (vec_nil A)) ->
                ((n : nat) -> (a : A) -> (v : vec A n) -> P (S n) (vec_cons A n a v)) ->
@@ -78,3 +83,23 @@ def vec_app : (A : Type) -> (n : nat) -> vec A n -> (m : nat) -> vec A m -> vec 
       n
       u
   .
+
+simpl (\A : Type. \P : (n : nat) -> vec A n -> Type.
+       \N : P O (vec_nil A).
+       \C : (n : nat) -> (a : A) -> (v : vec A n) -> P n v ->
+            P (S n) (vec_cons A n a v).
+       \n : nat. \a : A. \v : vec A n.
+       vec_elim A P N C (S n) (vec_cons A n a v)
+).
+
+\A : Type. \P : (n : nat) -> vec A n -> Type.
+\N : P O (vec_nil A).
+\C : (n : nat) -> (a : A) -> (v : vec A n) -> P n v -> P (S n) (vec_cons A n a v).
+\n : nat. \a : A. \v : vec A n.
+vec_elim A P N C (S n) (vec_cons A n a v) ==>
+\A : Type. \P : (n : nat()()) -> vec(A)(n) -> Type.
+\N : P O()()() vec_nil(A)(O()()())().
+\C : (n : nat()()) -> (a : A) -> (v : vec(A)(n)) -> P n v ->
+     P S()()(n) vec_cons(A)(S()()(n))(n; a; v).
+\n : nat()(). \a : A. \v : vec(A)(n).
+C n a v vec_elim(A)(S()()(n))(P; N; C; v)
