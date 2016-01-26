@@ -100,12 +100,13 @@
 
 (defun arvo-insertion-filter (proc string)
   (when (buffer-live-p (process-buffer proc))
-    (with-current-buffer (process-buffer proc)
+    (with-selected-window arvo-window
       ;; Insert the text, advancing the process marker.
       (goto-char (process-mark proc))
       (insert string)
       (set-marker (process-mark proc) (point))
-      (set-window-point arvo-window (point)))))
+      (set-window-point arvo-window (point))
+      (recenter -1))))
 
 (defun arvo-start-process (buffer)
   (if (and (equal buffer arvo-process-buffer)
