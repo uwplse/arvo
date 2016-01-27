@@ -212,6 +212,8 @@ term* normalize_fuel_pi(context *Sigma, typing_context* Delta, term* t, int fuel
 
 static term* elim_over_intro(typing_context* Delta, term* t) {
   check(t && t->args && t->args[t->num_args - 1], "ill formed term");
+  check(t->tag == ELIM && t->args[t->num_args - 1]->tag == INTRO,
+        "elim_over_intro must be called on an eliminator applied to a constructor");
   term* last = t->args[t->num_args - 1];
   datatype* T = elim_to_datatype(t->var, Delta);
   int index = datatype_intro_index(last->var, T);
