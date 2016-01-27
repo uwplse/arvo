@@ -182,6 +182,7 @@ static term* typecheck_infer_rec(telescope* local, telescope* Gamma, context *Si
     for (i = 0; i < nty->num_indices; i++) {
       ans = make_app(ans, term_dup(nty->indices[i]));
     }
+    free_term(nty);
     return make_app(ans, term_dup(t->args[t->num_args-1]));
   }
   case IMPLICIT:
