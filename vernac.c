@@ -83,7 +83,7 @@ static void vernac_run_def(command* c) {
         c->right, print_term,
         c->right, print_term);
 
-  check(telescope_lookup(c->var, Gamma) == NULL, "Term named %W already exists.\n", c->var, print_variable);
+  // check(telescope_lookup(c->var, Gamma) == NULL, "Term named %W already exists.\n", c->var, print_variable);
 
   if (!has_holes(c->right)) {
     Gamma = telescope_add(variable_dup(c->var), term_dup(c->left), Gamma);
