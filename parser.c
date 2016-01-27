@@ -175,10 +175,12 @@ command *ast_to_command(mpc_ast_t *ast) {
     for (i = 0; i < ast->children_num; i++) {
       if (prefix("constructor", ast->children[i]->tag)) {
         if (ast->children[i]->children_num == 0) {
+          // this constructor has no annotation, it is a constant.
           check(num_params == 0, "parametrized data types require explicit return types on all constructors");
           data->args[ic++] = make_var(make_variable(strdup(ast->children[i]->contents)));
         }
         else {
+          // this constructor has an explicit annotation
           check(ast->children[i]->children_num == 3, "malformed constructor");
           term *c = make_var(make_variable(strdup(ast->children[i]->children[0]->contents)));
           c->left = ast_to_term(ast->children[i]->children[2]);

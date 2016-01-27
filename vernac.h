@@ -5,16 +5,45 @@
 #include "telescope.h"
 
 typedef enum command_tag {
-  DEF,
-  PRINT,
-  CHECK,
-  SIMPL,
-  DATA,
-  RECORD,
-  AXIOM,
-  IMPORT
+  DEF,              /* define a new constant */
+  PRINT,            /* print definition of a constant */
+  CHECK,            /* print type of term */
+  SIMPL,            /* normalize a term */
+  DATA,             /* declare a new inductive type */
+  RECORD,           /* declare a new record */
+  AXIOM,            /* declare a new axiom */
+  IMPORT            /* process another file */
 } command_tag;
 
+// unless otherwise noted, unused fields are NULL/0
+// DEF:
+//   var is the name of the constant to be defined
+//   left is its type
+//   right is its definition
+// PRINT: var is the name of the constant to print
+// CHECK: left is the term to typecheck
+// SIMPL: left is the term to normalize
+// DATA:
+//   var is the name of the new type
+//   args is the list of constructors, of length num_args
+//     each constructor is represented as a term with tag VAR
+//     where the field var contains the name of the constructor
+//     and the field left contains the type (or NULL if no annotation
+//     was given, which is only allowed if the constructor represents a constant)
+//   param_names is the list of parameter names, of length num_params
+//   param_types is the list of parameter types, of length num_params
+//   indices is a term representing the indices of the type
+//     it is either a Pi returning Type, with one argument for each index,
+//     or just Type, if the type has no indices
+// RECORD:
+//   var is the name of the new type
+//   field_names is the list of field names, of length num_fields
+//   field_types is the list of field types, of length num_fields
+//   num_params, param_names, and param_types are just like the DATA case
+// AXIOM:
+//   var is the name of the axiom
+//   left is its type
+// IMPORT: var is the name of the file to import
 typedef struct command {
   command_tag tag;
   variable *var;
