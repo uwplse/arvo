@@ -194,7 +194,6 @@ int syntactically_identical(term* a, term* b) {
 
       EQ_VEC(a->args, a->num_args, b->args, b->num_args);
       EQ_VEC(a->params, a->num_params, b->params, b->num_params);
-      EQ_VEC(a->indices, a->num_indices, b->indices, b->num_indices);
       return 1;
     }
   case TYPE:
@@ -282,7 +281,6 @@ int is_free(variable *var, term *haystack) {
       }
       IS_FREE_VEC(haystack->num_args, haystack->args);
       IS_FREE_VEC(haystack->num_params, haystack->params);
-      IS_FREE_VEC(haystack->num_indices, haystack->indices);
       return 0;
     }
   case TYPE:
@@ -394,11 +392,10 @@ term* substitute(variable* from, term* to, term* haystack) {
     }
   case ELIM:
     {
-      term* ans = make_elim(variable_dup(haystack->var), haystack->num_args, haystack->num_params, haystack->num_indices);
+      term* ans = make_elim(variable_dup(haystack->var), haystack->num_args, haystack->num_params);
 
       SUB_VEC(ans->args, haystack->args, haystack->num_args);
       SUB_VEC(ans->params, haystack->params, haystack->num_params);
-      SUB_VEC(ans->indices, haystack->indices, haystack->num_indices);
 
       return ans;
     }
@@ -533,7 +530,7 @@ term* make_intro(variable* name, term *type, int num_args, int num_params, int n
   return ans;
 }
 
-term* make_elim(variable* name, int num_args, int num_params, int num_indices) {
+term* make_elim(variable* name, int num_args, int num_params) {
   term* ans = make_term();
   ans->tag = ELIM;
   ans->var = name;
@@ -541,8 +538,6 @@ term* make_elim(variable* name, int num_args, int num_params, int num_indices) {
   ans->args = calloc(num_args, sizeof(term*));
   ans->num_params = num_params;
   ans->params = calloc(num_params, sizeof(term*));
-  ans->num_indices = num_indices;
-  ans->indices = calloc(num_indices, sizeof(term*));
   return ans;
 }
 

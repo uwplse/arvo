@@ -401,7 +401,7 @@ static void build_eliminator(command *c, datatype *T) {
   char *elim_name;
   asprintf(&elim_name, "%s_elim", c->var->name, print_term);
   term *wrapped_eliminator;
-  T->elim = make_elim(make_variable(strdup(elim_name)), c->num_args + 2, c->num_params, T->num_indices);
+  T->elim = make_elim(make_variable(strdup(elim_name)), c->num_args + 2, c->num_params);
   for (i = 0; i < c->num_args+2; i++) {
     T->elim->args[i] = make_var(variable_dup(vars[i]));
   }
@@ -420,7 +420,6 @@ static void build_eliminator(command *c, datatype *T) {
   wrapped_eliminator = make_lambda(variable_dup(vars[c->num_args+1]),
                                    term_dup(return_type), wrapped_eliminator);
   for (i = T->num_indices - 1; i >= 0; i--) {
-    T->elim->indices[i] = make_var(variable_dup(indices[i]));
     wrapped_eliminator = make_lambda(variable_dup(indices[i]),
                                      term_dup(index_types[i]), wrapped_eliminator);
   }

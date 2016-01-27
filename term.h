@@ -63,7 +63,8 @@ extern variable ignore;
 //     one for the motive (first argument)
 //     and one for the discriminee (last argument);
 //   params is the list of parameters (of length num_params);
-//   indices is the list of indices (of length num_indices).
+//   note: indices are not explicitly stored in the raw eliminator,
+//     but can be computed during typechecking from the discriminee
 // DATATYPE:
 //   var is the name of the type;
 //   params is the list of parameters (of length num_params)
@@ -108,7 +109,7 @@ term* make_hole();
 term* make_implicit();
 
 term* make_intro(variable* name, term *type, int num_args, int num_params, int num_indices);
-term* make_elim(variable* name, int num_args, int num_params, int num_indices);
+term* make_elim(variable* name, int num_args, int num_params);
 term* make_datatype_term(variable* name, int num_params, int num_indices);
 
 void free_variable(variable* v);

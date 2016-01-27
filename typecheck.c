@@ -176,9 +176,11 @@ static term* typecheck_infer_rec(telescope* local, telescope* Gamma, context *Si
     return term_dup(t->left);
   case ELIM: {
     term* ans = term_dup(t->args[0]);
+    term* nty = whnf_and_free(Sigma, Delta, typecheck_infer_rec(local, Gamma, Sigma, Delta, t->args[t->num_args-1]));
+
     int i;
-    for (i = 0; i < t->num_indices; i++) {
-      ans = make_app(ans, term_dup(t->indices[i]));
+    for (i = 0; i < nty->num_indices; i++) {
+      ans = make_app(ans, term_dup(nty->indices[i]));
     }
     return make_app(ans, term_dup(t->args[t->num_args-1]));
   }

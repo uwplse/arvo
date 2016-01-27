@@ -244,12 +244,8 @@ term* normalize_fuel_elim(context *Sigma, typing_context* Delta, term* t, int fu
     c->args[c->num_args - 1] = last;
     return normalize_and_free_fuel(Sigma, Delta, elim_over_intro(Delta, c), fuel-1);
   } else {
-    ans = make_elim(variable_dup(t->var), t->num_args, t->num_params, t->num_indices);
+    ans = make_elim(variable_dup(t->var), t->num_args, t->num_params);
     int i;
-    for (i = 0; i < t->num_indices; i++) {
-      ans->indices[i] = normalize_fuel(Sigma, Delta, t->indices[i], fuel-1);
-      if (!ans->indices[i]) goto error;
-    }
     for (i = 0; i < t->num_params; i++) {
       ans->params[i] = normalize_fuel(Sigma, Delta, t->params[i], fuel-1);
       if (!ans->params[i]) goto error;
