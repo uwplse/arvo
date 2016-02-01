@@ -83,3 +83,19 @@ def vec_app : (A : Type) -> (n : nat) -> vec A n -> (m : nat) -> vec A m -> vec 
       n
       u
   .
+
+def index_app_right : (A : Type) -> (n : nat) -> (v : vec A n) -> (m : nat) -> (w : vec A m) ->
+                      (i : fin m) ->
+                      eq A
+                        (index A (plus n m) (right m i n) (vec_app A n v m w))
+                        (index A m i w) :=
+  \A.
+    vec_elim A (\a. \b. (m : nat) -> (w : vec A m) ->
+                      (i : fin m) ->
+                      eq A
+                        (index A (plus a m) (right m i a) (vec_app A a b m w))
+                        (index A m i w))
+      (\m. \w. \i. refl A (index A m i w))
+      (\n. \a. \v. \IHv. \m. \w. \i. IHv m w i)
+  .
+

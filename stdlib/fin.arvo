@@ -136,3 +136,51 @@ def fin_eq_dec : (n : nat) -> (x y : fin n) -> dec (eq (fin n) x y) :=
          x
          rec)
   .
+
+def left : (n : nat) -> (x : fin n) -> (m : nat) -> fin (plus n m) :=
+  fin_elim (\z. \_. (m : nat) -> fin (plus z m))
+    (\n. \m. fin_1 (plus n m))
+    (\n. \x. \rec. \m. fin_S (plus n m) (rec m))
+  .
+
+def right : (m : nat) -> (x : fin m) -> (n : nat) -> fin (plus n m) :=
+  \m. \x.
+  nat_elim (\z. fin (plus z m))
+    x
+    (\n. \rec. fin_S (plus n m) rec)
+  .
+
+def fin_case_S' : (n : nat) -> (P : fin (S n) -> Type) ->
+                  P (fin_1 n) ->
+                  ((x : fin n) -> P (fin_S n x)) ->
+                  (y : fin (S n)) -> P y :=
+  \n. \P. \H1. \HS. \y.
+    fin_elim (\n'. \y'. (P' : fin n' -> Type) ->
+                   nat_elim (\z. (fin z -> Type) -> fin z -> Type)
+                     (\_. \_. True)
+                     (\n0. \_. \P0. \y0. P0 (fin_1 n0) -> ((x : fin n0) -> P0 (fin_S n0 x)) -> P0 y0)
+                     n'
+                     P'
+                     y')
+      (\n'. \P'. \H1'. \_. H1')
+      (\n'. \y'. \_. \P'. \_. \HS'. HS' y')
+      (S n)
+      y
+      P
+      H1
+      HS
+  .
+
+def out : (n m : nat) -> (x : fin (plus n m)) -> sum (fin n) (fin m) :=
+  nat_elim (\z. (m : nat) -> fin (plus z m) -> sum (fin z) (fin m))
+    (\m. \x. inj_r (fin O) (fin m) x)
+    (\n. \rec. \m. \x.
+      fin_case_S' (plus n m)
+        (\_. sum (fin (S n)) (fin m))
+        (inj_l (fin (S n)) (fin m) (fin_1 n))
+        (\x'. sum_elim (fin n) (fin m) (\_. sum (fin (S n)) (fin m))
+                (\l. inj_l (fin (S n)) (fin m) (fin_S n l))
+                (\r. inj_r (fin (S n)) (fin m) r)
+                (rec m x'))
+        x)
+  .
