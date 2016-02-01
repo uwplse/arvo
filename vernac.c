@@ -148,7 +148,7 @@ static int check_datatype(command *c, term** out_kind, term** out_type_construct
   for (i = 0, pk = NULL, pTyC = NULL; i < c->num_params; i++) {
     check(typecheck_check(Gamma_prime, Sigma, Delta, c->param_types[i], type),
           "parameter %W has type %W, which is ill formed",
-          c->param_names[i], c->param_types[i]);
+          c->param_names[i], print_variable, c->param_types[i], print_term);
     variable* x = c->param_names[i];
     term* ty = c->param_types[i];
     type_constructor->params[i] = make_var(variable_dup(x));
