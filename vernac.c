@@ -248,12 +248,12 @@ static int check_datatype(command *c, term** out_kind, term** out_type_construct
   k = NULL;
   free_term(tyC);
   tyC = NULL;
-  if (pk != NULL) {
-    free_term(kind);
-    kind = NULL;
-    free_term(type_constructor);
-    type_constructor = NULL;
-  }
+
+  free_term(kind);
+  kind = NULL;
+  free_term(type_constructor);
+  type_constructor = NULL;
+
   free_term(A);
   A = NULL;
  cleanup:
