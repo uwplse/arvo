@@ -1,3 +1,5 @@
+data baz : Type := cbad : nat -> baz.
+
 data foo (A : Type) : A a -> Type := .
 
 data bar (A : Type) (B : A a) : Type := .
