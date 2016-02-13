@@ -1,3 +1,6 @@
 [submodule "mpc"]
 	path = mpc
 	url = https://github.com/orangeduck/mpc.git
+[submodule "cmlib"]
+	path = cmlib
+	url = git@github.com:standardml/cmlib.git
