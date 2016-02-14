@@ -3,7 +3,7 @@ struct
   exception TypeError of Term.t * string
   exception Malformed
 
-  type context = Term.t Context.map
+  type context = Term.t Context.dict
 
 
   open Term
@@ -19,7 +19,7 @@ struct
             | _ => raise Malformed
     in
         case out e of
-            ` v => (case Context.find (ctx, v) of
+            ` v => (case Context.find ctx v of
                         SOME ty => ty
                       | NONE => raise TypeError (e, "Unbound variable " ^ Variable.toString v))
           | \ (x, e) => raise Malformed
@@ -29,7 +29,7 @@ struct
                | Pi   => let val (A, xB) = getTwo es
                              val (x, B) = getAbs xB
                              val tyA = checktype ctx A
-                             val tyB = checktype (Context.insert (ctx, x, tyA)) B
+                             val tyB = checktype (Context.insert ctx x tyA) B
                          in
                              if not (Eval.equal (tyA, ty))
                              then raise TypeError (e, PrettyPrinter.prettyprint A ^
@@ -53,7 +53,7 @@ struct
                                                       " has type " ^
                                                       PrettyPrinter.prettyprint tyA ^
                                                       " instead of Type")
-                             else let val tyB = checktype (Context.insert (ctx, x, A)) B
+                             else let val tyB = checktype (Context.insert ctx x A) B
                                   in
                                       $$ (Pi, [A, \\ (x, tyB)])
                                   end

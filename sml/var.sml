@@ -14,3 +14,11 @@ struct
   
   fun toUserString (s, id) = s
 end
+
+structure VarOrdered : ORDERED where type t = Var.t = 
+struct
+  type t = Var.t
+  val eq : t * t -> bool = Var.equal
+  val compare : t * t -> order = Var.compare
+end
+

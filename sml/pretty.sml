@@ -16,14 +16,8 @@ structure PrettyPrinter : PRETTYPRINTER = struct
 
   datatype assoc = LEFT | RIGHT | NONE
 
-  structure VarMap = SplayMapFn(struct
-			         type ord_key = Var.t
-				 val compare = Var.compare
-                                end)
-  structure StrSet = SplaySetFn(struct
-                                 type ord_key = string
-                                 val compare = String.compare
-                                 end)
+  structure VarMap = SplayDict(structure Key = VarOrdered)
+  structure StrSet = SplaySet(structure Elem = StringOrdered)
 
   fun prettyprint e = 
     let fun prec_of_op Lam = LAM
@@ -45,20 +39,20 @@ structure PrettyPrinter : PRETTYPRINTER = struct
         fun newName m s x = 
           let fun go n str = 
                 let val nm = str ^ Int.toString n in
-                    if StrSet.member (s, nm )
+                    if StrSet.member s nm
                     then go (n + 1) str
                     else nm
                 end
               val usx = Var.toUserString x
-              val nm = if StrSet.member (s, usx)
+              val nm = if StrSet.member s usx
                        then go 0 usx
                        else usx
           in 
-              (VarMap.insert (m, x, nm), StrSet.add (s, nm), nm)
+              (VarMap.insert m x nm, StrSet.insert s nm, nm)
           end
         fun go m s p a e =
           case out e of
-              ` v => valOf (VarMap.find (m, v))
+              ` v => valOf (VarMap.find m v)
             | \ _ => raise Malformed
             | $ (f, es) => 
               if not (no_parens (prec_of_op f) p a)
