@@ -1,5 +1,6 @@
 Group is
    lib/cmlib/cmlib.cm
+   lib/sml-parcom-wrapper/parcom.cm (bind:(anchor:libs value:lib))
 
    src/var.sig
    src/var.sml
