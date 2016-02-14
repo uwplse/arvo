@@ -26,4 +26,8 @@ Group is
    src/pretty.sig
    src/pretty.sml
 
+   src/ast.sml
+
+   src/parser.sml
+
    src/tests.sml
