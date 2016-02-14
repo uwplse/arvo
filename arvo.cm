@@ -1,0 +1,28 @@
+Group is
+   lib/cmlib/cmlib.cm
+
+   src/var.sig
+   src/var.sml
+
+   src/oper.sig
+   src/abt.sig
+   src/list-util.sml
+   src/abt.sml
+   src/abt-util.sig
+   src/abt-util.sml
+
+   src/context.sml
+
+   src/ops.sml
+   src/term.sml
+
+   src/eval.sig
+   src/eval.sml
+
+   src/typechecker.sig
+   src/typechecker.sml
+
+   src/pretty.sig
+   src/pretty.sml
+
+   src/tests.sml
