@@ -1,0 +1,3 @@
+[submodule "lib/cmlib"]
+	path = lib/cmlib
+	url = git@github.com:standardml/cmlib.git
