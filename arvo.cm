@@ -34,4 +34,7 @@ Group is
 
    src/astparser.sig
    src/astparser.sml
+
+   src/abtparser.sig
+   src/abtparser.sml
    src/tests.sml
