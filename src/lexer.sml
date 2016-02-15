@@ -1,0 +1,1 @@
+structure Lexer = TokenParser(ArvoLangDef)

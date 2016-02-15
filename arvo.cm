@@ -28,6 +28,10 @@ Group is
 
    src/ast.sml
 
-   src/parser.sml
+   src/langdef.sml
 
+   src/lexer.sml
+
+   src/astparser.sig
+   src/astparser.sml
    src/tests.sml
