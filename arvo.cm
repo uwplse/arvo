@@ -40,4 +40,10 @@ Group is
 
    src/env.sig
    src/env.sml
+
+   src/cmd.sml
+
+   src/vernac.sig
+   src/vernac.sml
+
    src/tests.sml
