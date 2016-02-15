@@ -37,4 +37,7 @@ Group is
 
    src/abtparser.sig
    src/abtparser.sml
+
+   src/env.sig
+   src/env.sml
    src/tests.sml
