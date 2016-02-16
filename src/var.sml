@@ -1,6 +1,6 @@
 structure Var :> VARIABLE =
 struct
-  type t = string * int 
+  type t = string * int
 
   val counter = ref 0
 
@@ -11,11 +11,11 @@ struct
   fun compare ((_, id1), (_, id2)) = Int.compare(id1, id2)
 
   fun toString (s, id) = s ^ "@" ^ (Int.toString id)
-  
+
   fun toUserString (s, id) = s
 end
 
-structure VarOrdered : ORDERED where type t = Var.t = 
+structure VarOrdered : ORDERED where type t = Var.t =
 struct
   type t = Var.t
   val eq : t * t -> bool = Var.equal

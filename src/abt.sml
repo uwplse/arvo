@@ -19,7 +19,7 @@ struct
    | ABS of info * t
    | OPER of Operator.t * t list
 
-   exception Malformed
+   exception AbtMalformed
    exception NotImplemented
 
    fun bind x e =
@@ -44,7 +44,7 @@ struct
      | into ($ fes)   = OPER fes
 
    fun out (FV v)       = ` v
-     | out (BV _)       = raise Malformed
+     | out (BV _)       = raise AbtMalformed
      | out (ABS (i, e)) = \ (unbind (i, e))
      | out (OPER fes)   = $ fes
 

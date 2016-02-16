@@ -1,8 +1,8 @@
-signature OPERATOR = 
+signature OPERATOR =
 sig
-  type t 
+  type t
 
   val arity : t -> int list
   val equal : (t * t) -> bool
   val toString : t -> string
-end 
+end

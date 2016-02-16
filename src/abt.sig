@@ -10,7 +10,7 @@ sig
    | \ of Variable.t * 'a
    | $ of Operator.t * 'a list
 
-   exception Malformed
+   exception AbtMalformed
 
    val into : t view -> t
    val out : t -> t view

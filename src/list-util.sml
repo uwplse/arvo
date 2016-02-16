@@ -1,4 +1,4 @@
-structure List_Util = 
+structure List_Util =
 struct
    fun mem equal x xs = List.exists (fn y => equal(x, y)) xs
    fun remove equal x xs = List.filter (fn y => not (equal(x,y))) xs
@@ -6,7 +6,7 @@ struct
    fun zip_exact e [] [] = []
      | zip_exact e (x :: xs) (y :: ys) = (x,y) :: (zip_exact e xs ys)
      | zip_exact e _ _ = raise e
-     
+
   (* Quadratic(!) algorithm to make a list without duplicates *)
 
    fun collate equal xss =
