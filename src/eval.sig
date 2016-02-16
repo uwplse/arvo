@@ -1,5 +1,5 @@
 signature EVAL = sig
-    val eval : Term.t -> Term.t
+    val eval : Env.t -> Term.t -> Term.t
 
-    val equal : Term.t * Term.t -> bool
-end 
+    val equal : Env.t -> Term.t * Term.t -> bool
+end
