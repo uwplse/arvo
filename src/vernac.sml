@@ -4,27 +4,24 @@ struct
 
   fun exec E c =
     let val () = print ("Processing command: " ^ PrettyPrinter.cmd c ^ "\n")
-        fun go (Cmd.Def (nm, ty, d)) =
-          if TypeChecker.checktype E ty Term.Type
-          then
-              if TypeChecker.checktype E d ty
-              then
-                  if not (Option.isSome (Env.findVar E nm))
-                  then
-                      let val b = Env.newbinding nm ty (SOME d)
-                      in
-                          Env.insert E nm b
-                      end
-                  else raise CmdError (nm ^ " is already defined!")
+        fun bind nm ty od =
+          if not (Option.isSome (Env.findVar E nm))
+          then Env.insert E nm (Env.newbinding nm ty od)
+          else raise CmdError (nm ^ " is already defined!")
 
-              else
-                  raise TypeChecker.TypeError (d, nm ^ " expected to have type " ^
-                                               PrettyPrinter.term ty ^
-                                               ", but instead has type " ^
-                                               PrettyPrinter.term (TypeChecker.infertype E d))
-          else raise TypeChecker.TypeError (ty, "Expected to have type Type, " ^
-                                                "but instead has type " ^
-                                            PrettyPrinter.term (TypeChecker.infertype E ty))
+        fun expect e ty =
+          if TypeChecker.checktype E e ty
+          then ()
+          else raise TypeChecker.TypeError
+                   (e, "Expected to have type " ^ PrettyPrinter.term ty ^
+                       ", but instead has type " ^
+                       PrettyPrinter.term (TypeChecker.infertype E e))
+
+        fun go (Cmd.Def (nm, ty, d)) =
+          let val () = expect ty Term.Type
+              val () = expect d ty
+          in bind nm ty (SOME d)
+          end
     in
         go c
         handle TypeChecker.TypeError (e,msg) => (print ("Type Error in term " ^
