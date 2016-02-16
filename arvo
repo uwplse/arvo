@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if which rlwrap; then
+if which rlwrap >/dev/null 2>&1 ; then
     rlwrap sml @SMLload arvo-img.*
 else 
     sml @SMLload arvo-img.*
