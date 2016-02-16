@@ -58,7 +58,8 @@
   (save-excursion (search-forward s (line-end-position) 't)))
 
 (defconst arvo-keyword-regex
-  "\\<\\(def\\|axiom\\|import\\|print\\|check\\|simpl\\|data\\|record\\)\\>")
+  "\\<\\(def\\|axiom\\|import\\|print\\|check\\|compute\\|data\\|record\\)\\>")
+
 
 (defconst arvo-font-lock-keywords
   `((,arvo-keyword-regex . font-lock-keyword-face)
@@ -154,7 +155,7 @@
   (interactive
    (let ((w (thing-at-point 'word t)))
      (list (read-string (format "Term (default %s): " w) nil nil w))))
-  (arvo-send-command-and-message "simpl" s))
+  (arvo-send-command-and-message "compute" s))
 
 (defun arvo-print-term (s)
   (interactive
