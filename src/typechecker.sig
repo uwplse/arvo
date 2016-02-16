@@ -1,8 +1,8 @@
 signature TYPECHECKER =
 sig
   exception TypeError of Term.t * string
+  exception Malformed of string
 
-  type context = Term.t Context.dict
-
-  val checktype : context -> Term.t -> Term.t 
+  val infertype : Env.t -> Term.t -> Term.t
+  val checktype : Env.t -> Term.t -> Term.t -> bool
 end
