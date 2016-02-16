@@ -17,6 +17,11 @@ struct
                        ", but instead has type " ^
                        PrettyPrinter.term (TypeChecker.infertype E e))
 
+        fun welltyped e =
+          let val ty = TypeChecker.infertype E e
+          in ()
+          end
+
         fun go (Cmd.Def (nm, ty, d)) =
             let val () = expect ty Term.Type
                 val () = expect d ty
@@ -24,6 +29,12 @@ struct
           | go (Cmd.Axiom (nm, ty)) =
             let val () = expect ty Term.Type
             in bind nm ty NONE end
+          | go (Cmd.Compute e) =
+            let val () = welltyped e
+            in print (PrettyPrinter.term e ^ "\n==>\n" ^
+                      PrettyPrinter.term (Eval.eval E e) ^ "\n");
+               E
+            end
 
     in
         go c

@@ -102,6 +102,7 @@ structure PrettyPrinter : PRETTYPRINTER = struct
             case c of
                 Cmd.Def(nm,ty,d) => "def " ^ nm ^ " : " ^ term ty ^ " := " ^ term d
               | Cmd.Axiom(nm,ty) => "axiom " ^ nm ^ " : " ^ term ty
+              | Cmd.Compute(e) => "compute " ^ term e
     in
         s ^ "."
     end

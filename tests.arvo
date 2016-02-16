@@ -10,3 +10,5 @@ def iff : Type -> Type -> Type := \A : Type. \B : Type. and (A -> B) (B -> A).
 def iff_intro : (A B : Type) -> (A -> B) -> (B -> A) -> iff A B :=
     \A : Type. \B : Type. \f : A -> B. \g : B -> A. and_intro (A -> B) (B -> A) f g.
 
+compute pair.
+compute ((\x:Type. x) Type).

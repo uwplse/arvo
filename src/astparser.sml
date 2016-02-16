@@ -40,13 +40,15 @@ struct
 
   val defn = (symbol "def" >> identifier &&
                 symbol ":" >> term &&
-                symbol ":=" >> term << CharParser.string ".")
+                symbol ":=" >> term)
                wth Cmd.Def o flat3
 
   val axiom = (symbol "axiom" >> identifier &&
-                symbol ":" >> term << CharParser.string ".")
+                symbol ":" >> term)
                wth Cmd.Axiom
 
-  val cmd = whiteSpace >> (defn || axiom)
+  val compute = (symbol "compute" >> term) wth Cmd.Compute
+
+  val cmd = whiteSpace >> (defn || axiom || compute) << CharParser.string "."
 
 end
