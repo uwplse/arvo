@@ -12,8 +12,6 @@ Group is
    src/abt-util.sig
    src/abt-util.sml
 
-   src/context.sml
-
    src/ops.sml
    src/term.sml
 
@@ -47,3 +45,5 @@ Group is
    src/vernac.sml
 
    src/tests.sml
+
+   src/main.sml
