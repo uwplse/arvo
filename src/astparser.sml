@@ -43,6 +43,10 @@ struct
                 symbol ":=" >> term << CharParser.string ".")
                wth Cmd.Def o flat3
 
-  val cmd = whiteSpace >> defn
+  val axiom = (symbol "axiom" >> identifier &&
+                symbol ":" >> term << CharParser.string ".")
+               wth Cmd.Axiom
+
+  val cmd = whiteSpace >> (defn || axiom)
 
 end

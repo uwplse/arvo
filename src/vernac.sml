@@ -18,10 +18,13 @@ struct
                        PrettyPrinter.term (TypeChecker.infertype E e))
 
         fun go (Cmd.Def (nm, ty, d)) =
-          let val () = expect ty Term.Type
-              val () = expect d ty
-          in bind nm ty (SOME d)
-          end
+            let val () = expect ty Term.Type
+                val () = expect d ty
+            in bind nm ty (SOME d) end
+          | go (Cmd.Axiom (nm, ty)) =
+            let val () = expect ty Term.Type
+            in bind nm ty NONE end
+
     in
         go c
         handle TypeChecker.TypeError (e,msg) => (print ("Type Error in term " ^

@@ -32,6 +32,5 @@ struct
 
   fun term f = of_ast f
 
-  fun cmd f (Cmd.Def(nm,ty,d)) = Cmd.Def(nm, of_ast f ty, of_ast f d)
-
+  fun cmd f = Cmd.map (of_ast f)
 end

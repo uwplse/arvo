@@ -100,9 +100,8 @@ structure PrettyPrinter : PRETTYPRINTER = struct
   fun cmd c =
     let val s =
             case c of
-                Cmd.Def(nm,ty,d) => "def " ^ nm ^ " : " ^
-                                    term ty ^ " := " ^
-                                    term d
+                Cmd.Def(nm,ty,d) => "def " ^ nm ^ " : " ^ term ty ^ " := " ^ term d
+              | Cmd.Axiom(nm,ty) => "axiom " ^ nm ^ " : " ^ term ty
     in
         s ^ "."
     end
