@@ -35,6 +35,15 @@ struct
                       PrettyPrinter.term (Eval.eval E e) ^ "\n");
                E
             end
+          | go (Cmd.Print nm) =
+            ((case Option.join (Option.map (Env.findBinding E ) (Env.findVar E nm)) of
+                 NONE => print ("Unbound variable " ^ nm ^ "\n")
+               | SOME b => print (nm ^ " : " ^ PrettyPrinter.term (Env.ty b) ^ " := " ^
+                                  (case Env.def b of
+                                       NONE => "<axiom>"
+                                     | SOME d => PrettyPrinter.term d) ^ "\n"));
+             E)
+
 
     in
         go c

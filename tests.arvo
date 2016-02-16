@@ -12,3 +12,6 @@ def iff_intro : (A B : Type) -> (A -> B) -> (B -> A) -> iff A B :=
 
 compute pair.
 compute ((\x:Type. x) Type).
+
+print pair.
+print iff_intro.
