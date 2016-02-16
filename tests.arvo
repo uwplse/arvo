@@ -1,0 +1,12 @@
+def pair : Type -> Type -> Type := \A : Type. \B : Type. (C : Type) -> (A -> B -> C) -> C.
+axiom True : Type.
+axiom True_intro : True.
+axiom and : Type -> Type -> Type.
+axiom and_intro : (A B : Type) -> A -> B -> and A B.
+axiom and_elim : (A B C : Type) -> (A -> B -> C) -> and A B -> C.
+axiom False : Type.
+axiom False_elim : (C : Type) -> False -> C.
+def iff : Type -> Type -> Type := \A : Type. \B : Type. and (A -> B) (B -> A).
+def iff_intro : (A B : Type) -> (A -> B) -> (B -> A) -> iff A B :=
+    \A : Type. \B : Type. \f : A -> B. \g : B -> A. and_intro (A -> B) (B -> A) f g.
+
