@@ -1,3 +1,4 @@
 signature PRETTYPRINTER = sig
-    val prettyprint : Term.t -> string
+    val term : Term.t -> string
+    val cmd : Term.t Cmd.t -> string
 end

@@ -2,7 +2,7 @@ structure PrettyPrinter : PRETTYPRINTER = struct
   open Term
   open Ops
 
-  exception Malformed
+  exception PrettyMalformed of string
 
   datatype prec = BOT | AP | LAM | TOP
 
@@ -19,7 +19,7 @@ structure PrettyPrinter : PRETTYPRINTER = struct
   structure VarMap = SplayDict(structure Key = VarOrdered)
   structure StrSet = SplaySet(structure Elem = StringOrdered)
 
-  fun prettyprint e = 
+  fun term e =
     let fun prec_of_op Lam = LAM
           | prec_of_op Pi = LAM
           | prec_of_op Ap = AP
@@ -28,60 +28,83 @@ structure PrettyPrinter : PRETTYPRINTER = struct
           | assoc_of_prec AP = LEFT
           | assoc_of_prec TOP = NONE
           | assoc_of_prec BOT = NONE
-        fun no_parens p1 p2 a = 
+        fun no_parens p1 p2 a =
           prec_lt p1 p2 orelse (p1 = p2 andalso a = assoc_of_prec p1)
         fun getTwo [x, y] = (x,y)
-          | getTwo _ = raise Malformed
-        fun getAbs e = 
+          | getTwo _ = raise PrettyMalformed "getTwo"
+        fun getAbs e =
           case out e of
               \ (x, e) => (x, e)
-           | _ => raise Malformed
-        fun newName m s x = 
-          let fun go n str = 
+           | _ => raise PrettyMalformed "getAbs"
+        val freeM = ref VarMap.empty
+        val freeS = ref StrSet.empty
+        fun newName m s x =
+          let fun go n str =
                 let val nm = str ^ Int.toString n in
-                    if StrSet.member s nm
+                    if StrSet.member s nm orelse StrSet.member (!freeS) nm
                     then go (n + 1) str
                     else nm
                 end
               val usx = Var.toUserString x
-              val nm = if StrSet.member s usx
+              val nm = if StrSet.member s usx orelse StrSet.member (!freeS) usx
                        then go 0 usx
                        else usx
-          in 
+          in
               (VarMap.insert m x nm, StrSet.insert s nm, nm)
           end
         fun go m s p a e =
           case out e of
-              ` v => valOf (VarMap.find m v)
-            | \ _ => raise Malformed
-            | $ (f, es) => 
+              ` v => (case VarMap.find m v of
+                          SOME s => s
+                       | Option.NONE =>
+                         (case VarMap.find (!freeM) v of
+                              SOME s => s
+                           | Option.NONE =>
+                             let val (fM', fS', nm:string) = newName (!freeM) (!freeS) v
+                             in
+                                 freeM := fM';
+                                 freeS := fS';
+                                 nm
+                             end))
+            | \ _ => raise PrettyMalformed "unexpected binder in go"
+            | $ (f, es) =>
               if not (no_parens (prec_of_op f) p a)
               then "(" ^ go m s TOP NONE e ^ ")"
               else case f of
                       Type => "Type"
                     | Lam => let val (A, xB) = getTwo es
-                                 val (x, B) = getAbs xB 
-                                 val (m', s', nm) = newName m s x 
+                                 val (x, B) = getAbs xB
+                                 val (m', s', nm) = newName m s x
                              in
                                  "\\" ^ (if isFreeIn x B then nm else "_") ^ " : " ^
                                  go m s TOP NONE A ^ ". " ^ go m' s' LAM RIGHT B
                              end
                     | Pi => let val (A, xB) = getTwo es
-                                val (x, B) = getAbs xB 
-                                val (m', s', nm) = newName m s x 
+                                val (x, B) = getAbs xB
+                                val (m', s', nm) = newName m s x
                             in
-                                 (if isFreeIn x B 
+                                 (if isFreeIn x B
                                   then "(" ^ nm ^ " : " ^ go m s TOP NONE A ^ ")"
                                   else go m s LAM LEFT A) ^
                                  " -> " ^ go m' s' LAM RIGHT B
                              end
-                    | Ap => let val (A, B) = getTwo es 
-                            in 
+                    | Ap => let val (A, B) = getTwo es
+                            in
                                 go m s AP LEFT A ^ " " ^ go m s AP RIGHT B
                             end
 
     in
         go VarMap.empty StrSet.empty TOP NONE e
+    end
+
+  fun cmd c =
+    let val s =
+            case c of
+                Cmd.Def(nm,ty,d) => "def " ^ nm ^ " : " ^
+                                    term ty ^ " := " ^
+                                    term d
+    in
+        s ^ "."
     end
 
 end
