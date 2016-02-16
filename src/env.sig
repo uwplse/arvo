@@ -1,4 +1,4 @@
-signature ENV = 
+signature ENV =
 sig
   type binding
   type t
@@ -9,7 +9,7 @@ sig
 
   val empty : t
   val insert : t -> string -> binding -> t
-  val find : t -> string -> binding option
-
   val findVar : t -> string -> Var.t option
+  val findBinding : t -> Var.t -> binding option
+  val toString : t -> string
 end
