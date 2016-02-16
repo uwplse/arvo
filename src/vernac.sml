@@ -59,7 +59,7 @@ struct
     let val () = print "processing stream...\n";
         val s = ParserCombinators.transform AstParser.cmd cs
         fun go E s =
-          (print ("In environment:\n" ^ Env.toString E) ;
+          ((*print ("In environment:\n" ^ Env.toString E) ; *)
            case Stream.front s of
                Stream.Nil => E
              | Stream.Cons (c,s) =>
