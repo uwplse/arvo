@@ -46,8 +46,6 @@ struct
                                                     msg ^ "\n"); E)
     end
 
-  exception Fail of string
-
   fun processStream E cs =
     let val () = print "processing stream...\n";
         val s = ParserCombinators.transform AstParser.cmd cs
