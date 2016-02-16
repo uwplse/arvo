@@ -1,2 +1,7 @@
 #!/bin/bash
-sml @SMLload arvo-img.*
+
+if which rlwrap; then
+    rlwrap sml @SMLload arvo-img.*
+else 
+    sml @SMLload arvo-img.*
+fi
