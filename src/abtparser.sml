@@ -1,4 +1,4 @@
-structure AbtParser =
+structure AbtParser : ABTPARSER =
 struct
   open Lexer ParserCombinators
   infixr 4 << >>
@@ -18,7 +18,7 @@ struct
                      SOME v => ``v
                    | NONE => raise AstParser.ParseError ("Unbound variable " ^ x))
 
-  fun of_ast' b f Type = $$ (Ops.Type, [])
+  fun of_ast' b f Ast.Type = $$ (Ops.Type, [])
     | of_ast' b f (Lam (x, A, B)) = let val v = Var.newvar x
                                        val b' = StrDict.insert b x v
                                    in $$ (Ops.Lam, [of_ast' b f A, \\(v, of_ast' b' f B)]) end
@@ -28,14 +28,10 @@ struct
     | of_ast' b f (Ap (A, B)) = $$ (Ops.Ap, [of_ast' b f A, of_ast' b f B])
     | of_ast' b f (V x) = find_name b f x
 
-  fun of_ast f = of_ast' StrDict.empty f
+  fun of_ast f : Ast.t -> Term.t = of_ast' StrDict.empty f
 
-  fun term f = AstParser.term wth (of_ast f)
+  fun term f = of_ast f
 
-  fun defn f = (symbol "def" >> identifier && 
-                symbol ":" >> term f &&
-                symbol ":=" >> term f << symbol ".") 
-               wth Cmd.Def o flat3 
-                                                       
-  fun cmd f = defn f
+  fun cmd f (Cmd.Def(nm,ty,d)) = Cmd.Def(nm, of_ast f ty, of_ast f d)
+
 end

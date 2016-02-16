@@ -1,5 +1,5 @@
 signature ABTPARSER =
 sig
-    val term : (string -> Var.t option) -> (Term.t, char) ParserCombinators.parser
-    val cmd : (string -> Var.t option) -> (Cmd.t, char) ParserCombinators.parser
+    val term : (string -> Var.t option) -> Ast.t -> Term.t
+    val cmd : (string -> Var.t option) -> Ast.t Cmd.t -> Term.t Cmd.t
 end

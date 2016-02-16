@@ -36,5 +36,13 @@ struct
   and factor () = separate1 (force expr) (symbol "->") wth pis
   and term' () = force lambda || force factor
 
-  val term = force term' 
+  val term = force term'
+
+  val defn = (symbol "def" >> identifier &&
+                symbol ":" >> term &&
+                symbol ":=" >> term << CharParser.string ".")
+               wth Cmd.Def o flat3
+
+  val cmd = whiteSpace >> defn
+
 end
