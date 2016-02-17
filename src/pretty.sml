@@ -52,20 +52,22 @@ structure PrettyPrinter : PRETTYPRINTER = struct
           in
               (VarMap.insert m x nm, StrSet.insert s nm, nm)
           end
+        fun doVar m s v =
+          (case VarMap.find m v of
+               SOME s => s
+             | Option.NONE =>
+               (case VarMap.find (!freeM) v of
+                    SOME s => s
+                  | Option.NONE =>
+                    let val (fM', fS', nm:string) = newName (!freeM) (!freeS) v
+                    in
+                        freeM := fM';
+                        freeS := fS';
+                        nm
+                    end))
         fun go m s p a e =
           case out e of
-              ` v => (case VarMap.find m v of
-                          SOME s => s
-                       | Option.NONE =>
-                         (case VarMap.find (!freeM) v of
-                              SOME s => s
-                           | Option.NONE =>
-                             let val (fM', fS', nm:string) = newName (!freeM) (!freeS) v
-                             in
-                                 freeM := fM';
-                                 freeS := fS';
-                                 nm
-                             end))
+              ` v => doVar m s v
             | \ _ => raise PrettyMalformed "unexpected binder in go"
             | $ (f, es) =>
               if not (no_parens (prec_of_op f) p a)
@@ -92,6 +94,16 @@ structure PrettyPrinter : PRETTYPRINTER = struct
                             in
                                 go m s AP LEFT A ^ " " ^ go m s AP RIGHT B
                             end
+                    | (Form d) => #name d
+                    | (Elim d) => let val (xP, A) = getTwo es
+                                      val (x, P) = getAbs xP
+                                      val (m', s', nm) = newName m s x
+                                  in
+                                      #name d ^ "_elim(" ^
+                                      (if isFreeIn x P then nm else "_") ^ ". " ^
+                                      go m' s' TOP NONE P ^ ", " ^
+                                      go m s TOP NONE A ^ ")"
+                                  end
 
     in
         go VarMap.empty StrSet.empty TOP NONE e

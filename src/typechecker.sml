@@ -10,8 +10,7 @@ struct
   open Ops
 
   fun infertype E (e:Term.t) : Term.t =
-    let val ty = Term.$$ (Type , [])
-        fun getTwo [x, y] : Term.t * Term.t = (x, y)
+    let fun getTwo [x, y] : Term.t * Term.t = (x, y)
           | getTwo _ = raise Malformed "getTwo"
         fun getAbs e =
           case out e of
@@ -29,29 +28,29 @@ struct
             | \ (x, e) => raise Malformed "unexpected binder in go"
             | $ (f, es) =>
               (case f of
-                   Type => ty
+                   Type => Term.Type
                  | Pi   => let val (A, xB) = getTwo es
                                val (x, B) = getAbs xB
                                val tyA = go ctx A
                                val tyB = go (Context.insert ctx x tyA) B
                            in
-                               if not (Eval.equal E (tyA, ty))
+                               if not (Eval.equal E (tyA, Term.Type))
                                then raise TypeError (e, PrettyPrinter.term A ^
                                                         " has type " ^
                                                         PrettyPrinter.term tyA ^
                                                         " instead of Type")
-                               else if not (Eval.equal E (tyB, ty))
+                               else if not (Eval.equal E (tyB, Term.Type))
                                then raise TypeError (e, PrettyPrinter.term B ^
                                                         " has type " ^
                                                         PrettyPrinter.term tyB ^
                                                         " instead of Type")
-                               else ty
+                               else Term.Type
                            end
                  | Lam  => let val (A, xB) = getTwo es
                                val (x, B) = getAbs xB
                                val tyA = go ctx A
                            in
-                               if not (Eval.equal E (tyA, ty))
+                               if not (Eval.equal E (tyA, Term.Type))
                                then raise TypeError (e, "Annotation " ^
                                                         PrettyPrinter.term A ^
                                                         " has type " ^
@@ -81,7 +80,26 @@ struct
                                                          " but expected to have type " ^
                                                          PrettyPrinter.term A1))
                                else Term.subst B x A2
-                           end)
+                           end
+                 | Form d => Term.Type
+                 | Elim d => let val (xP, A) = getTwo es
+                                 val (x, P) = getAbs xP
+                                 val form = $$ (Form d, [])
+                                 val tyP = go (Context.insert ctx x form) P
+                                 val tyA = go ctx A
+                             in
+                                 if not (Eval.equal E (tyP, Term.Type))
+                                 then raise TypeError (P, "Motive expected to have type Type" ^
+                                                          " but has type " ^
+                                                          PrettyPrinter.term tyP)
+                                 else if not (Eval.equal E (tyA, form))
+                                 then raise TypeError (A, "Discriminee expected to have type " ^
+                                                          PrettyPrinter.term form ^
+                                                          " but has type " ^
+                                                          PrettyPrinter.term tyA)
+                                 else Term.subst P x A
+                             end
+              )
     in
         go Context.empty e
     end

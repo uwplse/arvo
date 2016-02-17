@@ -46,4 +46,6 @@ Group is
 
    src/tests.sml
 
+   src/data.sml
+
    src/main.sml
