@@ -26,3 +26,9 @@ def bad : (A : Type) -> A := \A : Type. False_elim (\_ : False. A) admit.
 print bad.
 compute bad.
 compute bad Type.
+
+check False.
+check bad.
+check pair.
+check False_elim.
+check (P : False -> Type) -> (x : False) -> P x.

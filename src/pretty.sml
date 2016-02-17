@@ -115,6 +115,7 @@ structure PrettyPrinter : PRETTYPRINTER = struct
                 Cmd.Def(nm,ty,d) => "def " ^ nm ^ " : " ^ term ty ^ " := " ^ term d
               | Cmd.Axiom(nm,ty) => "axiom " ^ nm ^ " : " ^ term ty
               | Cmd.Compute(e) => "compute " ^ term e
+              | Cmd.Check(e) => "check " ^ term e
               | Cmd.Print(nm) => "print " ^ nm
               | Cmd.Data(nm) => "data " ^ nm ^ " := "
     in

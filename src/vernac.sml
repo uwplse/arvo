@@ -42,6 +42,12 @@ struct
                       PrettyPrinter.term (Eval.eval E e) ^ "\n");
                E
             end
+          | go (Cmd.Check e) =
+            let val ty = TypeChecker.infertype E e
+            in
+                print (PrettyPrinter.term e ^ " : " ^ PrettyPrinter.term ty ^ "\n");
+                E
+            end
           | go (Cmd.Print nm) =
             ((case Option.join (Option.map (Env.findBinding E ) (Env.findVar E nm)) of
                  NONE => print ("Unbound variable " ^ nm ^ "\n")
