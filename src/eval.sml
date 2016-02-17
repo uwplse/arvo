@@ -16,7 +16,7 @@ structure Eval : EVAL = struct
                           case Term.out g of
                               Term.$ (Ops.Lam, [_, body]) =>
                               let val Term.\ (x, e') = Term.out body in
-                                  Term.subst v x e'
+                                  go (Term.subst v x e')
                               end
                             | _ => Term.$$ (f, es')
                       end
