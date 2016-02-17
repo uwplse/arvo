@@ -1,5 +1,5 @@
-functor Abt(O : OPERATOR) :> ABT where type Variable.t = Var.t
-                                 where type Operator.t = O.t
+functor Abt(O : OPERATOR) : ABT where type Variable.t = Var.t
+                                where type Operator.t = O.t
 =
 struct
    open List_Util
@@ -20,7 +20,6 @@ struct
    | OPER of Operator.t * t list
 
    exception AbtMalformed
-   exception NotImplemented
 
    fun bind x e =
      let fun go n (FV v)        = if Var.equal (v,x) then BV n else FV v
@@ -39,9 +38,21 @@ struct
      in (x, go 0 e)
      end
 
-   fun into (` v)     = FV v
-     | into (\ (v,e)) = ABS (v, bind v e)
-     | into ($ fes)   = OPER fes
+   fun checkOper f es =
+     let fun num_bindings (ABS (_, e)) = 1 + num_bindings e
+           | num_bindings _ = 0
+     in
+         if zipTest (op=) (Operator.arity f) (List.map num_bindings es)
+         then
+             OPER (f, es)
+         else
+             raise AbtMalformed
+     end
+
+
+   fun into (` v)      = FV v
+     | into (\ (v,e))  = ABS (v, bind v e)
+     | into ($ (f,es)) = checkOper f es
 
    fun out (FV v)       = ` v
      | out (BV _)       = raise AbtMalformed
