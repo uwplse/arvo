@@ -36,7 +36,7 @@ struct
                  | Pi   => let val (A, xB) = getTwo es
                                val (x, B) = getAbs xB
                                val tyA = go ctx A
-                               val tyB = go (Context.insert ctx x tyA) B
+                               val tyB = go (Context.insert ctx x A) B
                            in
                                if not (Eval.equal E (tyA, Term.Type))
                                then raise TypeError (SOME ctx, e,
