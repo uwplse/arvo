@@ -4,12 +4,12 @@ struct
 
   fun exec E c =
     let val () = print ("Processing command: " ^ PrettyPrinter.cmd c ^ "\n")
-        fun bind nm ty od =
-          if not (Option.isSome (Env.findVar E nm))
-          then Env.insert E nm (Env.newbinding nm ty od)
-          else raise CmdError (nm ^ " is already defined!")
+        fun welltyped E e =
+          let val ty = TypeChecker.infertype E e
+          in ()
+          end
 
-        fun expect e ty =
+        fun expect E e ty =
           if TypeChecker.checktype E e ty
           then ()
           else raise TypeChecker.TypeError
@@ -18,20 +18,26 @@ struct
                     ", but instead has type " ^
                     PrettyPrinter.term (TypeChecker.infertype E e))
 
-        fun welltyped e =
-          let val ty = TypeChecker.infertype E e
-          in ()
+        fun bind E nm ty od =
+          let val () = expect E ty Term.Type
+              val () = case od of
+                           NONE => ()
+                        | SOME d => expect E d ty
+          in
+              if not (Option.isSome (Env.findVar E nm))
+              then Env.insert E nm (Env.newbinding nm ty od)
+              else raise CmdError (nm ^ " is already defined!")
           end
 
         fun go (Cmd.Def (nm, ty, d)) =
-            let val () = expect ty Term.Type
-                val () = expect d ty
-            in bind nm ty (SOME d) end
+            let val () = expect E ty Term.Type
+                val () = expect E d ty
+            in bind E nm ty (SOME d) end
           | go (Cmd.Axiom (nm, ty)) =
-            let val () = expect ty Term.Type
-            in bind nm ty NONE end
+            let val () = expect E ty Term.Type
+            in bind E nm ty NONE end
           | go (Cmd.Compute e) =
-            let val () = welltyped e
+            let val () = welltyped E e
             in print (PrettyPrinter.term e ^ "\n==>\n" ^
                       PrettyPrinter.term (Eval.eval E e) ^ "\n");
                E
