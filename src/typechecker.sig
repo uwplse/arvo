@@ -1,6 +1,8 @@
 signature TYPECHECKER =
 sig
-  exception TypeError of Term.t * string
+  type context
+  val contextToString : context -> string
+  exception TypeError of context option * Term.t * string
   exception Malformed of string
 
   val infertype : Env.t -> Term.t -> Term.t

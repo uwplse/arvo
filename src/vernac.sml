@@ -13,9 +13,10 @@ struct
           if TypeChecker.checktype E e ty
           then ()
           else raise TypeChecker.TypeError
-                   (e, "Expected to have type " ^ PrettyPrinter.term ty ^
-                       ", but instead has type " ^
-                       PrettyPrinter.term (TypeChecker.infertype E e))
+                   (NONE, e,
+                    "Expected to have type " ^ PrettyPrinter.term ty ^
+                    ", but instead has type " ^
+                    PrettyPrinter.term (TypeChecker.infertype E e))
 
         fun welltyped e =
           let val ty = TypeChecker.infertype E e
@@ -47,9 +48,12 @@ struct
 
     in
         go c
-        handle TypeChecker.TypeError (e,msg) => (print ("Type Error in term " ^
-                                                        PrettyPrinter.term e ^ "\n" ^
-                                                        msg ^ "\n"); E)
+        handle TypeChecker.TypeError (octx, e,msg) =>
+               (print ("Type Error" ^
+                      (case octx of
+                        SOME ctx => " in context\n" ^ TypeChecker.contextToString ctx
+                        | NONE => "") ^
+                       " in term " ^ PrettyPrinter.term e ^ "\n" ^ msg ^ "\n"); E)
              | CmdError msg => (print (msg ^ "\n"); E)
              | TypeChecker.Malformed msg => (print ("Internal error in type checker! " ^
                                                     msg ^ "\n"); E)
