@@ -52,6 +52,9 @@ struct
   val print : (Ast.t Cmd.t, char) ParserCombinators.parser =
       (symbol "print" >> identifier) wth Cmd.Print
 
-  val cmd = whiteSpace >> (defn || axiom || compute || print) << CharParser.string "."
+  val data : (Ast.t Cmd.t, char) ParserCombinators.parser =
+      (symbol "data" >> identifier << symbol ":=") wth Cmd.Data
+
+  val cmd = whiteSpace >> (defn || axiom || compute || print || data) << CharParser.string "."
 
 end

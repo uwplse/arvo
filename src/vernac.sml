@@ -50,6 +50,31 @@ struct
                                        NONE => "<axiom>"
                                      | SOME d => PrettyPrinter.term d) ^ "\n"));
              E)
+          | go (Cmd.Data nm) =
+            let val d = {name = nm}
+                val tycon = Term.Form d
+                val E' = bind E nm Term.Type (SOME tycon)
+                val tycon = Term.`` (Option.valOf (Env.findVar E' nm))
+                val motiveTy = Term.Pi tycon (Term.ignore Term.Type)
+                val P = Var.newvar "P"
+                val z = Var.newvar "z"
+                val x = Var.newvar "x"
+                val elimTy = Term.Pi motiveTy (Term.\\ (P,
+                             Term.Pi tycon (Term.\\ (x, Term.Ap (Term.`` P) (Term.`` x)))))
+                val elim = Term.Lam motiveTy (Term.\\ (P,
+                           Term.Lam tycon (Term.\\ (x,
+                           Term.Elim d (Term.\\ (z, Term.Ap (Term.`` P) (Term.`` z)))
+                                       (Term.`` x)))))
+                val () = print ("Adding lambda-wrapped eliminator: " ^
+                                Term.toString elim ^ "\n" ^
+                                "Of a priori type " ^ Term.toString elimTy ^ "\n" ^
+                                "Of computed type " ^
+                                Term.toString (TypeChecker.infertype E' elim) ^ "\n"
+                               )
+                val E'' = bind E' (nm ^ "_elim") elimTy (SOME elim)
+            in
+                E''
+            end
 
 
     in

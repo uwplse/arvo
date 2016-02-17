@@ -94,7 +94,7 @@ structure PrettyPrinter : PRETTYPRINTER = struct
                             in
                                 go m s AP LEFT A ^ " " ^ go m s AP RIGHT B
                             end
-                    | (Form d) => #name d
+                    | (Form d) => #name d ^ "()"
                     | (Elim d) => let val (xP, A) = getTwo es
                                       val (x, P) = getAbs xP
                                       val (m', s', nm) = newName m s x
@@ -116,6 +116,7 @@ structure PrettyPrinter : PRETTYPRINTER = struct
               | Cmd.Axiom(nm,ty) => "axiom " ^ nm ^ " : " ^ term ty
               | Cmd.Compute(e) => "compute " ^ term e
               | Cmd.Print(nm) => "print " ^ nm
+              | Cmd.Data(nm) => "data " ^ nm ^ " := "
     in
         s ^ "."
     end

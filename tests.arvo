@@ -4,8 +4,6 @@ axiom True_intro : True.
 axiom and : Type -> Type -> Type.
 axiom and_intro : (A B : Type) -> A -> B -> and A B.
 axiom and_elim : (A B C : Type) -> (A -> B -> C) -> and A B -> C.
-axiom False : Type.
-axiom False_elim : (C : Type) -> False -> C.
 def iff : Type -> Type -> Type := \A : Type. \B : Type. and (A -> B) (B -> A).
 def iff_intro : (A B : Type) -> (A -> B) -> (B -> A) -> iff A B :=
     \A : Type. \B : Type. \f : A -> B. \g : B -> A. and_intro (A -> B) (B -> A) f g.
@@ -15,3 +13,16 @@ compute ((\x:Type. x) Type).
 
 print pair.
 print iff_intro.
+
+data False := .
+print False.
+compute False.
+print False_elim.
+compute False_elim.
+
+axiom admit : False.
+
+def bad : (A : Type) -> A := \A : Type. False_elim (\_ : False. A) admit.
+print bad.
+compute bad.
+compute bad Type.
