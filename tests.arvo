@@ -32,3 +32,42 @@ check bad.
 check pair.
 check False_elim.
 check (P : False -> Type) -> (x : False) -> P x.
+
+data unit := tt.
+print tt.
+compute tt.
+check tt.
+print unit.
+compute unit.
+check unit.
+check unit_elim.
+compute unit_elim.
+print unit_elim.
+compute (unit_elim (\_:unit. unit) tt tt).
+
+data bool := true | false.
+check bool.
+print bool.
+compute bool.
+check true.
+print true.
+compute true.
+check false.
+print false.
+compute false.
+check bool_elim.
+print bool_elim.
+
+def negb : bool -> bool := bool_elim (\_:bool. bool) false true.
+check negb.
+print negb.
+compute negb true.
+compute negb false.
+
+def andb : bool -> bool -> bool := bool_elim (\_:bool. bool -> bool) (\x:bool. x) (\_:bool. false).
+check andb.
+print andb.
+compute andb true true.
+compute andb true false.
+compute andb false true.
+compute andb false false.

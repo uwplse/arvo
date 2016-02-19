@@ -24,6 +24,8 @@ struct
    fun zipTest p [] [] = true
      | zipTest p (x :: xs) (y :: ys) = p(x, y) andalso zipTest p xs ys
      | zipTest p _ _  = false
+
+   fun butlast l = List.rev (List.tl (List.rev l))
 end
 
 

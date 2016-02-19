@@ -6,7 +6,8 @@ struct
   fun Pi A xB = $$ (Ops.Pi, [A, xB])
   fun Lam A xB = $$ (Ops.Lam, [A, xB])
   fun Ap A B = $$ (Ops.Ap, [A, B])
-  fun Form nm = $$ (Ops.Form nm, [])
-  fun Elim nm xP A = $$ (Ops.Elim nm, [xP, A])
+  fun Form d = $$ (Ops.Form d, [])
+  fun Elim d xP l A = $$ (Ops.Elim d, xP :: l @ [A])
+  fun Intro d n = $$ (Ops.Intro (d,n), [])
   fun ignore e = \\ (Var.newvar "_", e)
 end

@@ -20,7 +20,15 @@ structure Eval : EVAL = struct
                               end
                             | _ => Term.$$ (f, es')
                       end
-                    | _ => Term.$$ (f, es')
+                      | Ops.Elim(d) =>
+                        let val x = List.last es'
+                            val cases = List_Util.butlast (List.tl es')
+                        in
+                            case Term.out x of
+                                Term.$ (Ops.Intro (_,n), _) => List.nth (cases, n)
+                             | _ => Term.$$ (f, es')
+                        end
+                      | _ => Term.$$ (f, es')
               end
     in
         go e

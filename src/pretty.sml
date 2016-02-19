@@ -95,15 +95,22 @@ structure PrettyPrinter : PRETTYPRINTER = struct
                                 go m s AP LEFT A ^ " " ^ go m s AP RIGHT B
                             end
                     | (Form d) => #name d ^ "()"
-                    | (Elim d) => let val (xP, A) = getTwo es
+                    | (Elim d) => let val xP = List.hd es
+                                      val cases = List_Util.butlast (List.tl es)
+                                      val A = List.last es
                                       val (x, P) = getAbs xP
                                       val (m', s', nm) = newName m s x
+                                      fun goCases [] = ", "
+                                        | goCases (c::cs) =
+                                          ", " ^ go m s TOP NONE c ^ goCases cs
                                   in
                                       #name d ^ "_elim(" ^
                                       (if isFreeIn x P then nm else "_") ^ ". " ^
-                                      go m' s' TOP NONE P ^ ", " ^
+                                      go m' s' TOP NONE P ^
+                                      goCases cases ^
                                       go m s TOP NONE A ^ ")"
                                   end
+                    | (Intro (d,n)) => List.nth (#constructors d, n) ^ "()"
 
     in
         go VarMap.empty StrSet.empty TOP NONE e
@@ -117,7 +124,8 @@ structure PrettyPrinter : PRETTYPRINTER = struct
               | Cmd.Compute(e) => "compute " ^ term e
               | Cmd.Check(e) => "check " ^ term e
               | Cmd.Print(nm) => "print " ^ nm
-              | Cmd.Data(nm) => "data " ^ nm ^ " := "
+              | Cmd.Data(nm,cs) => "data " ^ nm ^ " := " ^
+                                   String.concatWith " | " cs
     in
         s ^ "."
     end

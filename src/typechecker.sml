@@ -26,6 +26,21 @@ struct
             | NONE => (case Env.findBinding E v of
                            SOME b => Env.ty b
                          | NONE => raise TypeError (SOME ctx, e, "Unbound variable " ^ Variable.toString v))
+        fun expect ctx e tye ty_expect =
+          if not (Eval.equal E (tye, ty_expect))
+          then
+              raise TypeError (SOME ctx, e,
+                               "has type " ^ PrettyPrinter.term tye ^
+                               " but expected to have type " ^ PrettyPrinter.term ty_expect)
+          else ()
+        fun getPi ctx e ty =
+              case out (Eval.eval E ty) of
+                  $ (Pi, [A1, xA2]) => (A1, xA2)
+                | _ => raise TypeError (SOME ctx, e,
+                                        "Expected lhs of application " ^
+                                        "to have pi type, but got " ^
+                                        PrettyPrinter.term ty)
+
         fun go ctx e =
           case out e of
               ` v => getVar ctx e v
@@ -36,80 +51,56 @@ struct
                  | Pi   => let val (A, xB) = getTwo es
                                val (x, B) = getAbs xB
                                val tyA = go ctx A
+                               val () = expect ctx A tyA Term.Type
                                val tyB = go (Context.insert ctx x A) B
+                               val () = expect ctx B tyB Term.Type
                            in
-                               if not (Eval.equal E (tyA, Term.Type))
-                               then raise TypeError (SOME ctx, e,
-                                                     PrettyPrinter.term A ^
-                                                     " has type " ^
-                                                     PrettyPrinter.term tyA ^
-                                                     " instead of Type")
-                               else if not (Eval.equal E (tyB, Term.Type))
-                               then raise TypeError (SOME ctx, e,
-                                                     PrettyPrinter.term B ^
-                                                     " has type " ^
-                                                     PrettyPrinter.term tyB ^
-                                                     " instead of Type")
-                               else Term.Type
+                               Term.Type
                            end
                  | Lam  => let val (A, xB) = getTwo es
                                val (x, B) = getAbs xB
                                val tyA = go ctx A
+                               val () = expect ctx A tyA Term.Type
+                               val tyB = go (Context.insert ctx x A) B
                            in
-                               if not (Eval.equal E (tyA, Term.Type))
-                               then raise TypeError (SOME ctx, e,
-                                                     "Annotation " ^
-                                                     PrettyPrinter.term A ^
-                                                     " has type " ^
-                                                     PrettyPrinter.term tyA ^
-                                                     " instead of Type")
-                               else let val tyB = go (Context.insert ctx x A) B
-                                    in
-                                        $$ (Pi, [A, \\ (x, tyB)])
-                                    end
+                               Term.Pi A (\\ (x, tyB))
                            end
                  | Ap   => let val (A, B) = getTwo es
                                val tyA = go ctx A
-                               val (A1, xA2) =
-                                   case out (Eval.eval E tyA) of
-                                       $ (Pi, [A1, xA2]) => (A1, xA2)
-                                     | _ => raise TypeError (SOME ctx, e,
-                                                             "Expected lhs of application " ^
-                                                             "to have pi type, but got " ^
-                                                             PrettyPrinter.term tyA)
+                               val (A1, xA2) = getPi ctx A tyA
                                val (x, A2) = getAbs xA2
                                val tyB = go ctx B
+                               val () = expect ctx B tyB A1
                            in
-                               if not (Eval.equal E (A1, tyB))
-                               then raise (TypeError (SOME ctx, e,
-                                                      "In application, argument " ^
-                                                      PrettyPrinter.term B ^
-                                                      " has type " ^
-                                                      PrettyPrinter.term tyB ^
-                                                      " but expected to have type " ^
-                                                      PrettyPrinter.term A1))
-                               else Term.subst B x A2
+                               subst B x A2
                            end
                  | Form d => Term.Type
-                 | Elim d => let val (xP, A) = getTwo es
+                 | Elim d => let val xP = List.hd es
                                  val (x, P) = getAbs xP
-                                 val form = $$ (Form d, [])
+                                 val form = Term.Form d
                                  val tyP = go (Context.insert ctx x form) P
+                                 val () = expect ctx P tyP Term.Type
+
+                                 val cases = List_Util.butlast (List.tl es)
+                                 fun checkcases [] _ = ()
+                                   | checkcases (H::Hs) (cnm::cnms) =
+                                     let val ty = go ctx H
+                                         val SOME cvar = Env.findVar E cnm
+                                         val () = expect ctx H ty (subst (`` cvar) x P)
+                                     in
+                                         checkcases Hs cnms
+                                     end
+                                   | checkcases _ _ = raise Malformed "Elim"
+                                 val () = checkcases cases (#constructors d)
+
+                                 val A = List.last es
                                  val tyA = go ctx A
+                                 val () = expect ctx A tyA form
+
                              in
-                                 if not (Eval.equal E (tyP, Term.Type))
-                                 then raise TypeError (SOME ctx, P,
-                                                       "Motive expected to have type Type" ^
-                                                       " but has type " ^
-                                                       PrettyPrinter.term tyP)
-                                 else if not (Eval.equal E (tyA, form))
-                                 then raise TypeError (SOME ctx, A,
-                                                       "Discriminee expected to have type " ^
-                                                       PrettyPrinter.term form ^
-                                                       " but has type " ^
-                                                       PrettyPrinter.term tyA)
-                                 else Term.subst A x P
+                                 subst A x P
                              end
+                 | Intro (d,n) => Term.Form d
               )
     in
         go Context.empty e
